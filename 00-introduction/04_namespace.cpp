@@ -17,8 +17,8 @@ int main() {
     */
    
     using namespace second;
-    int x = 0;
-    std::cout << second::x ;
+    std::cout << x << "\n";
+    std::cout << first::x << "\n";
         
     return 0;
 
