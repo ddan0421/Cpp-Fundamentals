@@ -26,6 +26,31 @@ int main(){
 
   std::cout << "The area of the rectangle is " << area << std::endl;
 
+
+
+  /*
+   * Type Conversion
+   */ 
+
+  /*
+   * Hierachy of Types
+   * Highest: long double 
+   * double
+   * float
+   * unsigned long
+   * long
+   * unsigned int
+   * Lowest: int
+   * Ranked by largest number they can hold.
+   */
+
+  /*
+   * Type Coercion - automatic conversion of an operand to another data type
+   * Promotion: convert to a higher type
+   * Demotion: convert to a lower type 
+   */ 
+
+
   return 0;
 
 }
