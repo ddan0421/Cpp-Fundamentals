@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <string>
 using namespace std;
 
 int main()
@@ -14,6 +15,10 @@ int main()
 	int	quantity;		// contains the amount of items purchased 
 	float itemPrice;	// contains the price of each item
 	float totalBill;	// contains the total bill.
+  string itemName;
+
+  cout << "Please input the name of the item" << endl;
+  getline(cin, itemName);
 
 	cout << setprecision(2) << fixed << showpoint;	// formatted output 
 	cout << "Please input the number of items bought" << endl;
@@ -32,6 +37,7 @@ int main()
 
 	// Fill in the output statement to print total bill,
 	// with a label to the screen.
+  cout << "The item that you bought is " << itemName << endl;
   cout << "The total bill is $" << totalBill << endl;
 
 	return 0;
