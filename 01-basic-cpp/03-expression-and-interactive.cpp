@@ -2,6 +2,7 @@
 #include <string>
 #include <iomanip>
 #include <limits>
+#include <random>
 
 /*
 * Using cin to input. It reads data from keyboard and stores
@@ -127,6 +128,8 @@ int main(){
   
 
 
+
+  // Stream Manipulators
   /*
    * fixed: use decimal notation for floating-point values
    * setprecision(x): when used with fixed, print floating-point value
@@ -188,6 +191,123 @@ int main(){
 
   std::cout << "Hello, " << name << std::endl;
   std::cout << "You live in " << city << std::endl;
+
+  // Do not mix cin >> with getline 
+  /*
+   * cin >> age leaves a \n in the buffer
+   * getline immediately consumes it
+   */ 
+
+
+  /*
+   * Use cin.get()
+   *
+   * Use cin:
+   * char ch;
+   * cout << "Strike any key to continue"
+   * cin >> ch; 
+   * Problem: will skip over blanks, tabs, <CR>
+   *
+   * Use cin.get():
+   * cin.get(ch);
+   * Will read the next character entered, even whitespace
+   */ 
+
+  char chr;
+
+  std::cout << "This program has paused. Press Enter to contniue. ";
+  std::cin.get(chr);
+  std::cout << "It has paused a second time. Please press Enter again. ";
+  chr = std::cin.get();
+  std::cout << "It has paused a third time. Please press Enter again. ";
+  std::cin.get();
+  std::cout << "Thank you!";
+
+ /*
+  * Mixing cin >> and cin.get() in the same program
+  * can cause input errors that are hard to detect 
+  *
+  * To skip over unneeded characters that are still in 
+  * the keyboard buffer, use cin.ignore():
+  */ 
+
+  // skip next char
+  std::cin.ignore();
+
+  // skip the next 10 chars or until '\n'
+  std::cin.ignore(10, '\n');
+
+  /*
+   * string member functions and operators 
+   */ 
+
+  // To find the length of a string: 
+  std::string state = "Texas";
+  int size = state.length();
+
+  // Toe concatenate (join) multiple strings:
+  std::string greeting2, greeting1, name1;
+  greeting1 = "Hi";
+  name1 = "Dan";
+  greeting2 = greeting1 + name1;
+  
+  std::cout << "greeting2 is " << greeting2 << std::endl;
+
+
+
+
+  /* More Math Library functions
+   *
+   * Require cmath header file 
+   * Take double as input, return a double
+   * commonly used functions:
+   * sin
+   * cos 
+   * tan 
+   * sqrt
+   * log 
+   * abs 
+   *
+   *
+   * These requires cstdlib header file
+   * rand(): return a random number (int)
+   * between 0 and the largest int the compute holds.
+   * Yields same sequence of numbers each time program is run 
+   *
+   * srand(x): initalizes random number generator with unsigned int x 
+   *
+   */ 
+
+
+
+
+  /*
+   * Generating Random Number
+   * Must have #include <random>
+   *
+   * Create the following objects:
+   * A random number engine to generate a random sequence of bits 
+   * A distribution object to format the bits into numbers of a specific data type,
+   * within a specified ranged 
+   */ 
+
+  std::random_device myEngine;
+  std::uniform_int_distribution<int> randomInt(0,100);
+  int number = randomInt(myEngine);
+
+  std::cout << "Random generated num: " << number << std::endl;
+
+  const int MIN = 1;
+  const int MAX = 6;
+  
+  std::random_device engine;
+
+  std::uniform_int_distribution<int> diceValue(MIN, MAX);
+
+  std::cout << "Rolling the dice ... \n";
+  std::cout << diceValue(engine) << std::endl;
+  std::cout << diceValue(engine) << std::endl;
+  std::cout << diceValue(engine) << std::endl;
 
 
   return 0;
