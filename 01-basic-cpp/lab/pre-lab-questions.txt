@@ -1,0 +1,23 @@
+1. What is the final value (in C++) of the following expression?
+(5 - 16 / 2 * 3 + (3 + 2 / 2) - 5)
+
+
+
+2. How would the following expression be written in C++?
+2x + 34
+
+3. Implicit conversion is also known as data type .
+
+4. Explicit type conversion is also known as type .
+
+5. List the preprocessor directive that must be included for cin and cout to be used in a C++ program.
+
+6. Blank spaces or unseen control characters in a data file are referred to as.
+
+7. The << in a cout statement is called the operator.
+
+8. The #include< > is needed for formatted output.
+
+9. The '\n' is a special character that .
+
+
