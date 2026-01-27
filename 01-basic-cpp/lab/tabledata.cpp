@@ -1,7 +1,7 @@
 // This program will bring in two prices and two quantities of items
 // from the keyboard and print those numbers in a formatted chart.
 
-//PLACE YOUR NAME HERE
+// Dan Dan
 
 #include <iostream>
 #include <iomanip> // Fill in the code to bring in the library for
