@@ -18,7 +18,7 @@ int main(){
   getline(cin, color);
   cout << "Please enter the name of a key guest or speaker:" << endl;
   getline(cin, speaker);
-  cout << "Plesae enter the number of guests expected:" <<endl;
+  cout << "Please enter the number of guests expected:" <<endl;
   cin >> numGuests;
   
   cin.ignore();
