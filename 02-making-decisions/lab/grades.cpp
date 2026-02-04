@@ -15,13 +15,13 @@ int main()
 
   if (average > 100)
     cout << "Invalid data" << endl;
-  else if (average >= 90 && average <= 100)
+  else if (average >= 90)
     cout << "'A' category" << endl;
-  else if (average >= 80 && average <= 89)
+  else if (average >= 80)
     cout << "'B' category" << endl;
-  else if (average >= 60 && average <= 79) // average >= 60 will pass
+  else if (average >= 60) // average >= 60 will pass
     cout << "You Pass" << endl;
-  else if (average >= 0 && average <= 59)
+  else if (average >= 0)
     cout << "You Fail" << endl;
   else
     cout << "Invalid data" << endl; // extra line to handle average < 0
