@@ -1,17 +1,25 @@
 1. The two possible values for a relational expression are true and false.
+
 2. C++ uses the symbol && to represent the AND operator.
+
 3. The switch statement and if statements are examples of conditional statements.
+
 4. In C++ is the meaning of the OR logical operator inclusive or exclusive? Inclusive 
+
 5. C++ uses the || symbol to represent the OR operator.
+
 6. It is good programming practice to do what to the operand after the NOT
 operator? Enclose the operand after the (!) operator in parentheses
-7. The switch statement uses the value of a(n) expression
+
+7. The switch statement uses the value of a(n) integer expression
 to determine which group of statements to branch through.
-8. In a switch statement the branch is followed if none of
+
+8. In a switch statement the default branch is followed if none of
 the case expressions match the given switch expression.
-9. C++ allows the programmer to compare numeric values using
-.
-10. The C++ symbol for equality is .
+
+9. C++ allows the programmer to compare numeric values using relational operators.
+
+10. The C++ symbol for equality is ==.
 
 
 
