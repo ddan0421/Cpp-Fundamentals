@@ -8,18 +8,20 @@ using namespace std;
 
 int main()
 {
-  int num1, // num1 is not initialized
-  num2 = 5; // num2 has been initialized to 5
+  int num1, num2; // num1 is not initialized
 
   cout << "Please enter an integer" << endl;
   cin >> num1;
 
+  cout << "Please enter another integer" << endl;
+  cin >> num2;
+
   cout << "num1 = " << num1 << " and num2 = " << num2 << endl;
 
-  if (num1 = num2)
-    cout << "Hey, that’s a coincidence!" << endl;
+  if (num1 == num2) // == is equality and = is assignment
+    cout << "The values are the same. \nHey that's a coincidence!" << endl;
 
-  if (num1 != num2)
+  else
     cout << "The values are not the same" << endl;
 
   return 0;
