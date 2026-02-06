@@ -1,0 +1,19 @@
+Exercise 1: replace gpa >= 2.0 with !(gpa < 2.0)
+Exercise 2: you shouldn't replace with year < 4 or year <=3 because year is char type
+
+Exercise 3:
+for this (gpa >= 2.0 || year == '4'), this means that a student with a GPA of 2.0 or higher will get the message "It's time to graduate soon" regardless of year. 
+
+Also if a student with a Year = '4', regardless of GPA.
+
+So this graduation requirement is very loose...
+
+For the else if statement: (year != '4' && gpa < 2.0) which indicates who needs more school. This statement is a little overly strict because it will print true if both of these are true:
+- student is not in year 4 and gpa below 2.0.
+
+All combinations of year and gpa will be handled but the logic of this version is not correct or realistic.
+
+
+Exercise 4:
+Yes you can replace the else if to simply else statement.
+

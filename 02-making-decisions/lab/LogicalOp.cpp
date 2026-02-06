@@ -18,10 +18,11 @@ int main()
   cout << "Now enter your GPA" << endl;
   cin >> gpa;
 
-  if (gpa >= 2.0 && year == '4')
+  if (gpa >= 2.0 && year == '4') // Exercise 1: can replace gpa >= 2.0 with !(gpa < 2.0)
     cout << "It is time to graduate soon" << endl;
 
-  else if (year != '4' || gpa <2.0)
+  else
+  // else if (year != '4' || gpa <2.0)// Exercise 2: you shouldn't replace with year < 4 or year <=3 because year is char type
     cout << "You need more schooling" << endl;
 
   return 0;
