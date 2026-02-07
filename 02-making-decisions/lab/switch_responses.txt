@@ -1,0 +1,4 @@
+Exercise 1: If I delete all the break statements, the program will continue down to the following cases until the end of the switch is reached. This fall-through behavior will stopped with abreak statement if this break statement is reached.
+
+Exercise 3: I used the trailing else in my new if-else version. It corresponds to the default in switch statement.
+ 
