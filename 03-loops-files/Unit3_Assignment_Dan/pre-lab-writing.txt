@@ -1,0 +1,20 @@
+1. A block of code that repeats forever is called an infinite loop.
+2. To keep track of the number of times a particular loop is repeated, one
+can use a(n) counter.
+3. An event controlled loop that is always executed at least once is the
+post-test or bottom test loop.
+4. An event controlled loop that is not guaranteed to execute at least once is
+the pre-test or top test loop.
+5. In the conditional if(++number < 9), the comparison number < 9 is made second
+and number is incremented first. (Choose first or second for each blank.)
+6. In the conditional if(number++ < 9), the comparison number < 9 is made first
+and number is incremented second. (Choose first or second for each blank.)
+7. A loop within a loop is called a nested loop.
+8. List the preprocessor directive that is used to allow data and output files to
+be used in the program. #include <fstream>
+9. To write out the first 12 positive integers and their cubes, one should use
+a(n) for loop.
+10. A(n) value is used to indicate the end of a list of values. Sentinel values
+It can be used to control a while loop.
+11. In a nested loop the inner loop goes through all of its iterations
+for each iteration of the out loop. (Choose inner or outer for each blank.)
