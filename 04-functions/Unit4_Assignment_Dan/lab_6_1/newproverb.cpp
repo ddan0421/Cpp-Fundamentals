@@ -27,7 +27,7 @@ int main() {
        << endl;
 
   /*
-  comeut << "Input a 1 if you want the sentence to be finished with party"
+  cout << "Input a 1 if you want the sentence to be finished with party"
        << endl;
   cout << "Input a 2 if you want the sentence to be finished with country"
        << endl;
