@@ -1,0 +1,11 @@
+1. The word void precedes the name of every function prototype and heading that does not return a value back to the calling routine.
+2. Pass by value indicates that a copy of the actual parameter is placed in the memory location of its corresponding formal parameter.
+3. Actual parameters are found in the call to a function.
+4. A prototype must give the data type of its formal parameters and may give their names for the formal parameters.
+5. A  & after a data type in the function heading and in the prototype indicates that the parameter will be passed by reference.
+6. Functions that do not return a value are often called procedures in other programming languages.
+7. Pass by reference indicates that the location of an actual parameter, rather than just a copy of its value, is passed to the called function.
+8. A call must have the names of its actual parameters and must NOT have the data type of those parameters.
+9. A scope refers to the region of a program where a variable is "active."
+10. Names and data types of formal parameters are found in the function heading.
+
