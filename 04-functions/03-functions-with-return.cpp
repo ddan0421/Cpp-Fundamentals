@@ -177,6 +177,24 @@ int square(int num) { return num * num; }
 double square(double num) { return num * num; }
 
 /*
+ * exit() function
+ * - terminates the execution of a program
+ * - Can be called from any function
+ * - Can pass an int value to operating system to indicate satatus of program
+ * termination
+ * - Usually used for abnormal termination of program
+ * - requires cstdlib header file
+ *
+ *   example:
+ *    exit(0);
+ *
+ * - The cstdlib header defines two constants that are commonly passed, to
+ * indicate success or failure:
+ *   - exit(EXIST_SUCCESS);
+ *   - exit(EXIST_FAILURE);
+ */
+
+/*
  * A stub is nothing more than a dummy function that is called
  * instead of the actual function. It usually does little more than write a
  * message to the screen indicating that it was called with certain arguments.
