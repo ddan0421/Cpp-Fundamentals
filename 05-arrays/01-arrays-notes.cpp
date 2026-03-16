@@ -140,8 +140,20 @@ int main() {
   average_testsNums = sum_testsNums / 4;
   cout << "The average of testsNums[] array is " << average_testsNums << endl;
 
-  // Finding the Highest and Lowest Value in an array
-
+  // Finding the Highest and Lowest Value in an array (using testsNums[])
+  // int testsNums[] = {10, 20, 45, 29};
+  int highest, lowest;
+  highest = testsNums[0];
+  lowest = testsNums[0];
+  for (int i = 1; i < 4; i++) {
+    if (testsNums[i] > highest) {
+      highest = testsNums[i];
+    } else if (testsNums[i] < lowest) {
+      lowest = testsNums[i];
+    }
+  }
+  cout << "highest number in {10, 20, 45, 29} is " << highest << endl;
+  cout << "lowerest number in {10, 20, 45, 29} is " << lowest << endl;
   return 0;
 }
 
