@@ -1,4 +1,5 @@
 #include <array>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 
@@ -154,6 +155,80 @@ int main() {
   }
   cout << "highest number in {10, 20, 45, 29} is " << highest << endl;
   cout << "lowerest number in {10, 20, 45, 29} is " << lowest << endl;
+
+  /*
+   * Comparing arrays
+   * - must compare element-by-element;
+   */
+  const int SIZE_2 = 5;
+  int firstArray[SIZE_2] = {5, 10, 15, 20, 25};
+  int secondArray[SIZE_2] = {5, 10, 15, 20, 25};
+  bool arraysEqual = true; // Flag variable
+  int count = 0;           // Loop counter variable
+  // Compare the two arrays.
+  while (arraysEqual && count < SIZE_2) {
+    if (firstArray[count] != secondArray[count])
+      arraysEqual = false;
+    count++;
+  }
+  if (arraysEqual)
+    cout << "The arrays are equal.\n";
+  else
+    cout << "The arrays are not equal.\n";
+
+  /*
+   * Structured Binding Declarations
+   *  - A structured binding declaration defines a set of variables and
+   * initializes them with the values that are stored in an array.
+   *  - introduced in C++ 17
+   *  - General format: auto [var1, var2, etc...] = array;
+   *
+   *
+   *  If an array has been passed as an argument into a function, you cannot use
+   * a structured binding declaration in the receiving function to unpack the
+   * array.␋ This is because the compiler does not know the size of the array
+   * that might be passed into the parameter. You can only use a structured
+   * binding declaration to unpack an array that has a known size. For example,
+   * one that has been defined in the same function as where the structured
+   * binding declaration is used.
+   */
+
+  int testScores[] = {80, 90, 100};
+  auto [score1, score2, score3] =
+      testScores; // testScores are unpacked into three variables
+  cout << score1 << endl;
+  cout << score2 << endl;
+  cout << score3 << endl;
+
+  /* Using parallel arrays
+   *  - parallel arrays: two or more arrays that contain related data
+   *  - A subscript is used to relate arrays: elements at same subscript are
+   * related
+   *  - Arrays may be of different types
+   */
+
+  const int NUM_EMPLOYEES = 5;
+  int hours[NUM_EMPLOYEES];
+  double payRate[NUM_EMPLOYEES];
+
+  cout << "Enter the hours worked by " << NUM_EMPLOYEES
+       << " employees and their \n"
+       << "hourly pay rates.\n";
+  for (int index = 0; index < NUM_EMPLOYEES; index++) {
+    cout << "Hours worked by employee #" << (index + 1) << ": ";
+    cin >> hours[index];
+    cout << "Hourly pay rate for employee #" << (index + 1) << ": ";
+    cin >> payRate[index];
+  }
+
+  cout << "Here is gross pay for each employee:\n";
+  cout << fixed << showpoint << setprecision(2);
+  for (int index = 0; index < NUM_EMPLOYEES; index++) {
+    double grossPay = hours[index] * payRate[index];
+    cout << "Employee #" << (index + 1);
+    cout << ": $" << grossPay << endl;
+  }
+
   return 0;
 }
 
