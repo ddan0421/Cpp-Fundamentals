@@ -20,6 +20,7 @@ float findAverage(const int array[], int sizeOfArray);
 // stored in an array. The word const in front of the
 // data type of the array prevents the function from
 // altering the array
+// float findAverage (const int [], int); // prototype without named parameters
 
 int main() {
 
@@ -61,6 +62,85 @@ int main() {
    */
   int quizzes[] = {12, 14, 23, 10};
   printArray(quizzes);
+
+  /* No Bounds Checking in C++
+   * When you use a value as an array subscript, C++ does not check it to make
+   * sure it is a valid subscript. In other words, you can use subscripts that
+   * re beyond the bounds of the array. Be careful not to use invalid
+   * subscripts. Doing so can correupt other memory locations, crash program, or
+   * lock up computer, and cause elusive bugs.
+   */
+
+  /* Arrays as Arguments
+   * Arrays can be passed as arguments (parameters) to functions. Although
+   * varaiables can be passed by value or reference, arrays are always passed by
+   * pointer, which is similar to pass by reference, since it is not efficient
+   * to make a "copy" of all elements of the array.
+   *
+   * Pass by Pointer, similar to pass by reference parameters, can be altered by
+   * the calling function. However, they NEVER have the & symbol between the
+   * data type and name, as pass by reference parameters do.
+   */
+
+  int grades[TOTALGRADES];         // defines an array that holds up to 50 ints
+  int numberOfGrades = 0;          // the number of grades read in
+  float average;                   // the average of all grades read in
+  getData(grades, numberOfGrades); // getData is called to read the grades into
+                                   // the array and store how many grades there
+                                   // are in numberOfGrades
+  average = findAverage(grades, numberOfGrades);
+  cout << endl
+       << "The average of the " << numberOfGrades << " grades read in is "
+       << average << "." << endl
+       << endl;
+
+  /* The Rnage-Based for loop
+   *  - a loop that iterates once for each element in an array.
+   *  - Each time the loop iterates, it copies an element from the array to a
+   * built-in variable, known as the range variable
+   *  - automatically knows the number of elements in an array.
+   *  - Do not have to use a counter variable.
+   *  - Do not have to worry about stepping outside the bounds of the array.
+   *
+   *  Example:
+   *  for (dataType rangeVariable : array)
+   *    statement;
+   *   - dataType is the data type of the range variable.
+   *   - rangeVariable is the name of the range variable. This variable will
+   * receive the value of a different array element during each loop iteration.
+   *   - array is the name of an array on which you wish the loop to operate.
+   *   - statement is a statement that executes during a loop iteration. If you
+   * need to execute more than one statement in the loop, enclose the statements
+   * in a set of braces.
+   *
+   */
+
+  //  ex to print out a array's value: alternative to printArray():
+  int testsNums[] = {10, 20, 45, 29};
+  for (const auto &val : testsNums) {
+    cout << val << endl;
+  }
+  /* Note:
+   * treating val as a refernce (add &) avoids copying elements
+   * having const prevents modification
+   * using auto works for any type if reused
+   */
+
+  /*
+   * When using ++, -- operators, don't confuse the element with the subscript:
+   * tests[i]++; // add 1 to tests[i]
+   * tests[i++]; // increment i, no effect on tests
+   */
+
+  // Summing and Averaging array elements (operate on testsNums[])
+  double average_testsNums, sum_testsNums = 0;
+  for (int i = 0; i < 4; i++) {
+    sum_testsNums += testsNums[i];
+  }
+  average_testsNums = sum_testsNums / 4;
+  cout << "The average of testsNums[] array is " << average_testsNums << endl;
+
+  // Finding the Highest and Lowest Value in an array
 
   return 0;
 }
