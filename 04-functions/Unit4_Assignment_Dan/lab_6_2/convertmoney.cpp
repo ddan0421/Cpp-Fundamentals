@@ -1,6 +1,6 @@
 #include <iomanip>
 #include <iostream>
-#include <ostream>
+
 using namespace std;
 
 // This program will input American money and convert it to foreign currency
