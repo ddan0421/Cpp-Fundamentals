@@ -1,0 +1,17 @@
+1. The first subscript of every array in C++ is 0 and the last is 
+one less than the total number of locations in the array.
+2. The amount of memory allocated to an array is based on the type of data to be stored
+and the number of locations or size of the array.
+3. Array initialization and processing is usually done inside a loop.
+4. The typedef statement can be used to declare an array type and
+is often used for multidimensional array declarations so that when passing
+arrays as parameters, brackets do not have to be used.
+5. Multi-dimensional arrays are usually processed within nested for loops.
+6. Arrays used as arguments are always passed by pointer.
+7. In passing an array as a parameter to a function that processes it, it is often
+necessary to pass a parameter that holds the actual number of elements used in the array.
+8. A string is an array of characters.
+9. Upon exiting a loop that reads values into an array, the variable used as
+a(n) counter to the array will contain the size of that array.
+10. An n-dimensional array will be processed within n nested
+loops when accessing all members of the array.
