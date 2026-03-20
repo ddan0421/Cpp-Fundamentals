@@ -98,7 +98,7 @@ int main() {
 
 float findGradeAvg(GradeType array, int numGrades) {
   // Fill in the code for this function
-  float sum, average;
+  float sum = 0, average;
   for (int i = 0; i < numGrades; i++) {
     sum += array[i];
   }
@@ -120,13 +120,13 @@ float findGradeAvg(GradeType array, int numGrades) {
 
 char findLetterGrade(float numGrade) {
   // Fill in the code for this function
-  if (numGrade >= 90 & numGrade <= 100)
+  if (numGrade >= 90 && numGrade <= 100)
     return 'A';
-  else if (numGrade >= 80 & numGrade <= 89)
+  else if (numGrade >= 80 && numGrade <= 89)
     return 'B';
-  else if (numGrade >= 70 & numGrade <= 79)
+  else if (numGrade >= 70 && numGrade <= 79)
     return 'C';
-  else if (numGrade >= 60 & numGrade <= 69)
+  else if (numGrade >= 60 && numGrade <= 69)
     return 'D';
   else
     return 'F';
