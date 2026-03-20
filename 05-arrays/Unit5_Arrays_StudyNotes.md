@@ -94,6 +94,7 @@ int quizzes[] = {12, 14, 23, 10};
 ### 2.3 No Bounds Checking
 
 C++ does **NOT** check if a subscript is valid. Using an out-of-bounds subscript can:
+
 - Corrupt other memory locations
 - Crash the program
 - Lock up the computer
@@ -120,6 +121,7 @@ tests[i++]; // Accesses tests[i], THEN increments i (does NOT change tests)
 ### 2.5 Arrays as Function Arguments (Pass by Pointer)
 
 Arrays are **always** passed by pointer (similar to pass by reference). This means:
+
 - The function receives the **address** of the array, not a copy
 - The function **can modify** the original array
 - There is **no `&` symbol** in the parameter (unlike regular pass-by-reference)
@@ -946,10 +948,10 @@ These are the key takeaways from the pre-lab writing and course material:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  C++ ARRAYS CHEAT SHEET                  │
+│                  C++ ARRAYS CHEAT SHEET                 │
 ├─────────────────────────────────────────────────────────┤
 │ DECLARE:    int arr[SIZE];                              │
-│ INIT:       int arr[5] = {1,2,3,4,5};                  │
+│ INIT:       int arr[5] = {1,2,3,4,5};                   │
 │ IMPLICIT:   int arr[] = {1,2,3};                        │
 │ PARTIAL:    int arr[5] = {1,2};  // rest are 0          │
 │ ACCESS:     arr[0], arr[1], ... arr[SIZE-1]             │
