@@ -93,7 +93,7 @@ int main() {
        << average << "." << endl
        << endl;
 
-  /* The Rnage-Based for loop
+  /* The Range-Based for loop
    *  - a loop that iterates once for each element in an array.
    *  - Each time the loop iterates, it copies an element from the array to a
    * built-in variable, known as the range variable
