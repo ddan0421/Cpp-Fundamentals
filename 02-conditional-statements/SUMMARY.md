@@ -371,7 +371,71 @@ The `default` case corresponds to the trailing `else`.
 
 ---
 
-## 6. Key Takeaways
+## 6. The Conditional Operator (Ternary Operator)
+
+The **conditional operator** (`? :`) is a compact alternative to `if`/`else` for simple two-way decisions. It is the only C++ operator that takes **three operands**, which is why it is also called the **ternary operator**.
+
+### Syntax
+
+```cpp
+condition ? expression_if_true : expression_if_false;
+```
+
+| Part | Role |
+|------|------|
+| `condition` | A boolean expression that is evaluated first. |
+| `?` | Separates the condition from the true branch. Read it as "then." |
+| `expression_if_true` | Evaluated and returned when `condition` is `true`. |
+| `:` | Separates the two outcomes. Read it as "otherwise." |
+| `expression_if_false` | Evaluated and returned when `condition` is `false`. |
+
+### Breaking Down an Example
+
+```cpp
+x < 0 ? y = 10 : z = 20;
+```
+
+| Part | Meaning |
+|------|---------|
+| `x < 0` | **Condition** — checks whether `x` is negative. |
+| `?` | "If that is true, then…" |
+| `y = 10` | **True branch** — if `x` is negative, assign 10 to `y`. |
+| `:` | "Otherwise…" |
+| `z = 20` | **False branch** — if `x` is zero or positive, assign 20 to `z`. |
+
+So if `x` is `-5`, `y` becomes `10`. If `x` is `3`, `z` becomes `20`.
+
+### Using the Result Directly
+
+The conditional operator **produces a value**, so it can appear anywhere a value is expected — inside an assignment, a function call, or an output statement:
+
+```cpp
+int absValue = (x < 0) ? -x : x;          // store the absolute value of x
+
+cout << "You have " << count << ((count == 1) ? " item" : " items") << endl;
+```
+
+### Nested Conditional Operators
+
+You can chain them, but readability drops quickly. Use sparingly:
+
+```cpp
+string category = (score >= 90) ? "A"
+                : (score >= 80) ? "B"
+                : (score >= 70) ? "C"
+                :                 "F";
+```
+
+An `if`/`else if`/`else` chain is usually clearer for more than two branches.
+
+### When to Use
+
+- **Use it** for short, simple assignments or inline expressions where `if`/`else` would feel verbose.
+- **Avoid it** when the branches contain multiple statements or complex logic — an `if`/`else` is more readable in those cases.
+
+---
+
+## 7. Key Takeaways
 
 | Concept | When to Use |
 |---------|-------------|
@@ -379,6 +443,7 @@ The `default` case corresponds to the trailing `else`.
 | `if` / `else if` / `else` | Multi-way decisions based on ranges or complex conditions |
 | Nested `if` | A decision depends on a prior decision |
 | `switch` | Multi-way decisions on a single integer/char value with discrete options |
+| Conditional operator (`? :`) | Short, simple two-way assignments or inline expressions |
 | Logical operators | Combining or negating conditions |
 | Trailing `else` / `default` | Catch-all for invalid input or unexpected values |
 
@@ -393,7 +458,7 @@ The `default` case corresponds to the trailing `else`.
 
 ---
 
-## 7. Pre-Lab Writing Answers
+## 8. Pre-Lab Writing Answers
 
 | # | Question | Answer |
 |---|----------|--------|
@@ -410,7 +475,7 @@ The `default` case corresponds to the trailing `else`.
 
 ---
 
-## 8. Lab Exercises Summary
+## 9. Lab Exercises Summary
 
 | Lab | File | What You Practiced |
 |-----|------|--------------------|
