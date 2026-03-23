@@ -91,6 +91,13 @@ int quizzes[] = {12, 14, 23, 10};
 // Compiler sets size to 4
 ```
 
+> **REMINDER (from `student_generated_code_1.cpp`):** If you need every element to start at **0**, you **must** explicitly initialize with `= {0}`. Without an initializer, a local array contains **garbage values** — whatever happened to be in memory. This bit me when building the age-frequency counter: without `= {0}`, the frequency counts were wrong because the array started with random data instead of zeros.
+>
+> ```cpp
+> AgeType ageFrequency = {0};   // CORRECT — all 100 elements are 0
+> AgeType ageFrequency;         // WRONG  — elements contain garbage!
+> ```
+
 ### 2.3 No Bounds Checking
 
 C++ does **NOT** check if a subscript is valid. Using an out-of-bounds subscript can:
@@ -336,6 +343,14 @@ float findAverage(const GradeType array, int sizeOfArray);
 ```
 
 Both are functionally identical, but `typedef` makes the code cleaner. Convention: start type names with an **uppercase letter** (e.g., `GradeType`, `PriceType`).
+
+> **REMINDER (from `student_generated_code_1.cpp`):** If you use `const` with a `typedef` type in your **function heading**, you **must** also use `const` in the **function prototype** — they have to match exactly. I ran into this when my prototype said `void printStats(AgeType)` but my heading said `void printStats(const AgeType array)`, which caused a mismatch error. The fix:
+>
+> ```cpp
+> // Prototype and heading must BOTH have const
+> void printStats(const AgeType);                  // prototype
+> void printStats(const AgeType array) { ... }     // heading
+> ```
 
 **For character arrays (strings):**
 
@@ -941,6 +956,8 @@ These are the key takeaways from the pre-lab writing and course material:
 | Using `&` (bitwise AND) instead of `&&` (logical AND) | `&` performs bit operations, not boolean logic | Use `&&` for conditions: `if (x >= 90 && x <= 100)` |
 | Forgetting to close file after reading | Resource leak | Always call `dataFile.close()` |
 | Not passing array size to functions | Function has no way to know how many elements exist | Always pass size as a separate parameter |
+| Declaring a local array without `= {0}` | Elements contain garbage values, not zeros | Initialize: `int arr[SIZE] = {0};` |
+| `const` in heading but not in prototype (with `typedef`) | Prototype and heading signatures must match | Use `const` in **both**: `void f(const MyType);` |
 
 ---
 
