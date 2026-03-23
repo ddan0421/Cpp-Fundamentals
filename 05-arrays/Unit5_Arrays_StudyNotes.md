@@ -22,7 +22,13 @@
    - 4.2 [Processing with Nested Loops](#42-processing-with-nested-loops)
    - 4.3 [Passing 2D Arrays to Functions](#43-passing-2d-arrays-to-functions)
    - 4.4 [Finding Highest/Lowest in a 2D Array](#44-finding-highestlowest-in-a-2d-array)
-5. [Vectors as an Alternative](#5-vectors-as-an-alternative)
+5. [Introduction to the STL Vector](#5-introduction-to-the-stl-vector)
+   - 5.1 [Declaring and Initializing Vectors](#51-declaring-and-initializing-vectors)
+   - 5.2 [Basic Vector Operations](#52-basic-vector-operations)
+   - 5.3 [Iterating with the Range-Based `for` Loop](#53-iterating-with-the-range-based-for-loop)
+   - 5.4 [Useful Member Functions](#54-useful-member-functions)
+   - 5.5 [Vectors vs. Raw Arrays](#55-vectors-vs-raw-arrays)
+   - 5.6 [2D Vectors](#56-2d-vectors)
 6. [Reading Array Data from Files](#6-reading-array-data-from-files)
 7. [Complete Code Templates](#7-complete-code-templates)
    - Template A: 1D Array with Functions
@@ -479,9 +485,66 @@ float findLowestPrice(PriceType table, int numOfRows, int numOfCols) {
 
 ---
 
-## 5. Vectors as an Alternative
+## 5. Introduction to the STL Vector
 
-`std::vector` is a dynamic array from the C++ Standard Library. Unlike raw arrays, vectors can **resize automatically**.
+A **vector** is a data type provided by the Standard Template Library (STL) that behaves like an array but offers more flexibility, such as dynamic resizing.
+
+### 5.1 Declaring and Initializing Vectors
+
+To use vectors in a C++ program, you must include the vector header: `#include <vector>`
+
+| Declaration Example | Description |
+| :--- | :--- |
+| `vector<int> scores;` | Declares an empty vector of integers. |
+| `vector<int> scores(30);` | Declares an integer vector with an initial size of **30**. |
+| `vector<int> scores(30, 0);` | Declares a vector of size **30** and initializes all elements to **0**. |
+| `vector<int> finals(scores);` | Declares a vector initialized to the same size and contents as `scores`. |
+| `vector<int> numbers {10, 20, 30};` | (**C++ 11**) Initializes a vector with a specific list of values. |
+
+### 5.2 Basic Vector Operations
+
+Vectors provide built-in member functions to manage data without manual memory management.
+
+* **`push_back(value)`**: Adds an element to the end of a full vector or one with no defined size.
+* **`size()`**: Returns the current number of elements in the vector.
+* **`pop_back()`**: Removes the last element from the vector.
+* **`clear()`**: Removes all elements from the vector.
+* **`empty()`**: Returns true if the vector contains no elements.
+
+### 5.3 Iterating with the Range-Based `for` Loop
+
+C++ 11 allows you to step through a vector easily using a range-based loop. This automatically detects the number of elements, preventing "off-by-one" errors.
+
+```cpp
+for (int val : numbers) {
+    cout << val << endl;
+}
+```
+
+### 5.4 Useful Member Functions
+
+The following table highlights additional functions for managing vector data.
+
+| Member Function | Description | Example |
+| :--- | :--- | :--- |
+| **`at(i)`** | Returns the value at position `i`. | `cout << vec1.at(i);` |
+| **`capacity()`** | Returns the max elements a vector can store before more memory is allocated. | `max = vec1.capacity();` |
+| **`reverse()`** | Reverses the order of elements currently in the vector. | `vec1.reverse();` |
+| **`resize(n, val)`** | Resizes the vector to `n` elements. New elements are initialized to `val`. | `vec1.resize(5, 0);` |
+| **`swap(vec2)`** | Exchanges the contents of two vectors. | `vec1.swap(vec2);` |
+
+### 5.5 Vectors vs. Raw Arrays
+
+| Feature | Raw Array | Vector |
+|---|---|---|
+| Size | Fixed at compile time | Dynamic (can grow/shrink) |
+| Bounds checking | None | `.at()` method checks bounds |
+| Memory | Stack | Heap |
+| Passing to functions | Decays to pointer | Passed by value or reference |
+
+### 5.6 2D Vectors
+
+Vectors can also be used as a dynamic alternative to 2D arrays:
 
 ```cpp
 #include <vector>
@@ -501,13 +564,6 @@ for (int i = 0; i < rows; i++) {
     cout << endl;
 }
 ```
-
-| Feature | Raw Array | Vector |
-|---|---|---|
-| Size | Fixed at compile time | Dynamic (can grow/shrink) |
-| Bounds checking | None | `.at()` method checks bounds |
-| Memory | Stack | Heap |
-| Passing to functions | Decays to pointer | Passed by value or reference |
 
 ---
 
