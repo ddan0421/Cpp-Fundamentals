@@ -132,6 +132,19 @@ calPaycheck(payRate, hours, grossPay);
 // grossPay now holds the computed value
 ```
 
+**Declaring reference parameters in the prototype:**
+
+In the prototype, the `&` goes **after the data type** — just like in the function heading. Since parameter names are optional in prototypes, you'll often see just the type followed by `&`:
+
+```
+Prototype (no names):    void calPaycheck(float, int, float &);
+Prototype (with names):  void calPaycheck(float rate, int time, float &gross);
+Function heading:        void calPaycheck(float rate, int time, float &gross)
+Function call:           calPaycheck(payRate, hours, grossPay);
+```
+
+Notice the `&` **never** appears in the function call — only in the prototype and the heading. The caller doesn't need to do anything special; the compiler already knows from the prototype that the third parameter is a reference.
+
 **When to use pass by reference:**
 
 - When the function needs to **send data back** to the caller through a parameter.
