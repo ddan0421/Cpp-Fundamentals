@@ -4,6 +4,7 @@ using namespace std;
 
 void bubbleSortArray(int[], int);
 void displayArray(int[], int);
+void selectionSortArray(int[], int);
 
 const int SIZE = 5;
 int main() {
@@ -26,6 +27,31 @@ int main() {
   bubbleSortArray(values, SIZE);
   cout << "The values after the bubble sort is performed are:" << endl;
   displayArray(values, SIZE);
+
+  /*
+   * Selection Sort
+   * - locate the smallest element in array. Exchange it with element in
+   * position 0
+   * - locate next smallest elelemtn in array. Exchange it with element in
+   * position 1.
+   * - Continue until all elements are arranged in order
+   * A generally more efficient algorithm for large arrays is the selection
+   * sort. As before, let us assume that we want to arrange numerical data in
+   * ascending order. The idea of the selection sort algorithm is to first
+   * locate the smallest value in the array and move that value to the beginning
+   * of the array (i.e., position 0). Then the next smallest element is located
+   * and put in the second position (i.e., position 1). This process continues
+   * until all the data is ordered. An advantage of the selection sort is that
+   * for n data elements at most n-1 moves are required. The disadvantage is
+   * that n(n-1)/2 comparisons are always required.
+   *
+   */
+  int values_selection[SIZE] = {9, 2, 0, 11, 5};
+  cout << "The values before the selection sort is performed are:" << endl;
+  displayArray(values_selection, SIZE);
+  selectionSortArray(values_selection, SIZE);
+  cout << "The values after the selection sort is performed are:" << endl;
+  displayArray(values_selection, SIZE);
 
   return 0;
 }
@@ -93,4 +119,58 @@ void swap(int &a, int &b) {
   int temp = a;
   a = b;
   b = temp;
+}
+
+//******************************************************************
+// selectionSortArray
+//
+// task: to sort values of an array in ascending order
+// data in: the array, the array size
+// data out: the sorted array
+//
+//******************************************************************
+void selectionSortArray(int array[], int elems) {
+  int seek;     // array position currently being put in order
+  int minCount; // location of smallest value found
+  int minValue; // holds the smallest value found
+  for (seek = 0; seek < (elems - 1); seek++) // outer loop performs the swap
+  // and then increments seek
+  {
+    minCount = seek;
+    minValue = array[seek];
+    for (int index = seek + 1; index < elems; index++) {
+      // inner loop searches through array
+      // starting at array[seek] searching
+      // for the smallest value. When the
+      // value is found, the subscript is
+      // stored in minCount. The value is
+      // stored in minValue.
+      if (array[index] < minValue) {
+        minValue = array[index];
+        minCount = index;
+      }
+    }
+    // the following two statements exchange the value of the
+    // element currently needing the smallest value found in the
+    // pass(indicated by seek) with the smallest value found
+    // (located in minValue)
+    array[minCount] = array[seek];
+    array[seek] = minValue;
+  }
+}
+
+// Alternative selectionSort using swap()
+void selectionSort(int array[], int size) {
+  int minIndex, minValue;
+  for (int start = 0; start < (size - 1); start++) {
+    minIndex = start;
+    minValue = array[start];
+    for (int index = start + 1; index < size; index++) {
+      if (array[index] < minValue) {
+        minValue = array[index];
+        minIndex = index;
+      }
+    }
+    swap(array[minIndex], array[start]);
+  }
 }
