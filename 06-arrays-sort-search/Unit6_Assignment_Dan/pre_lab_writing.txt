@@ -1,0 +1,26 @@
+1. The advantage of a linear search is that it is simple and no need to be in any order to implement the algorithm.
+2. The disadvantage of a linear search is that it is time-consuming for large arrays.
+3. The advantage of a binary search over a linear search is that a binary
+search is efficient.
+4. An advantage of a linear search over a binary search is that the data must
+be ordered for a binary search.
+5. After 3 passes of a binary search, approximately what fraction of the
+original array still needs to be searched (assuming the desired data has not
+been found)?
+6. While the sort algorithm is conceptually simple, it can be
+inefficient for large arrays because data values only move one at a time.
+7. An advantage of the sort is that, for an array of size n, at
+most n – 1 moves are required.
+8. Use the bubble sort on the array below and construct the first 3 steps that
+actually make changes. (Assume the sort is from smallest to largest).
+Element 0 Element 1 Element 2 Element 3 Element 4
+Element 0 Element 1 Element 2 Element 3 Element 4
+Element 0 Element 1 Element 2 Element 3 Element 4
+Element 0 Element 1 Element 2 Element 3 Element 4
+9. Use the selection sort on the array below and construct the first 3 steps
+that actually make changes. (Assume the sort if from smallest to largest).
+19 –4 91 0 –17
+Element 0 Element 1 Element 2 Element 3 Element 4
+Element 0 Element 1 Element 2 Element 3 Element 4
+Element 0 Element 1 Element 2 Element 3 Element 4
+Element 0 Element 1 Element 2 Element 3 Element 4
