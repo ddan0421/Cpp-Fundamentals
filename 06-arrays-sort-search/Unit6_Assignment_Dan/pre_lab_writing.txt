@@ -6,21 +6,29 @@ search is efficient.
 be ordered for a binary search.
 5. After 3 passes of a binary search, approximately what fraction of the
 original array still needs to be searched (assuming the desired data has not
-been found)?
-6. While the sort algorithm is conceptually simple, it can be
+been found)? 1/8
+6. While the bubble sort algorithm is conceptually simple, it can be
 inefficient for large arrays because data values only move one at a time.
-7. An advantage of the sort is that, for an array of size n, at
+7. An advantage of the selection sort is that, for an array of size n, at
 most n – 1 moves are required.
 8. Use the bubble sort on the array below and construct the first 3 steps that
 actually make changes. (Assume the sort is from smallest to largest).
+19 –4 91 0 –17
 Element 0 Element 1 Element 2 Element 3 Element 4
+-4 19 91 0 -17
 Element 0 Element 1 Element 2 Element 3 Element 4
+-4 19 0 91 -17
 Element 0 Element 1 Element 2 Element 3 Element 4
+-4 19 0 -17 91
 Element 0 Element 1 Element 2 Element 3 Element 4
+
 9. Use the selection sort on the array below and construct the first 3 steps
 that actually make changes. (Assume the sort if from smallest to largest).
 19 –4 91 0 –17
 Element 0 Element 1 Element 2 Element 3 Element 4
+-17 -4 91 0 19
 Element 0 Element 1 Element 2 Element 3 Element 4
+-17 -4 0 91 19
 Element 0 Element 1 Element 2 Element 3 Element 4
+-17 -4 0 19 91
 Element 0 Element 1 Element 2 Element 3 Element 4
