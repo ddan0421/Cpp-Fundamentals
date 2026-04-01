@@ -10,10 +10,10 @@ using namespace std;
 void bubbleSortArray(int[], int);
 void displayArray(int[], int);
 
-const int SIZE = 5;
+const int SIZE = 8;
 
 int main() {
-  int values[SIZE] = {9, 2, 0, 11, 5};
+  int values[SIZE] = {23, 0, 45, -3, -78, 1, -1, 9};
 
   cout << "The values before the bubble sort is performed are:" << endl;
   displayArray(values, SIZE);
