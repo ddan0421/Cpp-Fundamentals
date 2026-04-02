@@ -1,0 +1,36 @@
+// Write a program that prompts the user to enter the number of elements and the
+// numbers themselves to be placed in an integer array that holds a maximum of
+// 50 elements. The program should then prompt the user for an integer which
+// will be searched for in the array using a binary search. Make sure to include
+// the following steps along the way: i) A sort routine must be called before
+// the binary search. You may use either the selection sort or the bubble sort.
+// However, the sort must be implemented in its own function and not in main.
+// ii) Next include a function called by main to implement the binary search.
+// The ordered array produced by the sort should be passed to the search
+// routine which returns the location in the sorted array of the sought value,
+// or -1 if the value is not in the array.
+// iii) Add a value returning function that computes the mean of your data set.
+// Recall that the mean is the sum of the data values divided by the number
+// of pieces of data. Your program should output the size of the array
+// entered, the array as entered by the user, the sorted array, the integer
+// being searched for, the location of that integer in the sorted array (or an
+// appropriate message if it is not in the array), and the mean of the data set.
+// iv) (Optional) Modify your program so that the data is entered from a file
+// rather than from the keyboard. The first line of the file should be the size
+// of the integer array. The second line should contain the integer searched
+// for in the data set. Finally, the array elements are to start on the third
+// line. Make sure you separate each array element with a space. The output, as
+// described in iii), should be sent to a file.
+
+#include <iostream>
+
+using namespace std;
+
+void SelectionSort(int[], int);
+
+int main() { return 0; }
+
+void SelectionSort(int array[], int Elem) {
+  int minValue, minIndex;
+  for (int check = 0;)
+}
