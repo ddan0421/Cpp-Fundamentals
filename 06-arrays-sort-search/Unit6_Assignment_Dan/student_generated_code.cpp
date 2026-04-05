@@ -21,16 +21,119 @@
 // for in the data set. Finally, the array elements are to start on the third
 // line. Make sure you separate each array element with a space. The output, as
 // described in iii), should be sent to a file.
+//
+// Optional modification: data is entered from a file
+// rather than from the keyboard. The first line of the file should be the size
+// of the integer array. The second line should contain the integer searched
+// for in the data set. Finally, the array elements are to start on the third
+// line. Make sure you separate each array element with a space. The output, as
+// described in iii), should be sent to a file.
 
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
 void SelectionSort(int[], int);
+int BinarySearch(const int[], int, int);
+void OutputArray(const int[], int, ostream &);
+float findMean(const int[], int);
+const int MAX_SIZE = 50;
 
-int main() { return 0; }
+int main() {
+  ifstream inFile("input.txt");
+  if (!inFile)
+    return 1;
+
+  ofstream outFile("output.txt");
+
+  int size, target_val;
+
+  inFile >> size;
+  inFile >> target_val;
+
+  if (size > MAX_SIZE) {
+    outFile << "The size of array exceeds maximum size!";
+    exit(1);
+  }
+  outFile << "The size of the array is " << size << endl;
+
+  vector<int> arr(size);
+  for (int i = 0; i < size; i++) {
+    inFile >> arr[i];
+  }
+  outFile << "The array is: ";
+  OutputArray(arr.data(), size, outFile);
+
+  // 1. sort the array
+  SelectionSort(arr.data(), size);
+  outFile << "The array is sorted in ascending order: ";
+  OutputArray(arr.data(), size, outFile);
+
+  // 2. search the value in the array
+  int findIndex = BinarySearch(arr.data(), size, target_val);
+  if (findIndex != -1)
+    outFile << "The value " << target_val << " is in position "
+            << (findIndex + 1) << endl;
+  else
+    outFile << "The value " << target_val << " was not found in the array."
+            << endl;
+
+  // 3. find the mean
+  outFile << fixed << setprecision(2) << showpoint;
+  outFile << "The mean is " << findMean(arr.data(), size) << endl;
+
+  return 0;
+}
+
+void OutputArray(const int array[], int Elem, ostream &out) {
+  for (int i = 0; i < Elem; i++) {
+    out << array[i] << " ";
+  }
+  out << endl;
+}
+
+float findMean(const int array[], int Elem) {
+  int total = 0;
+  for (int i = 0; i < Elem; i++) {
+    total += array[i];
+  }
+  return static_cast<float>(total) / (Elem);
+}
 
 void SelectionSort(int array[], int Elem) {
   int minValue, minIndex;
-  for (int check = 0;)
+  for (int check = 0; check < (Elem - 1); check++) {
+    minValue = array[check];
+    minIndex = check;
+    for (int index = check + 1; index < Elem; index++) {
+      if (array[index] < minValue) {
+        minIndex = index;
+        minValue = array[index];
+      }
+    }
+    array[minIndex] = array[check];
+    array[check] = minValue;
+  }
+}
+
+int BinarySearch(const int array[], int numElem, int value) {
+  int first = 0;
+  int last = numElem - 1;
+  int middle;
+
+  while (first <= last) {
+    middle = first + (last - first) / 2;
+    if (array[middle] == value) {
+      return middle;
+    } else if (array[middle] < value) {
+      first = middle + 1;
+    } else {
+      last = middle - 1;
+    }
+  }
+  return -1;
 }
