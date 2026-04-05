@@ -132,10 +132,10 @@ int binarySearch(int array[], int numElems, int value) // function heading
     if (array[middle] == value)
       return middle; // if value is in the middle, we are done
     else if (array[middle] < value)
-      last = middle - 1; // toss out the second remaining half of
+      first = middle + 1; // toss out the second remaining half of
     // the array and search the first
     else
-      first = middle + 1; // toss out the first remaining half of
+      last = middle - 1; // toss out the first remaining half of
     // the array and search the second
   }
 
