@@ -382,7 +382,34 @@ This matches the integrated assignment flow: **sort in its own function**, **sea
 
 ---
 
-## 10. File map in this folder (for practice)
+## 10. Big O: why some algorithms are more efficient
+
+**Big O** describes how the **amount of work** grows as the problem size **\(n\)** (number of elements) grows. Constants and small details are dropped; we care about the **dominant trend** (linear vs logarithmic vs quadratic).
+
+### Search
+
+| Algorithm       | Typical worst-case time | Why |
+|----------------|-------------------------|-----|
+| Linear search  | **\(O(n)\)**            | In the worst case you may compare against **every** element (e.g. value missing or at the end). Each step is \(O(1)\), but there can be **\(n\)** steps. |
+| Binary search  | **\(O(\log n)\)**       | Each probe discards **about half** of the remaining index range. The number of steps grows like “how many times can you halve \(n\)?” — **logarithmic**, not proportional to \(n\). |
+
+For large \(n\), **\(\log n\)** is much smaller than **\(n\)** (e.g. \(n = 1{,}000{,}000\): \(\log_2 n \approx 20\) vs a million steps). Binary search only applies when the array is **consistently ordered**; building that order has its own cost (see sorts below).
+
+### Sort (bubble and selection as in this unit)
+
+| Algorithm        | Typical time (usual analysis) | Notes |
+|-----------------|-------------------------------|--------|
+| Bubble sort     | **\(O(n^2)\)** (worst case, basic version) | Nested passes and inner work: roughly **\(n\)** rounds of **\(O(n)\)** comparisons/swaps in the worst case. Values move **one slot per swap** in the naive version — matches the “slow on large arrays” intuition above. |
+| Selection sort  | **\(O(n^2)\)** comparisons   | About **\(n(n-1)/2\)** comparisons — **\(\Theta(n^2)\)**. **Swaps** are only **\(O(n)\)** (at most about **\(n-1\)** in many presentations), so selection sort can be preferable when **writes** are expensive, but **comparisons** still dominate for large \(n\). |
+
+### Putting it together
+
+- **One search:** A single **\(O(n)\)** linear scan can beat **sort (\(O(n^2)\)) + binary search (\(O(\log n)\))** if you only need to find something once in unsorted data.
+- **Many searches** on the same data, or **order required** for other reasons: **sort once**, then **\(O(\log n)\)** binary searches can win overall; your notes’ **sort, then binary search** pattern fits that idea.
+
+---
+
+## 11. File map in this folder (for practice)
 
 | File / folder              | What to study                          |
 |---------------------------|----------------------------------------|
