@@ -95,3 +95,26 @@ private:
   float length;
   float width;
 };
+
+// It is not necessary for someone to understand how a television remote control
+// works in order to use the remote to change the stations or the volume. The
+// user of the remote could be called a client that only knows how to use the
+// remote to accomplish a certain task. The details of how the remote control
+// performs the task are not necessary for the user to operate the remote.
+// Likewise, an automobile is a complex mechanical machine with a simple
+// interface that allows users without any (or very little) mechanical knowledge
+// to start, drive, and use it for a variety of functions. Drivers do not need
+// to know what goes on under the hood. In the same way, a program that uses
+// Rectangle does not need to know the details of how its member functions
+// perform their operations.
+//
+// The use of an object (an instance of a class) is thus separated into two
+// parts: the interface (client file) which calls the functions and the
+// implementation which contains the details of how the functions accomplish
+// their task.
+
+// An object not only combines data and functions, but also restricts other
+// parts of the program from accessing member data and the inner workings of
+// member functions. Having programs or users access only certain parts of an
+// object is called data hiding
+//
