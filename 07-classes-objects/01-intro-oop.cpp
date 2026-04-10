@@ -118,3 +118,128 @@ private:
 // member functions. Having programs or users access only certain parts of an
 // object is called data hiding
 //
+//
+//
+// The class declaration is usually placed in the global section of a program or
+// in a special file (called a header file). As noted earlier, the class
+// declaration acts very much like a prototype or data type for an object. An
+// object is defined much like a variable except that it uses the class name as
+// the data type. This definition creates an instance (actual occurrence) of the
+// class. Implementation of the member functions of a class are given either
+// after the main function of the program or in a separate file called the
+// implementation file. Use of the object is usually in the main function, other
+// specialized functions, or in a separate program file called the client file.
+
+// To access a member function (method) of an object, we use the dot operator,
+// just as we do to access data members of structures. The name of the object is
+// given first, followed by the dot operator and then the name of the member
+// function. The following example shows a complete main function (or client
+// file) that defines and uses objects which call member functions.
+
+int main() {
+
+  Rectangle box1;
+  Rectangle box2;
+
+  box1.setLength(20); // This instruction has the object box1 calling the
+  // setLength member function which sets the member data
+  // length associated with box1 to the value of 20
+  box1.setWidth(5);
+  box2.setLength(9.5); // This instruction has the object box2 calling the
+  // setLength member function which sets the member data
+  // length associated with box2 to the value of 9.5
+  box2.setWidth(8.5);
+  cout << "The length of box1 is " << box1.getLength() << endl;
+  cout << "The width of box1 is " << box1.getWidth() << endl;
+  cout << "The area of box1 is " << box1.findArea() << endl;
+  cout << "The perimeter of box1 is " << box1.findPerimeter() << endl;
+  cout << "The length of box2 is " << box2.getLength() << endl;
+  cout << "The width of box2 is " << box2.getWidth() << endl;
+  cout << "The area of box2 is " << box2.findArea() << endl;
+  cout << "The perimeter of box2 is " << box2.findPerimeter() << endl;
+  return 0;
+}
+
+//
+// Since findArea and findPerimeter must have length and width before they
+// can do the calculation, an object must call setLength and setWidth first. The
+// user must remember to initialize both length and width by calling both set
+// functions. It is not good programming practice to assume that a user will do
+// the necessary initialization. Constructors (discussed later) solve this
+// problem.
+//
+//
+
+// As previously noted, the implementation of the member function can be hidden
+// from the users (clients) of the objects. However, they must be implemented by
+// someone, somewhere. The following shows the implementation of the Rectangle
+// member functions.
+
+//*******************************************************************
+// setLength
+//
+// task: This member function of the class Rectangle receives
+// the length of the Rectangle object that calls it and
+// places that value in the member data called length.
+// data in: the length of the rectangle
+// data out: none
+//
+//********************************************************************
+
+void Rectangle::setLength(float side_l) { length = side_l; }
+//*******************************************************************
+// setWidth
+//
+// task: This member function of the class Rectangle receives the
+// the width of the Rectangle object that calls it and
+// places that value in the member data called width.
+// data in: the width of the rectangle
+// data out: none
+//
+//********************************************************************
+void Rectangle::setWidth(float side_w) { width = side_w; }
+
+//*******************************************************************
+//
+// getLength
+// task: This member function of the class Rectangle returns
+// the length of the Rectangle object that calls it.
+// data in: none
+// data returned: length
+//
+//********************************************************************
+
+float Rectangle::getLength() { return length; }
+//*******************************************************************
+// getWidth
+//
+// task: This member function of the class Rectangle returns
+// the width of the Rectangle object that calls it.
+// data in: none
+// data returned: width
+//
+//********************************************************************
+
+float Rectangle::getWidth() { return width; }
+//*******************************************************************
+// findArea
+//
+// task: This member function of the class Rectangle
+// calculates the area of the object that calls it.
+// data in: none (uses the values of member data length &
+// width)
+// data returned: area
+//
+//********************************************************************
+double Rectangle::findArea() { return length * width; }
+//*******************************************************************
+// findPerimeter
+//
+// task: This member function of the class Rectangle
+// calculates the perimeter of the object that calls it
+// data in: none (uses the values of member data length &
+// width)
+// data returned: perimeter
+//
+//********************************************************************
+double Rectangle::findPerimeter() { return ((2 * length) + (2 * width)); }
