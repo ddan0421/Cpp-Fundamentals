@@ -136,6 +136,7 @@ private:
 // function. The following example shows a complete main function (or client
 // file) that defines and uses objects which call member functions.
 
+// Client file
 int main() {
 
   Rectangle box1;
@@ -174,6 +175,8 @@ int main() {
 // from the users (clients) of the objects. However, they must be implemented by
 // someone, somewhere. The following shows the implementation of the Rectangle
 // member functions.
+
+// Implementation file
 
 //*******************************************************************
 // setLength
@@ -243,3 +246,54 @@ double Rectangle::findArea() { return length * width; }
 //
 //********************************************************************
 double Rectangle::findPerimeter() { return ((2 * length) + (2 * width)); }
+
+// Notice that in the heading of each member function the name of the function
+// is preceded by the name of the class to which it is a member followed by a
+// double colon. In the above example each name is preceded by Rectangle::. This
+// is necessary to indicate in which class the function is a member. There can
+// be more than one function with the same name associated with different
+// classes. The :: symbol is called the scope operator. It acts as an indicator
+// of the class association.
+//
+// Usually classes are declared in a header file,
+// while member functions are stored in an implementation file and objects are
+// defined and used in a client file. These files are often bound together in a
+// project. Various development environments have different means of creating
+// and storing related files in a project. All could be located in three
+// different sections of the same file.
+//
+//
+//
+// Accessors and Mutators
+// Mutator: a member function that stores a value in a private membner variable,
+// or changes its value in some way.
+//
+// Accessor: function that retrieves a value
+// from a private member variable. Accessors do not change an object's data, so
+// they should be marked const.
+//
+//
+// Possibly, it's more intuitive to have this order:
+// 1. class declaration (header file) (ex. separate header file in .h extension)
+// 2. implementation file (ex. Implementation file in .cpp)
+// 3. client file (main) (ex. main.cpp that has int main(){})
+
+// Sometimes the implementation of member functions is so simple that they can
+// be defined inside a class declaration. Such functions are called inline
+// member functions. In the Rectangle class, findArea and findPerimeter are so
+// simple that they can be defined in the class declaration as follows:
+
+// double findArea(){ return length * width; }
+// double findPerimeter() { return 2 * length + 2 * width; }
+
+// These inline member functions are:
+//
+// Fully defined inside the class
+// Automatically inline
+// Already “implemented” → no .cpp version needed
+//
+//
+// Big picture intuition
+// Header (.h) → interface + small inline logic
+// .cpp file → heavier implementation
+// Inline functions blur that boundary for convenience
