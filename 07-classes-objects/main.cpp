@@ -117,6 +117,57 @@ int main() {
   cout << "room (parameterized ctor): area " << room.findArea() << "\n\n";
 
   cout << "--- Array of objects; default ctor runs per element (03) ---\n";
+
+  // ---------------------------------------------------------------------------
+  // Array of objects: why the default constructor runs for EVERY element
+  // ---------------------------------------------------------------------------
+  //
+  // A declaration like:
+  //
+  //   Rectangle boxes[kNumberOfBoxes];
+  //
+  // does not create one "array object" only — it creates kNumberOfBoxes
+  // separate Rectangle objects laid out contiguously in memory: boxes[0],
+  // boxes[1], ... boxes[kNumberOfBoxes - 1]. In C++, each element of an array
+  // of class type must be *constructed* just like a standalone variable. When
+  // you do not provide constructor arguments in the declaration, the compiler
+  // uses *default initialization* for each element. For a class type, that
+  // means: "call the default constructor" (the constructor that can be invoked
+  // with no arguments — either Rectangle() with no parameters, or a constructor
+  // where every parameter has a default value).
+  //
+  // So the single line above has the same *effect* on construction as if each
+  // slot were initialized by the default constructor explicitly. Think of it
+  // conceptually like this (illustration only — not the exact syntax you must
+  // write, but it shows what happens for each index):
+  //
+  //   // Conceptual picture — kNumberOfBoxes is 4 here:
+  //   // {
+  //   //   Rectangle(),  // boxes[0]  — default ctor runs
+  //   //   Rectangle(),  // boxes[1]  — default ctor runs
+  //   //   Rectangle(),  // boxes[2]  — default ctor runs
+  //   //   Rectangle()   // boxes[3]  — default ctor runs
+  //   // };
+  //
+  // Each call to the default constructor runs in order (typically index 0,
+  // then 1, then 2, …). That is why every box in the loop below starts with
+  // length and width set the way Rectangle::Rectangle() defines them (here,
+  // 1.0 by 1.0 from Rectangle.cpp) until you change them with setters.
+  //
+  // If your class does NOT have a default constructor — for example, you only
+  // declare Rectangle(float, float) and do not provide Rectangle() nor default
+  // arguments on that constructor — then this line will *fail to compile*:
+  //
+  //   Rectangle boxes[kNumberOfBoxes];  // error: no way to build each element
+  //
+  // The compiler must know how to construct every array element without extra
+  // information at the point of declaration. With no default ctor, there is no
+  // valid "no-argument" construction for boxes[0], boxes[1], etc. You would
+  // need another approach (e.g. std::vector and push emplace, or an array of
+  // std::optional<Rectangle>, or explicit per-element constructors in a
+  // braced initializer if you supply the right arguments for each slot).
+  // ---------------------------------------------------------------------------
+
   Rectangle boxes[kNumberOfBoxes];
   for (int i = 0; i < kNumberOfBoxes; i++) {
     cout << "Box " << (i + 1) << " — length: " << boxes[i].getLength()
