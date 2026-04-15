@@ -6,13 +6,9 @@ class SavingsAccount {
 public:
   SavingsAccount();
   ~SavingsAccount();
-  void initialDollars(int initDollars);
-  void initialCents(int initCents);
-
-  void depositDollars(int inputDollars);
-  void depositCents(int inputCents);
-  void withdrawDollars(int outDollars);
-  void withdrawCents(int outCents);
+  void initialDeposit(int initDollars, int initCents);
+  void deposit(int inputDollars, int inputCents);
+  void withdraw(int outDollars, int outCents);
 
   void displayTotal();
 
@@ -33,27 +29,20 @@ void SavingsAccount::normalize() {
   }
 }
 
-void SavingsAccount::initialDollars(int initDollars) { dollars = initDollars; }
-
-void SavingsAccount::initialCents(int initCents) {
+void SavingsAccount::initialDeposit(int initDollars, int initCents) {
+  dollars = initDollars;
   cents = initCents;
   normalize();
 }
 
-void SavingsAccount::depositDollars(int inputDollars) {
+void SavingsAccount::deposit(int inputDollars, int inputCents) {
   dollars += inputDollars;
-}
-
-void SavingsAccount::depositCents(int inputCents) {
   cents += inputCents;
   normalize();
 }
 
-void SavingsAccount::withdrawDollars(int withdrawDollars) {
+void SavingsAccount::withdraw(int withdrawDollars, int withdrawCents) {
   dollars -= withdrawDollars;
-}
-
-void SavingsAccount::withdrawCents(int withdrawCents) {
   cents -= withdrawCents;
   normalize();
 }
@@ -66,7 +55,7 @@ SavingsAccount::SavingsAccount() {}
 SavingsAccount::~SavingsAccount() {}
 
 int main() {
-  int inputMoney;
+  int inputDollars, inputCents;
 
   char userChoice;
   bool existDepositTrue = false;
@@ -75,24 +64,22 @@ int main() {
   SavingsAccount bank1;
 
   cout << "Please input the initial dollars" << endl;
-  cin >> inputMoney;
-  bank1.initialDollars(inputMoney);
+  cin >> inputDollars;
 
   cout << "Please input the initial cents" << endl;
-  cin >> inputMoney;
-  bank1.initialCents(inputMoney);
+  cin >> inputCents;
+  bank1.initialDeposit(inputDollars, inputCents);
 
   while (existDepositTrue == false) {
     cout << "Would you like to make a deposit? Y or y for yes" << endl;
     cin >> userChoice;
     if (userChoice == 'Y' || userChoice == 'y') {
       cout << "Please input the dollars to be deposited" << endl;
-      cin >> inputMoney;
-      bank1.depositDollars(inputMoney);
+      cin >> inputDollars;
 
       cout << "Please input the cents to be deposited" << endl;
-      cin >> inputMoney;
-      bank1.depositCents(inputMoney);
+      cin >> inputCents;
+      bank1.deposit(inputDollars, inputCents);
     } else {
       existDepositTrue = true;
     }
@@ -103,12 +90,12 @@ int main() {
     cin >> userChoice;
     if (userChoice == 'Y' || userChoice == 'y') {
       cout << "Please input the dollars to be withdrawn" << endl;
-      cin >> inputMoney;
-      bank1.withdrawDollars(inputMoney);
+      cin >> inputDollars;
 
       cout << "Please input the cents to be withdrawn" << endl;
-      cin >> inputMoney;
-      bank1.withdrawCents(inputMoney);
+      cin >> inputCents;
+
+      bank1.withdraw(inputDollars, inputCents);
     } else {
       existWithdrawTrue = true;
     }
