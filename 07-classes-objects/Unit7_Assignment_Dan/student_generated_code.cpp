@@ -5,8 +5,9 @@ using namespace std;
 class SavingsAccount {
 public:
   SavingsAccount();
+  SavingsAccount(int initDollars, int initCents);
   ~SavingsAccount();
-  void initialDeposit(int initDollars, int initCents);
+
   void deposit(int inputDollars, int inputCents);
   void withdraw(int outDollars, int outCents);
 
@@ -19,6 +20,18 @@ private:
   int cents;
 };
 
+SavingsAccount::SavingsAccount() {
+  dollars = 0;
+  cents = 0;
+}
+
+SavingsAccount::SavingsAccount(int initDollars, int initCents) {
+  dollars = initDollars;
+  cents = initCents;
+}
+
+SavingsAccount::~SavingsAccount() {}
+
 void SavingsAccount::normalize() {
   dollars += cents / 100;
   cents = cents % 100;
@@ -29,12 +42,6 @@ void SavingsAccount::normalize() {
   }
 }
 
-void SavingsAccount::initialDeposit(int initDollars, int initCents) {
-  dollars = initDollars;
-  cents = initCents;
-  normalize();
-}
-
 void SavingsAccount::deposit(int inputDollars, int inputCents) {
   dollars += inputDollars;
   cents += inputCents;
@@ -42,6 +49,14 @@ void SavingsAccount::deposit(int inputDollars, int inputCents) {
 }
 
 void SavingsAccount::withdraw(int withdrawDollars, int withdrawCents) {
+  int totalCents = dollars * 100 + cents;
+  int withdrawTotal = withdrawDollars * 100 + withdrawCents;
+
+  if (withdrawTotal > totalCents) {
+    cout << "Insufficient funds!" << endl;
+    return;
+  }
+
   dollars -= withdrawDollars;
   cents -= withdrawCents;
   normalize();
@@ -51,9 +66,6 @@ void SavingsAccount::displayTotal() {
   cout << "Dollars = " << dollars << " Cents = " << cents << endl;
 }
 
-SavingsAccount::SavingsAccount() {}
-SavingsAccount::~SavingsAccount() {}
-
 int main() {
   int inputDollars, inputCents;
 
@@ -61,15 +73,14 @@ int main() {
   bool existDepositTrue = false;
   bool existWithdrawTrue = false;
 
-  SavingsAccount bank1;
-
   cout << "Please input the initial dollars" << endl;
   cin >> inputDollars;
 
   cout << "Please input the initial cents" << endl;
   cin >> inputCents;
-  bank1.initialDeposit(inputDollars, inputCents);
 
+  SavingsAccount bank1(inputDollars, inputCents);
+  SavingsAccount bank2;
   while (existDepositTrue == false) {
     cout << "Would you like to make a deposit? Y or y for yes" << endl;
     cin >> userChoice;
@@ -80,6 +91,7 @@ int main() {
       cout << "Please input the cents to be deposited" << endl;
       cin >> inputCents;
       bank1.deposit(inputDollars, inputCents);
+      bank2.deposit(inputDollars, inputCents);
     } else {
       existDepositTrue = true;
     }
@@ -96,11 +108,15 @@ int main() {
       cin >> inputCents;
 
       bank1.withdraw(inputDollars, inputCents);
+      bank2.withdraw(inputDollars, inputCents);
+
     } else {
       existWithdrawTrue = true;
     }
   }
 
   bank1.displayTotal();
+  bank2.displayTotal();
+
   return 0;
 }
