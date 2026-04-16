@@ -31,7 +31,7 @@ using namespace std;
 
 class Car {
 public:
-  Car(int initYearModel, int initMake);
+  Car(int initYearModel, string initMake);
   Car();
   void setYearModel(int inputYearModel);
   void setMake(string inputMake);
@@ -47,7 +47,7 @@ private:
   int speed;
 };
 
-Car::Car(int initYearModel, int initMake) {
+Car::Car(int initYearModel, string initMake) {
   yearModel = initYearModel;
   make = initMake;
   speed = 0;
