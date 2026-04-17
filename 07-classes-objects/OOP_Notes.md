@@ -7,9 +7,9 @@
 ## Table of Contents
 
 1. [Procedural vs. Object-Oriented Programming](#1-procedural-vs-object-oriented-programming)
-2. [Core OOP Terminology](#2-core-oop-terminology)
+2. [Core OOP Terminology](#2-core-oop-terminology) — incl. [2.1 Object-Oriented Analysis Steps](#21-object-oriented-analysis--the-high-level-steps)
 3. [Declaring a Class](#3-declaring-a-class)
-4. [Access Specifiers: `public` and `private`](#4-access-specifiers-public-and-private)
+4. [Access Specifiers: `public` and `private`](#4-access-specifiers-public-and-private) — incl. [4.1 Mixed access specifiers in one class](#41-mixed-access-specifiers-in-one-class-a-common-quiz-trap)
 5. [Defining Member Functions — the Scope Operator `::`](#5-defining-member-functions--the-scope-operator-)
 6. [`const` Member Functions, Accessors, and Mutators](#6-const-member-functions-accessors-and-mutators)
 7. [Creating Objects and Using the Dot Operator](#7-creating-objects-and-using-the-dot-operator)
@@ -23,7 +23,7 @@
 15. [Constructors](#15-constructors)
 16. [In-Place Initialization (C++11)](#16-in-place-initialization-c11)
 17. [Default Constructors](#17-default-constructors)
-18. [Passing Arguments to Constructors](#18-passing-arguments-to-constructors)
+18. [Passing Arguments to Constructors](#18-passing-arguments-to-constructors) — incl. [18.1 Member Initializer Lists](#181-member-initializer-lists)
 19. [Destructors](#19-destructors)
 20. [Constructors, Destructors, and Dynamically Allocated Objects](#20-constructors-destructors-and-dynamically-allocated-objects)
 21. [Overloading Constructors](#21-overloading-constructors)
@@ -67,6 +67,17 @@
 - **Public interface** — the set of public members through which client code interacts with an object.
 
 **Class vs. struct (C++):** A `class` is very similar to a `struct` but by default `class` members are **private**, while `struct` members are **public**. Classes also traditionally bundle functions with data; structs traditionally do not.
+
+### 2.1 Object-Oriented Analysis — the high-level steps
+
+Before you start writing classes, you have to decide *what* the classes should be. The standard sequence of **object-oriented analysis** is:
+
+1. **Identify the objects** in the problem domain (the "nouns" — a `Rectangle`, a `SavingsAccount`, an `InventoryItem`).
+2. **Define each object's attributes** (the data it holds — a rectangle's `length` and `width`).
+3. **Define each object's behaviors** (the operations it supports — `findArea`, `setLength`).
+4. **Define the relationships** between objects (does one *contain* another? *use* another? *inherit from* another?).
+
+Only after that do you write the classes, declare data members and prototype member functions, and finally write `main()`. Writing `main()` first and then "figuring out which classes are needed" is backwards — it is the procedural mindset, not the OO one.
 
 ---
 
@@ -124,6 +135,36 @@ PPT rules you should remember:
 - If you write no specifier inside a `class`, the **default is `private`**.
 
 Typical convention: data is `private`, functions are `public`. Clients then interact **only** through public member functions — which is the **public interface**.
+
+### 4.1 Mixed access specifiers in one class (a common quiz trap)
+
+Because specifiers can appear **in any order** and **multiple times**, each specifier applies only to the members listed **below it, until the next specifier changes the access level**. That means a single class can easily have some data members that are `public` and some that are `private`:
+
+```cpp
+class Point {
+private:
+    double y;
+    double z;
+public:
+    double x;
+};
+```
+
+Reading this carefully:
+
+- `y` and `z` are under `private:` → **not** accessible outside the class.
+- `x` is under `public:` → accessible outside the class.
+- `y`, `z`, and `x` are all data members of `Point`.
+- The class name is `Point`.
+
+So **all four** of these statements are true at the same time:
+
+1. `z` is not available to code written outside the class.
+2. `x`, `y`, and `z` are called members of the class.
+3. `x` *is* available to code written outside the class.
+4. The name of the class is `Point`.
+
+Moral: when a "which statement is NOT true?" question lists four plausible statements plus a "None of these / All of these are true" option, **verify every statement**. If all four hold, the answer is "All of these are true" — no statement is false.
 
 ---
 
@@ -427,6 +468,31 @@ Rectangle r(10, 5);   // invokes Rectangle(double, double)
 
 > **Do not** use the dot operator to call a constructor — constructors are invoked only at object creation.
 
+### 18.1 Member Initializer Lists
+
+A **member initializer list** is a comma-separated list that appears between a constructor's parameter list and its body, introduced with a colon `:`. It initializes data members (and base-class sub-objects) **before** the constructor body runs:
+
+```cpp
+class Rectangle {
+private:
+    float length;
+    float width;
+public:
+    Rectangle(float l, float w) : length(l), width(w) {   // member initializer list
+        // body can still run extra setup here, but length/width are already set
+    }
+};
+```
+
+Why prefer initializer lists over assignment in the body?
+
+1. **One-step initialization** — `length(l)` *constructs* `length` with the value `l`; the assignment form `length = l;` first default-initializes `length`, then overwrites it.
+2. **Required** for `const` data members, reference data members, and data members of a class type that has no default constructor — you cannot assign these in the body.
+3. **Clearer intent** — the list literally reads "these are the initial values of my members".
+4. Constructor **delegation** (§22) is syntactically a special form of initializer list (`: OtherCtor(args)`).
+
+> Exam-style phrasing: *"You can use the technique known as a member initialization list to initialize members of a class."* — **True.**
+
 ---
 
 ## 19. Destructors
@@ -436,9 +502,11 @@ A **destructor** runs automatically when an object is destroyed (e.g., when it g
 Rules:
 
 - Name is `~ClassName` — a tilde in front of the class name.
-- **No return type** and **no parameters**.
+- **No return type** and **exactly zero parameters** (not "zero to many" — a destructor takes no arguments at all, which is *why* it cannot be overloaded).
 - There is **only one** destructor per class — it **cannot be overloaded**.
 - Primary purpose: release any resources (dynamic memory, files, network handles) the object owns.
+
+> Exam-style trap: *"A destructor function can have zero to many parameters."* — **False.** A destructor always has zero parameters.
 
 ```cpp
 class Demo {
@@ -520,23 +588,82 @@ The compiler can't tell them apart from the argument list, so you cannot have bo
 
 ## 22. Constructor Delegation (C++11)
 
-Often several constructors do *nearly* the same work. Instead of duplicating code, one constructor can **delegate** to another in the same class using a member-initializer list:
+**Constructor delegation** means one constructor reuses another constructor’s logic in the **same** class, so you do not copy the same assignments (or checks) in every overload.
+
+You usually pick one constructor that does the real initialization; the others call it from the **member-initializer list**.
+
+### Example (`Rectangle`)
 
 ```cpp
-class Contact {
-public:
-    Contact() : Contact("", "", "") {}             // delegate to the 3-arg ctor
-
-    Contact(string n, string e, string p)
-        : name(n), email(e), phone(p) {}
+class Rectangle {
 private:
-    string name;
-    string email;
-    string phone;
+    float length;
+    float width;
+
+public:
+    Rectangle() : Rectangle(0, 0) {}
+
+    Rectangle(float l) : Rectangle(l, 0) {}
+
+    Rectangle(float l, float w) {
+        length = l;
+        width = w;
+    }
 };
 ```
 
-The delegating constructor (`Contact()`) hands control to `Contact(string, string, string)` with empty defaults, then the body of the delegating ctor (if any) runs next.
+`Rectangle box;` does not run an empty default-constructor body first — it **delegates**: the compiler runs `Rectangle(0, 0)`, which sets `length` and `width` in the two-parameter constructor.
+
+### Without delegation (repetitive)
+
+```cpp
+class Rectangle {
+private:
+    float length;
+    float width;
+
+public:
+    Rectangle() {
+        length = 0;
+        width = 0;
+    }
+
+    Rectangle(float l) {
+        length = l;
+        width = 0;
+    }
+
+    Rectangle(float l, float w) {
+        length = l;
+        width = w;
+    }
+};
+```
+
+Same data, but the same assignments appear in multiple constructors; delegation keeps the “real” setup in one place.
+
+### How delegation is written
+
+Delegation **must** appear in the initializer list, not in the constructor body:
+
+```cpp
+Rectangle() : Rectangle(0, 0) {}   // correct — delegates before the body runs
+```
+
+Wrong (does **not** delegate — it builds a temporary `Rectangle` and discards it):
+
+```cpp
+Rectangle() {
+    Rectangle(0, 0);   // wrong
+}
+```
+
+### Rules (short)
+
+1. **Initializer list only** — `Ctor() : OtherCtor(args) { }`; a bare `OtherCtor(args);` in the body is not delegation.
+2. **Order** — the delegated-to constructor runs first; then the body of the delegating constructor (if you wrote one) runs (e.g. `Rectangle(float l) : Rectangle(l, 0) { /* body here runs after */ }`).
+3. **One target** — you may not list two constructor delegations in the same initializer list.
+4. **No cycles** — e.g. `Rectangle()` delegates to `Rectangle(float)` and that constructor delegates back to `Rectangle()` is invalid / nonsensical.
 
 ---
 
@@ -919,7 +1046,46 @@ Direct restatements of the pre-lab writing questions — memorize these:
 
 ---
 
-### Appendix — The "Big Picture" Mental Map
+### Appendix A — Quiz Gotchas & Clarifications
+
+A condensed list of the true/false and multiple-choice patterns that the Unit 7 quiz tested — memorize the *reasoning*, not just the answer.
+
+| # | Statement / Question | Answer | Why |
+|---|---|---|---|
+| 1 | Class objects can be defined prior to the class declaration. | **False** | The compiler has to see the class definition first so it knows the object's size and members. |
+| 2 | The constructor function may not accept arguments. | **False** | Constructors *can* accept arguments — that is exactly what a parameterized / overloaded ctor is for. |
+| 3 | A destructor function can have zero to many parameters. | **False** | A destructor has **exactly zero** parameters. That is why it cannot be overloaded. |
+| 4 | More than one constructor function may be defined for a class. | **True** | Constructors can be overloaded, as long as each has a different parameter list (§21). |
+| 5 | More than one destructor function may be defined for a class. | **False** | A class has **exactly one** destructor (§23). |
+| 6 | A member initialization list can be used to initialize members of a class. | **True** | See §18.1. |
+| 7 | A constructor always has the same name as … | **the class** | By definition. |
+| 8 | What is automatically called when an object is destroyed? | **the destructor** | Runs on scope exit or `delete`. |
+| 9 | How many default constructors can a class have? | **only one** | Because both `Ctor()` and `Ctor(T = ...)` count as default ctors; having both is ambiguous (§23). |
+| 10 | Objects in an array are accessed with … | **subscripts** | `box[2].setLength(5);` — subscript to pick the element, dot to call the method (§26). |
+| 11 | The process of OO analysis can be viewed as which steps? | **identify objects, then define each object's attributes, behaviors, and relationships** | See §2.1. |
+| 12 | When a member function is defined outside the class declaration, its name must be qualified with … | **the class name, followed by the scope-resolution operator** | `ReturnType ClassName::funcName(...)` (§5). |
+| 13 | If a local and global variable share a name, the ___ resolution operator must be used. | **scope** | `::globalVar` reaches the global one; the operator is called the scope-resolution operator. |
+| 14 | Tricky *"which statement is NOT true?"* with mixed access sections. | **All of these are true** | See §4.1 — verify every option before picking; classes can freely mix `private:` and `public:` sections. |
+| 15 | `double y = 5.70;` inside the class body is an example of … | **in-place initialization** | C++11 feature (§16). |
+| 16 | In C++11, one constructor can call another in the same class using … | **constructor delegation** | Delegation is done in the initializer list, not in the body (§22). |
+| 17 | Given `myCar` is an instance of `Car` with method `accelerate`, the valid call is … | **`myCar.accelerate();`** | Dot operator for an object. `->` is for pointers, `::` is for scope. |
+| 18 | `TestClass` with ctors `TestClass(int)` and `TestClass()`, then `TestClass test;` prints … | **`Hello!`** | `test;` with no arguments invokes the default constructor, which prints `"Hello!"`. |
+| 19 | Same class, but `TestClass test(77);` prints … | **`77`** | The `int`-argument constructor runs instead and prints `x`, which is 77. |
+| 20 | Private `showVal()` called as `test.showVal();` in `main` … | **The program will not compile** | Private members cannot be accessed through the dot operator from outside the class. |
+
+### Key decoding table — "which operator do I use?"
+
+| You have … | Use | Example |
+|---|---|---|
+| an object | `.` (dot) | `myCar.accelerate();` |
+| a pointer to an object | `->` (arrow) | `pCar->accelerate();` |
+| a class/namespace name (to qualify a member or reach a global) | `::` (scope resolution) | `Rectangle::setLength`, `::globalVar` |
+
+Mixing these up is the single most common small-syntax error on the quiz (see Q17, Q12, Q13).
+
+---
+
+### Appendix B — The "Big Picture" Mental Map
 
 ```
 +-----------------------------------------------------------+
