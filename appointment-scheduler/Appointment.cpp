@@ -30,6 +30,58 @@ void Appointment::setEnd(int eMonth, int eDay, int eYear, int eHour, int eMin,
   endPeriod = ePeriod;
 }
 
+void Appointment::setStart(long long ts) {
+  startMin = ts % 100;
+  ts /= 100;
+
+  startHour = ts % 100;
+  ts /= 100;
+
+  startDay = ts % 100;
+  ts /= 100;
+
+  startMonth = ts % 100;
+  ts /= 100;
+
+  startYear = static_cast<int>(ts);
+
+  if (startHour >= 12) {
+    startPeriod = "PM";
+    if (startHour > 12)
+      startHour -= 12;
+  } else {
+    startPeriod = "AM";
+    if (startHour == 0)
+      startHour = 12;
+  }
+}
+
+void Appointment::setEnd(long long ts) {
+  endMin = ts % 100;
+  ts /= 100;
+
+  endHour = ts % 100;
+  ts /= 100;
+
+  endDay = ts % 100;
+  ts /= 100;
+
+  startMonth = ts % 100;
+  ts /= 100;
+
+  endYear = static_cast<int>(ts);
+
+  if (endHour >= 12) {
+    endPeriod = "PM";
+    if (endHour > 12)
+      endHour -= 12;
+  } else {
+    endPeriod = "AM";
+    if (endHour == 0)
+      endHour = 12;
+  }
+}
+
 void Appointment::setDescription(string desc) { description = desc; }
 
 long long Appointment::getStart() const {

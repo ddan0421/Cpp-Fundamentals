@@ -13,6 +13,11 @@ public:
                 string sPeriod);
   void setEnd(int eMonth, int eDay, int eYear, int eHour, int eMin,
               string ePeriod);
+
+  void setStart(long long ts); // Overloading to handle txt value
+
+  void setEnd(long long ts); // Overloading to handle txt value
+
   void setDescription(string desc);
 
   long long getStart() const;
