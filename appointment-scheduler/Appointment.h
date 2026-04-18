@@ -24,6 +24,8 @@ public:
   long long getEnd() const;
   string getDescription() const;
 
+  void printSingleApp() const;
+
 private:
   int startMonth;
   int startDay;

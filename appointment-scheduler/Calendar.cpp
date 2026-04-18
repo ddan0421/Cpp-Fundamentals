@@ -1,5 +1,6 @@
 #include "Calendar.h"
 #include "Appointment.h"
+#include <cerrno>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -19,10 +20,9 @@ bool Calendar::parseLine(const string &line, Appointment &out) {
     long long startTs = stoll(start);
     long long endTs = stoll(end);
 
-    Appointment singleApp;
-    singleApp.setStart(startTs);
-    singleApp.setEnd(endTs);
-    singleApp.setDescription(description);
+    out.setStart(startTs);
+    out.setEnd(endTs);
+    out.setDescription(description);
     return true;
   } catch (...) {
     return false;
@@ -47,6 +47,13 @@ vector<Appointment> Calendar::loadAppointments(const string &filename) {
     } else {
       cout << "Skipping problematic line: " << line << endl;
     }
-    return appointments;
+  }
+  return appointments;
+}
+
+void Calendar::printAppointments() const {
+  for (const auto &singleApp : appointments) {
+    singleApp.printSingleApp();
+    cout << "---------------------------------" << endl;
   }
 }

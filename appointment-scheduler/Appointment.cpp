@@ -1,5 +1,7 @@
 #include "Appointment.h"
 #include <cctype>
+#include <iomanip>
+#include <iostream>
 #include <string>
 
 using namespace std;
@@ -66,7 +68,7 @@ void Appointment::setEnd(long long ts) {
   endDay = ts % 100;
   ts /= 100;
 
-  startMonth = ts % 100;
+  endMonth = ts % 100;
   ts /= 100;
 
   endYear = static_cast<int>(ts);
@@ -121,3 +123,18 @@ long long Appointment::getEnd() const {
 }
 
 string Appointment::getDescription() const { return description; }
+
+void Appointment::printSingleApp() const {
+  cout << "Start: " << startYear << "/" << setfill('0') << setw(2) << startMonth
+       << "/" << setw(2) << startDay << " - " << setw(2) << startHour << ":"
+       << setw(2) << startMin << " " << startPeriod;
+
+  cout << " , ";
+
+  cout << "End: " << endYear << "/" << setw(2) << endMonth << "/" << setw(2)
+       << endDay << " - " << setw(2) << endHour << ":" << setw(2) << endMin
+       << " " << endPeriod;
+
+  cout << " , ";
+  cout << description << endl;
+}
