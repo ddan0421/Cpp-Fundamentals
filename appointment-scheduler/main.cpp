@@ -1,4 +1,5 @@
 #include "Appointment.h"
+#include "Calendar.h"
 #include <iostream>
 #include <string>
 
@@ -59,6 +60,14 @@ int main() {
   cout << "Start ID:    " << appt.getStart() << endl;
   cout << "End ID:      " << appt.getEnd() << endl;
   cout << "================================" << endl;
+
+  appt.printSingleApp();
+
+  string testFile = "appointments.txt";
+
+  Calendar myCalendar;
+  myCalendar.loadAppointments(testFile);
+  myCalendar.printAppointments();
 
   return 0;
 }

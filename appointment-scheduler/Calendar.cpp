@@ -1,6 +1,5 @@
 #include "Calendar.h"
 #include "Appointment.h"
-#include <cerrno>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -29,6 +28,31 @@ bool Calendar::parseLine(const string &line, Appointment &out) {
   }
 }
 
+void Calendar::sortAppointment() {
+  int elems = appointments.size();
+
+  int minIndex;
+  long long minValue;
+
+  for (int i = 0; i < (elems - 1); i++) {
+
+    minIndex = i;
+    minValue = appointments[i].getStart();
+
+    for (int j = i + 1; j < elems; j++) {
+      if (appointments[j].getStart() < minValue) {
+        minIndex = j;
+        minValue = appointments[j].getStart();
+      }
+    }
+
+    // swap
+    Appointment temp = appointments[i];
+    appointments[i] = appointments[minIndex];
+    appointments[minIndex] = temp;
+  }
+}
+
 vector<Appointment> Calendar::loadAppointments(const string &filename) {
   ifstream file(filename);
   if (!file) {
@@ -48,6 +72,7 @@ vector<Appointment> Calendar::loadAppointments(const string &filename) {
       cout << "Skipping problematic line: " << line << endl;
     }
   }
+  sortAppointment();
   return appointments;
 }
 

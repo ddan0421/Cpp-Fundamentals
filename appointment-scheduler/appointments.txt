@@ -1,0 +1,8 @@
+202604151200|202604151300|Lunch Meeting (Wednesday)
+202604141800|202604142000|Dinner with Parents (Tuesday)
+202604150900|202604151000|Morning Standup (Wednesday)
+202604140830|202604140930|Coffee Catch-up (Tuesday)
+202604161400|202604161530|Project Deep Dive (Thursday)
+202604142330|202604150030|Late Night Coding (Tue/Wed)
+202604151430|202604151530|Design Review (Wednesday)
+202604160800|202604160900|Gym Session (Thursday)
