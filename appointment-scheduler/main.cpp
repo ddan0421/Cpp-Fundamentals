@@ -7,45 +7,62 @@ using namespace std;
 
 // Helper function prototype
 bool isValidInput(int, int, int, int, int, string &);
-void getValidDateTime(int &, int &, int &, int &, int &, string &, string);
+bool getValidDateTime(int &, int &, int &, int &, int &, string &, string);
 
 int main() {
-  string testFile = "appointments.txt";
+  string inputFile = "appointments.txt";
   Calendar myCalendar;
 
-  // 1. Load and Display existing appointments
+  // 1. Print out existing Calendar
   cout << "--- Loading Existing Schedule from File ---" << endl;
-  myCalendar.loadAppointments(testFile);
+  myCalendar.loadAppointments(inputFile);
   myCalendar.printAppointments();
-  cout << "-------------------------------------------\n" << endl;
 
-  // 2. Get new appointment data from user
-  Appointment newAppt;
-  int y, m, d, h, mn;
-  string period, desc;
+  while (true) {
+    cout << "\n===================================================" << endl;
+    cout << " NEW APPOINTMENT ENTRY (Enter -99 for Year to Quit)" << endl;
+    cout << "===================================================" << endl;
 
-  getValidDateTime(y, m, d, h, mn, period, "START TIME");
-  newAppt.setStart(m, d, y, h, mn, period);
+    int y, m, d, h, mn;
+    string period, desc;
 
-  getValidDateTime(y, m, d, h, mn, period, "END TIME");
-  newAppt.setEnd(m, d, y, h, mn, period);
+    // 2. Get start time - if returns false, user entered -99
+    if (!getValidDateTime(y, m, d, h, mn, period, "START TIME")) {
+      break;
+    }
 
-  cin.ignore(1000, '\n');
-  cout << "\nDescription: ";
-  getline(cin, desc);
-  newAppt.setDescription(desc);
+    Appointment newAppt;
+    newAppt.setStart(m, d, y, h, mn, period);
 
-  // 3. Print the user's entry for confirmation
-  cout << "\n--- Your Entered Appointment ---" << endl;
-  newAppt.printSingleApp();
-  cout << "--------------------------------" << endl;
+    // 3. Get end time
+    // We don't check for -99 here because they already committed to this entry
+    getValidDateTime(y, m, d, h, mn, period, "END TIME");
+    newAppt.setEnd(m, d, y, h, mn, period);
 
-  if (myCalendar.addAppointments(newAppt, testFile)) {
-    cout << "Check your appointments.txt—it should have the new line!" << endl;
-  } else {
-    cout << "Nothing was saved due to a conflict." << endl;
+    // 4. Get Description
+    cin.ignore(1000, '\n');
+    cout << "\nDescription: ";
+    getline(cin, desc);
+    newAppt.setDescription(desc);
+
+    // 5. Logic: End must be after Start
+    if (newAppt.getEnd() <= newAppt.getStart()) {
+      cout << "\n!!!!!ERROR: Appointment cannot end before it starts. Entry "
+              "discarded."
+           << endl;
+      continue; // Go back to start of loop
+    }
+
+    // 6. conflict check and add
+    if (myCalendar.addAppointments(newAppt, inputFile)) {
+      cout << "\n>> success: appointment added to " << inputFile << endl;
+
+    } else {
+      cout << "\n>> FAILURE: Conflict detected with existing schedule." << endl;
+    }
   }
 
+  cout << "\nExiting... Have a productive day!" << endl;
   return 0;
 }
 
@@ -85,12 +102,16 @@ bool isValidInput(int y, int m, int d, int h, int mn, string &p) {
   return true;
 }
 
-void getValidDateTime(int &y, int &m, int &d, int &h, int &mn, string &p,
+bool getValidDateTime(int &y, int &m, int &d, int &h, int &mn, string &p,
                       string label) {
   while (true) {
     cout << "\n[ " << label << " ]" << endl;
-    cout << "Year: ";
+    cout << "Year (or -99 to quit): ";
     cin >> y;
+
+    if (y == -99) // Only Start Time prompts allows user to enter -99
+      return false;
+
     cout << "Month (1-12): ";
     cin >> m;
     cout << "Day: ";
@@ -103,7 +124,7 @@ void getValidDateTime(int &y, int &m, int &d, int &h, int &mn, string &p,
     cin >> p;
 
     if (isValidInput(y, m, d, h, mn, p)) {
-      break;
+      return true;
     } else {
       cout << ">> INVALID DATE/TIME. Please try again." << endl;
       cin.ignore(1000, '\n');
