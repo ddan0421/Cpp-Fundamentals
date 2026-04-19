@@ -38,7 +38,9 @@ An appointment is defined as a period with a **start time**, an
   back to a human-readable form in most outputs, for example
   `2022/04/21 - 01:14 PM`.
 
-A valid appointment should consist of these criteria:
+A valid appointment should consist of these criteria (enforced by the
+driver in `main.cpp` via `isValidInput()` before the values are ever
+handed to an `Appointment` object):
 
 - The month has to be between 1 and 12.
 - The minute has to be between 0 and 59.
@@ -46,7 +48,10 @@ A valid appointment should consist of these criteria:
 - The period has to be either AM or PM; the program standardizes the
   case for this input.
 - The program also evaluates the validity of the day, since some months
-  have 30 days and others have 31. Leap-year logic is included as well.
+  have 30 days and others have 31. Leap-year logic is included as well
+  (divisible by 4, unless divisible by 100 but not by 400).
+- As a final cross-field check, the **end time must be strictly after
+  the start time**; otherwise the entry is discarded.
 
 ### Class responsibilities
 
@@ -108,52 +113,92 @@ Start|End|Description
   - `loadAppointments(const string &filename)` — opens the file with
     `ifstream`, reads it line-by-line with `getline`, uses `parseLine`
     to populate each `Appointment`, `push_back`s it into the vector,
-    and finally sorts.
+    and finally sorts. Returns the populated vector.
   - `checkConflict(const Appointment &a)` — walks the (now sorted)
     vector and applies the overlap test
     `newStart < existingEnd && existingStart < newEnd`. Because the
     list is sorted by start time, the loop can exit early once it
     passes the new appointment's end time.
+  - `addAppointments(const Appointment &a, const string &filename)` —
+    the "commit" operation. It first calls `checkConflict`; if there's
+    no conflict, it opens the file in **append mode**
+    (`ofstream(filename, ios::app)`), writes the new appointment as
+    `start|end|description`, `push_back`s it into the in-memory
+    vector, re-runs `sortAppointment()` so the vector stays ordered,
+    and reprints the updated schedule. Returns `true` on success,
+    `false` on conflict.
   - `printAppointments() const` — a range-`for` loop that calls
-    `printSingleApp()` on each element.
+    `printSingleApp()` on each element, with a divider line printed
+    between entries for readability.
 
 ---
 
 ## 4. Main Program
 
-The program shows the existing appointments. A user can enter an
-appointment, and the program checks whether that appointment conflicts
-with any existing appointment in the calendar. The existing
+The program shows the existing appointments and then enters an
+**interactive loop**: the user can enter one appointment after
+another, and the program checks each for conflicts before adding it
+to both the in-memory calendar and the data file. The existing
 appointments are stored in a **vector**. A vector is chosen over a
 plain array because a vector's size can be dynamically changed;
 therefore, it is more suitable for loading and writing operations.
 
-**High-level flow (`main.cpp`):**
+### Helper functions in `main.cpp`
 
-1. Create a `Calendar` object.
-2. `loadAppointments("appointments.txt")` reads each line, parses it
-   into an `Appointment`, stores it in the vector, and sorts the list.
-3. `printAppointments()` displays the existing schedule.
-4. The user is prompted for the start date/time, end date/time, and
-   description of a **new** appointment.
-5. A new `Appointment` object is built from that input and printed
-   back for confirmation.
-6. `checkConflict()` determines whether the new appointment overlaps
-   any stored one, and the result is reported.
+- `bool isValidInput(int y, int m, int d, int h, int mn, string &p)` —
+  runs the full per-field validation: month range, minute range, hour
+  range, AM/PM (uppercased in-place through the reference parameter),
+  and day-of-month with a lookup array plus leap-year adjustment for
+  February.
+- `bool getValidDateTime(int &y, int &m, int &d, int &h, int &mn,`
+  `string &p, string label)` — prompts the user for each field,
+  calls `isValidInput` in a `while (true)` loop, and only returns
+  when the user types a valid date/time. Writes its results back
+  through **reference parameters** (out-parameters). Returns `false`
+  if the user enters `-99` for the year, which is the sentinel used
+  to quit the program.
+
+### High-level flow
+
+1. Create a `Calendar` object and call
+   `loadAppointments("appointments.txt")`, which reads each line,
+   parses it into an `Appointment`, stores it in the vector, and
+   sorts the list. `printAppointments()` then displays the existing
+   schedule.
+2. Enter the main `while (true)` loop.
+3. Call `getValidDateTime(..., "START TIME")`. If it returns `false`
+   (user typed `-99`), `break` out of the loop and exit cleanly.
+4. Build a new `Appointment` and set its start with the
+   human-readable overload `setStart(m, d, y, h, mn, period)`.
+5. Call `getValidDateTime(..., "END TIME")` and set the end the same
+   way.
+6. `cin.ignore(1000, '\n')` to discard the leftover newline, then
+   `getline(cin, desc)` to read the free-text description.
+7. Sanity check: if `newAppt.getEnd() <= newAppt.getStart()`, print
+   an error and `continue` to the top of the loop — the entry is
+   discarded.
+8. Call `myCalendar.addAppointments(newAppt, inputFile)`. This single
+   method handles the conflict check, the file append, the vector
+   update, and the re-sort. `main` just reports success or failure.
 
 ### Conflict Detection
 
-Once the New Start and New End values are known, the system compares
-them against the existing appointments in the vector:
+Once the new start and new end values are known, `checkConflict`
+compares them against the existing appointments in the (sorted)
+vector:
 
-- **The Overlap Math** — for every existing appointment on that day,
-  it runs a single check:
+- **The Overlap Math** — for every existing appointment, it runs a
+  single check:
   *Is the New Start < Existing End* **AND** *Is the Existing Start < New End?*
-- **Validation** — if that condition is true for even one
-  appointment, the system flags a **Conflict** and stops, and may ask
-  the user for a new time for the appointment. If it checks the entire
-  list and finds no conflicts, the program appends the new appointment
-  to the text file.
+- **Early exit** — because the vector is sorted by start time, the
+  loop breaks as soon as it finds an existing appointment whose start
+  is `>= newEnd`. Nothing after that point can overlap.
+- **Outcome** — if the condition is true for even one appointment,
+  `checkConflict` returns `true`, `addAppointments` refuses to add
+  the entry, and `main` reports the conflict and lets the user try
+  again. If the entire list clears, the appointment is appended to
+  `appointments.txt`, inserted into the in-memory vector, and the
+  vector is re-sorted so subsequent conflict checks remain correct.
 
 ---
 
@@ -180,11 +225,16 @@ the course.
 
 ### Loops and File I/O
 - `ifstream` to read `appointments.txt`.
+- `ofstream(filename, ios::app)` in `addAppointments` to **append**
+  new entries without overwriting the existing data.
 - `while (getline(file, line))` to process the file line-by-line.
 - `stringstream` with `getline(ss, token, '|')` to split each line into
   fields.
 - Classic indexed `for` loops for sorting, and range-`for`
   (`for (const auto &x : v)`) when the index isn't needed.
+- `while (true) { ... break; }` in `main()` for the interactive
+  session, exited only by the `-99` sentinel, and another
+  `while (true)` inside `getValidDateTime` to re-prompt on bad input.
 - `cin.ignore(1000, '\n')` before `getline(cin, desc)` so the newline
   left over from the previous `cin >>` does not eat the description.
 
@@ -198,7 +248,11 @@ the course.
     callee permission to modify the original.
   - *Out-parameters* — `parseLine(const string &line, Appointment &out)`
     writes through a non-const reference and returns a `bool` to
-    indicate success or failure.
+    indicate success or failure. `getValidDateTime(int &y, int &m, ...)`
+    uses the same pattern to return six primitive fields at once.
+  - *Mutating reference parameters* — `isValidInput(..., string &p)`
+    uppercases the period string in place so the caller sees the
+    normalized value.
 - **Function overloading** — two `setStart` overloads and two `setEnd`
   overloads share a name but take different parameter lists (six
   human-readable fields vs. one packed `long long`).
@@ -211,10 +265,14 @@ the course.
 - `std::vector<Appointment>` as the dynamic container of appointments
   — chosen over a raw array because the number of appointments isn't
   known ahead of time.
-- `push_back` to grow the vector as the file is read.
+- `push_back` both when loading the file **and** when
+  `addAppointments` commits a new entry at runtime.
 - `.size()` used as the loop bound inside `sortAppointment`.
 - Indexed access `appointments[i]` / `appointments[j]` during sort.
 - Range-`for` traversal in `printAppointments` and `checkConflict`.
+- A plain C-style array inside `isValidInput`
+  (`int daysInMonth[] = {0, 31, 28, 31, ...}`) used as a lookup
+  table for day-of-month validation.
 
 ### Sorting and Searching
 - **Selection sort** implemented by hand in `sortAppointment()`:
@@ -267,7 +325,16 @@ the course.
   number (from the file).
 - **Sorted storage enables an early exit** — `checkConflict` is O(n)
   in the worst case but in practice returns as soon as it passes the
-  new appointment's end time.
+  new appointment's end time. Because `addAppointments` re-sorts
+  after every insert, that invariant survives the interactive loop.
+- **`addAppointments` as a single "commit" operation** — bundling
+  conflict check + file append + vector update + re-sort into one
+  method keeps `main.cpp` simple: the driver just asks the question,
+  and one boolean return value decides what to print.
+- **Validation lives in the driver, domain objects stay clean** —
+  `isValidInput` (in `main.cpp`) owns the calendar rules so that the
+  `Appointment` class stores data without repeating itself with
+  defensive checks on every setter.
 - **Class boundaries match real-world nouns** — `Appointment` = one
   meeting, `Calendar` = the whole schedule. `main.cpp` stays short
   because each class does its own job.
