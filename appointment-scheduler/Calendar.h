@@ -14,8 +14,7 @@ public:
   loadAppointments(const string &filename); // pass by reference more efficient
                                             // though can be pass by value
   bool checkConflict(const Appointment &a);
-  // void addAppointments(const Appointment &a, const string &filename,
-  //                      bool writeIfNoConflict);
+  bool addAppointments(const Appointment &a, const string &filename);
 
   void printAppointments() const;
 

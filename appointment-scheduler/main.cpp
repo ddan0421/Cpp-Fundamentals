@@ -4,6 +4,11 @@
 #include <string>
 
 using namespace std;
+
+// Helper function prototype
+bool isValidInput(int, int, int, int, int, string &);
+void getValidDateTime(int &, int &, int &, int &, int &, string &, string);
+
 int main() {
   string testFile = "appointments.txt";
   Calendar myCalendar;
@@ -19,36 +24,10 @@ int main() {
   int y, m, d, h, mn;
   string period, desc;
 
-  cout << "=== Test New Appointment Entry ===" << endl;
-
-  cout << "\n[ START TIME ]" << endl;
-  cout << "Year: ";
-  cin >> y;
-  cout << "Month: ";
-  cin >> m;
-  cout << "Day: ";
-  cin >> d;
-  cout << "Hour: ";
-  cin >> h;
-  cout << "Minute: ";
-  cin >> mn;
-  cout << "AM/PM: ";
-  cin >> period;
+  getValidDateTime(y, m, d, h, mn, period, "START TIME");
   newAppt.setStart(m, d, y, h, mn, period);
 
-  cout << "\n[ END TIME ]" << endl;
-  cout << "Year: ";
-  cin >> y;
-  cout << "Month: ";
-  cin >> m;
-  cout << "Day: ";
-  cin >> d;
-  cout << "Hour: ";
-  cin >> h;
-  cout << "Minute: ";
-  cin >> mn;
-  cout << "AM/PM: ";
-  cin >> period;
+  getValidDateTime(y, m, d, h, mn, period, "END TIME");
   newAppt.setEnd(m, d, y, h, mn, period);
 
   cin.ignore(1000, '\n');
@@ -61,17 +40,73 @@ int main() {
   newAppt.printSingleApp();
   cout << "--------------------------------" << endl;
 
-  // 4. Perform the Conflict Check
-  cout << "\n--- Verifying Conflict ---" << endl;
-
-  if (myCalendar.checkConflict(newAppt)) {
-    cout << "Result: [!] CONFLICT DETECTED." << endl;
-    cout << "This appointment overlaps with an existing one in your file."
-         << endl;
+  if (myCalendar.addAppointments(newAppt, testFile)) {
+    cout << "Check your appointments.txt—it should have the new line!" << endl;
   } else {
-    cout << "Result: [OK] NO CONFLICT." << endl;
-    cout << "The time slot is available." << endl;
+    cout << "Nothing was saved due to a conflict." << endl;
   }
 
   return 0;
+}
+
+// Function heading
+bool isValidInput(int y, int m, int d, int h, int mn, string &p) {
+  // 1. Month only between Jan and Dec.
+  if (m < 1 || m > 12)
+    return false;
+
+  // 2. Minute check
+  if (mn < 0 || mn > 59)
+    return false;
+
+  // 3. Hour check regardless of AM or PM
+  if (h < 1 || h > 12)
+    return false;
+
+  // 4. Force period to be all uppercase
+  for (char &c : p)
+    c = toupper(c);
+  if (p != "AM" && p != "PM")
+    return false;
+
+  // 5. Day check by putting max day for each month in an array
+  int daysInMonth[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+  // Leap year adjustment for February
+  // A year is a leap year if it is divisible by 4, unless it is divisible by
+  // 100 but not by 400
+  if ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)) {
+    daysInMonth[2] = 29;
+  }
+
+  if (d < 1 || d > daysInMonth[m])
+    return false;
+
+  return true;
+}
+
+void getValidDateTime(int &y, int &m, int &d, int &h, int &mn, string &p,
+                      string label) {
+  while (true) {
+    cout << "\n[ " << label << " ]" << endl;
+    cout << "Year: ";
+    cin >> y;
+    cout << "Month (1-12): ";
+    cin >> m;
+    cout << "Day: ";
+    cin >> d;
+    cout << "Hour (1-12): ";
+    cin >> h;
+    cout << "Minute (0-59): ";
+    cin >> mn;
+    cout << "AM/PM: ";
+    cin >> p;
+
+    if (isValidInput(y, m, d, h, mn, p)) {
+      break;
+    } else {
+      cout << ">> INVALID DATE/TIME. Please try again." << endl;
+      cin.ignore(1000, '\n');
+    }
+  }
 }

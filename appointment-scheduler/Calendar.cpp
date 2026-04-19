@@ -93,9 +93,31 @@ bool Calendar::checkConflict(const Appointment &a) {
   return false;
 }
 
+bool Calendar::addAppointments(const Appointment &a, const string &filename) {
+  if (checkConflict(a)) {
+    cout << "Conflict detected. Appointment not added: " << a.getDescription()
+         << endl;
+    return false;
+  } else {
+    ofstream outFile(filename, ios::app);
+    outFile << a.getStart() << "|" << a.getEnd() << "|" << a.getDescription()
+            << endl;
+    appointments.push_back(a);
+    sortAppointment();
+    cout << "Success! Appointment added and calendar re-sorted. Here is your "
+            "new calendar"
+         << endl;
+    printAppointments();
+  }
+
+  return true;
+}
+
 void Calendar::printAppointments() const {
   for (const auto &singleApp : appointments) {
     singleApp.printSingleApp();
-    cout << "---------------------------------" << endl;
+    cout << "------------------------------------------------------------------"
+            "-------------------"
+         << endl;
   }
 }
