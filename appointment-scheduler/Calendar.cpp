@@ -76,6 +76,23 @@ vector<Appointment> Calendar::loadAppointments(const string &filename) {
   return appointments;
 }
 
+bool Calendar::checkConflict(const Appointment &a) {
+  long long ns = a.getStart();
+  long long ne = a.getEnd();
+
+  for (const auto &existingApp : appointments) {
+    long long es = existingApp.getStart();
+    long long ee = existingApp.getEnd();
+
+    if (es >= ne)
+      break;
+    if (ns < ee && es < ne) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void Calendar::printAppointments() const {
   for (const auto &singleApp : appointments) {
     singleApp.printSingleApp();
