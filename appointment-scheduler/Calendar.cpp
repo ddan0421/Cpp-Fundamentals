@@ -104,9 +104,8 @@ bool Calendar::addAppointments(const Appointment &a, const string &filename) {
             << endl;
     appointments.push_back(a);
     sortAppointment();
-    cout << "Success! Appointment added and calendar re-sorted. Here is your "
-            "new calendar"
-         << endl;
+    cout << "Success! Appointment added and calendar re-sorted." << endl;
+    cout << "\n--- Here is your new calendar ---" << endl;
     printAppointments();
   }
 
