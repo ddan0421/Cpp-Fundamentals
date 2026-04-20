@@ -22,6 +22,23 @@ appointment-scheduler/
 There are two classes — `Appointment` and `Calendar` — plus a
 `main.cpp` driver that ties them together.
 
+### Compile and run
+
+From the `appointment-scheduler/` directory, build all three `.cpp`
+files into one executable (example using **g++**; **clang++** works the
+same way with the same flags and file list):
+
+```bash
+g++ -std=c++17 -Wall -Wextra -o appointment-scheduler main.cpp Appointment.cpp Calendar.cpp
+```
+
+Run the program from that same directory so it can find
+`appointments.txt` (see `inputFile` in `main.cpp`):
+
+```bash
+./appointment-scheduler
+```
+
 ---
 
 ## 2. Appointment
