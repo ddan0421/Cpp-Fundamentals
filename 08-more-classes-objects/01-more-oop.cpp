@@ -230,3 +230,222 @@ public:
 */
 // this -> x is the object's member variable
 // x is the parameter
+
+// Object Conversion
+// For your own classes (like FeetInches), C++ has no idea how to convert them.
+//
+// So you must teach it how using an operator function.
+//
+/*
+class FeetInches {
+private:
+    int feet;
+    int inches;
+
+public:
+    FeetInches(int f, int i) {
+        feet = f;
+        inches = i;
+    }
+
+    // conversion operator
+    operator int() {
+        return feet * 12 + inches;
+    }
+};
+
+FeetInches distance(6, 8);
+
+int d = distance;   // ← automatic conversion! I need to convert FeetInches →
+int. So it looks for a conversion operator 'operator int()'
+// so int d = distinace is doing this behind: int d = distance.operator int();
+
+*/
+
+/*
+Aggregation: a class is a member of a class
+Supports the modeling of ‘has a’ relationship between classes – enclosing class
+‘has a’ enclosed class Same notation as for structures within structures
+
+class Engine {
+public:
+    int horsepower;
+};
+
+class Car {
+private:
+    Engine engine;  // ← aggregation (Car HAS an Engine)
+
+public:
+    Car(int hp) {
+        engine.horsepower = hp;
+    }
+};
+
+Cleaner, reusable, and more realistic modeling.
+Instead of doing this:
+class Car {
+    int engineHorsepower;
+    int engineCylinders;
+};
+
+you can do this:
+
+class Engine {
+public:
+    int horsepower;
+    int cylinders;
+};
+
+class Car {
+    Engine engine;
+};
+
+
+*/
+
+/*
+An lvalue refers to something that exists in memory and has a name (or address).
+
+int x = 10;
+x → lvalue (has memory location)
+10 → rvalue
+
+Rule of Thumb: If it can appear on the left side of =, it’s usually an lvalue.
+
+An rvalue is a temporary value that doesn’t stick around.
+
+
+*/
+
+/*
+
+Why Move Assignment exists:
+class MyArray {
+private:
+    int* data;
+};
+
+a = b; // Copy assignment. very expensive
+
+Copy Assignment VS Move Assignment
+
+Copy:
+MyClass& operator=(const MyClass& other);
+a = b;
+
+Before:
+a → old data
+b → data
+
+After:
+a → copy of b's data
+b → unchanged
+
+
+
+Move:
+MyClass& operator=(MyClass&& other);
+a = std::move(b);
+
+Before:
+a → old data
+b → data
+
+After:
+a → b's data
+b → nullptr
+
+
+
+example move assignment:
+class MyArray {
+private:
+    int* data;
+    int size;
+
+public:
+    // Move assignment operator
+    MyArray& operator=(MyArray&& other) {
+        // 1. Clean up current object
+        delete[] data;
+
+        // 2. Steal resources
+        data = other.data;
+        size = other.size;
+
+        // 3. Leave other in safe state
+        other.data = nullptr;
+        other.size = 0;
+
+        return *this;
+    }
+};
+
+
+
+
+
+// Copy constructor
+MyClass(const MyClass& other);
+
+// Move constructor
+MyClass(MyClass&& other);
+
+// Copy assignment
+MyClass& operator=(const MyClass& other);
+
+// Move assignment
+MyClass& operator=(MyClass&& other);
+
+In any class that contains a pointer or reference to an outside piece of data,
+the class should also have: copy constructor move constructor copy assignment
+operator move assignment operator
+
+
+*/
+
+/*
+Default keyword:
+
+class MyClass {
+public:
+    MyClass(int x) {}   // custom constructor
+};
+
+// the compiler won't generate a default constructor
+MyClass a;  // ❌ error
+
+
+Fix:
+class MyClass {
+public:
+    MyClass() = default;   // bring it back
+    MyClass(int x) {}
+};
+
+
+
+Delete keyword:
+class A {
+public:
+    A(const A&) = delete;  // no copying allowed
+};
+
+A a;
+A b = a;   // ❌ compile error
+
+
+example:
+class FileHandle {
+public:
+    FileHandle(const FileHandle&) = delete;
+    FileHandle& operator=(const FileHandle&) = delete;
+};
+
+A file handle shouldn’t be copied:
+
+two objects pointing to same file resource
+double close → crash
+
+*/
