@@ -13,3 +13,7 @@ int main() {
 
   return 0;
 }
+
+// Explain why objectCount remains shared among all instances.
+// since objectCount has a keyword static in front of it. It is not tied to a
+// single object. It belongs to the class, not the instance.
