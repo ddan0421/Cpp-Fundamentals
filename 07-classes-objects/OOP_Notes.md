@@ -40,6 +40,11 @@
 
 ## 1. Procedural vs. Object-Oriented Programming
 
+**Key difference — in two parts:**
+
+1. **Where data and code live** — In procedural programming, **data and functions are separate** (data sits in variables/structures; functions are written apart from that data and act on it from the outside). In OOP, **data and the functions that operate on it are bundled together** in **objects** (defined by **classes**).
+2. **How you structure the program** — Procedural programming **tells the computer what to do, step by step** — a sequence of instructions. OOP **models things in the real world** (or the problem you are solving) as **objects** that each **handle their own behavior** through their methods, instead of centralizing all actions in unconnected functions.
+
 | Procedural | Object-Oriented |
 |---|---|
 | Focuses on the **process / actions** a program performs. | Focuses on **data and the functions that operate on it**, bundled together as objects. |
