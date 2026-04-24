@@ -22,5 +22,5 @@ int main() {
 
     cout << "The subtraction result is " << point1 - point2 << endl;
     cout << "The addition result is " << point1 + point2 << endl;
-
+    return 0;
 }
