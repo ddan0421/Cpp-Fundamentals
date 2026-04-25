@@ -53,9 +53,54 @@
 
 using namespace std;
 
-class Artifact() {
+class Artifact {
 private:
   string name;
   string category;
   int age;
+
+public:
+  Artifact();
+  Artifact(string n, string c, int a);
+
+  void setName(string n);
+  void setCategory(string c);
+  void setAge(int a);
+
+  string getName() const;
+  string getCategory() const;
+  int getAge() const;
 };
+
+Artifact::Artifact() : name("Unknown"), category("None"), age(0) {}
+
+Artifact::Artifact(string n, string c, int a) {
+  name = n;
+  category = c;
+  age = a;
+}
+
+void Artifact::setName(string n) { name = n; };
+void Artifact::setCategory(string c) { category = c; };
+void Artifact::setAge(int a) { age = a; };
+
+string Artifact::getName() const { return name; }
+string Artifact::getCategory() const { return category; }
+int Artifact::getAge() const { return age; }
+
+/*
+When you write: cout << "hello"; the compiler turns it into:
+cout.operator<<("hello"); (this uses built-in overloads provided by the standard
+library)
+
+cout is an object of type ostream. So cout is an instance of a class ostream
+
+so when you overload << for a custom type, you define a function like:
+operator<<(ostream& os, const Artifact& artifact); and then the expression:
+cout << artifact becomes operator<<(cout, artifact);
+*/
+ostream &operator<<(ostream &os, const Artifact &obj) {
+  os << "Name: " << obj.getName() << ", Category: " << obj.getCategory()
+     << ", Age: " << obj.getAge() << " years";
+  return os;
+}
