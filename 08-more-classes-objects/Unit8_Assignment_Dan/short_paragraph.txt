@@ -1,0 +1,7 @@
+The copy constructor is a very important tool in building financial software. As someone working in the financial industry, I often conduct scenario testing.
+
+Most of the time, we need to create copies of different portfolio scenarios to simulate various market conditions and mimic what would happen in bullish or bearish markets. I cannot simply perform shallow copies because this would cause both copies to point to the same memory address; if the session ends and a destructor is called, both would be deleted.
+
+However, using a copy constructor allows me to create a "deep copy" because it allocates new, separate memory for the copies and duplicates the values.
+
+In practice, a copy constructor is crucial when you need to make a copy while ensuring the original data is preserved.
