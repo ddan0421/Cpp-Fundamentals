@@ -101,6 +101,36 @@ cout << artifact becomes operator<<(cout, artifact);
 */
 ostream &operator<<(ostream &os, const Artifact &obj) {
   os << "Name: " << obj.getName() << ", Category: " << obj.getCategory()
-     << ", Age: " << obj.getAge() << " years";
+     << ", Age: " << obj.getAge() << " years" << endl;
   return os;
+}
+
+int main() {
+  string ArtName;
+  string ArtCat;
+  int ArtAge;
+
+  cout << "Enter artifact's name: ";
+  getline(cin, ArtName);
+
+  cout << "Enter artifact's category: ";
+  getline(cin, ArtCat);
+
+  cout << "Enter artifact's age: ";
+  cin >> ArtAge;
+
+  cin.ignore();
+
+  Artifact art(ArtName, ArtCat, ArtAge);
+
+  cout << "\nArtifact Details:" << endl;
+  cout << art;
+
+  cout << "\nUpdate artifact's category: ";
+  getline(cin, ArtCat);
+  art.setCategory(ArtCat);
+  cout << "Updated Artifact Details: " << endl;
+  cout << art;
+
+  return 0;
 }
