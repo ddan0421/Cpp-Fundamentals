@@ -12,6 +12,11 @@ A consolidated reference of the advanced object-oriented concepts covered in thi
 | **Static variable** | the class itself | **one copy shared** by all objects | `ClassName::x` |
 | **Static member function** | the class itself | — | callable **before any object exists**; can only access static data |
 
+**Access rules to remember:**
+
+- A **non-static** member function *can* access static data members (it has access to everything in the class).
+- A **static** member function *cannot* access non-static data members — it has no `this` pointer, so there is no specific object to read from.
+
 ### Static variable example (`Tree.h` / `tree_main.cpp`)
 
 ```6:12:08-more-classes-objects/Unit8_Assignment_Dan/Tree.h
@@ -147,7 +152,12 @@ Allocating fresh memory and copying the *pointed-to value* keeps the two objects
 
 ## 5. Operator Overloading
 
-Operator overloading lets you redefine what built-in operators (`+`, `-`, `<<`, `=`, …) mean for your own classes.
+Operator overloading lets you redefine what built-in operators (`+`, `-`, `<<`, `=`, …) mean for your own classes. Because they work with programmer-defined data types, overloaded operators are sometimes simply called **operator** functions — the function name is literally the keyword `operator` followed by the symbol (e.g. `operator+`).
+
+**Two rules that always hold when overloading:**
+
+1. You **cannot change the number of operands** the operator takes (a binary operator stays binary, a unary one stays unary).
+2. You cannot invent new operators or change operator precedence.
 
 ### Arithmetic operator overload — `Point2D.cpp`
 
@@ -181,6 +191,20 @@ ostream &operator<<(ostream &os, const Artifact &obj) {
 ```
 
 Returning `os` by reference is what enables chaining: `cout << a << b;`.
+
+### The "dummy parameter" — distinguishing prefix from postfix
+
+`++` and `--` come in two flavors: prefix (`++x`) and postfix (`x++`). They have the same name and the same number of real operands, so C++ uses a **dummy parameter** of type `int` purely as a *tag* to tell the two overloads apart.
+
+```cpp
+class FeetInches {
+public:
+    FeetInches operator++();      // prefix:  ++obj
+    FeetInches operator++(int);   // postfix: obj++   ← the (int) is the dummy parameter
+};
+```
+
+The `int` parameter has no name and is never used inside the function body — its only job is to give the postfix version a unique signature. The compiler automatically passes a `0` when you write `obj++`.
 
 ---
 
@@ -262,19 +286,65 @@ Benefits:
 
 ## 9. lvalues and rvalues
 
-- **lvalue** — refers to something that exists in memory and has a name/address. Can appear on the left side of `=`.
-  ```cpp
-  int x = 10;   // x is an lvalue, 10 is an rvalue
-  ```
-- **rvalue** — a temporary value with no persistent address.
+Every expression in C++ is either an **lvalue** or an **rvalue**. Knowing the difference is what makes move semantics make sense.
 
-This distinction matters because it underpins **move semantics** (`&&` rvalue references).
+| Term | What it is | Examples |
+| --- | --- | --- |
+| **lvalue** | A value that **persists beyond the statement that created it** and has a name/address that other statements can use. Can appear on the left side of `=`. | `x`, `myObj`, `arr[3]`, `*ptr` |
+| **rvalue** | A **temporary** value with no name and no persistent address — it disappears at the end of the expression. | `5`, `x + 1`, `square(5)`, the return of a function returning by value |
+
+```cpp
+int x = 10;        // x is an lvalue; 10 is an rvalue (a literal temporary)
+int y = x + 1;     // y and x are lvalues; (x + 1) is an rvalue
+```
+
+### Tracing temporaries — a worked example
+
+```cpp
+int square(int a) { return a * a; }
+
+int main() {
+    int x = 0;
+    x = square(5);       // line in question
+    cout << x << endl;
+}
+```
+
+When `x = square(5);` runs:
+
+1. `square` is **called** and `5` is passed as the argument.
+2. It computes `5 * 5` and stores `25` as a **temporary value** (an rvalue — it has no name).
+3. That temporary is **assigned (copied) to `x`**.
+4. After the assignment, the temporary is **discarded** by the system.
+
+That short-lived `25` is exactly the kind of value that move semantics targets — there's no point in deep-copying something that's about to disappear.
+
+### The role of `&` (ampersand) in references
+
+The `&` symbol in a *type* declares a **reference** — an alias for an existing object. C++11 splits references into two flavors based on what they can bind to:
+
+| Syntax | Name | Binds to |
+| --- | --- | --- |
+| `T&`  | **lvalue reference** (single ampersand) | named, persistent objects (lvalues) |
+| `T&&` | **rvalue reference** (double ampersand) | temporaries / unnamed objects (rvalues) |
+
+```cpp
+int  a = 10;
+int& lref  = a;     // OK — a is an lvalue
+int& bad   = 10;    // ❌ can't bind lvalue ref to a temporary
+int&& rref = 10;    // OK — 10 is an rvalue
+int&& bad2 = a;     // ❌ can't bind rvalue ref to a named lvalue
+```
+
+This is the mechanism that lets the compiler choose between a copy constructor (takes `const T&`) and a move constructor (takes `T&&`) automatically.
 
 ---
 
 ## 10. Move Semantics — Move Constructor & Move Assignment
 
-Copying a heavy object (one that owns heap memory) is expensive. **Moving** transfers ownership of the resource instead of duplicating it.
+Copying a heavy object (one that owns heap memory) is expensive. A **move** *transfers ownership of the resources* from a source object to a target object instead of duplicating them. The source is left in a valid but empty state.
+
+The double ampersand `&&` is the syntactic gateway to move semantics — a parameter declared `T&&` tells the compiler "I will only accept a temporary, and I'm allowed to gut it."
 
 ### Move constructor — `Buffer.cpp`
 
@@ -321,6 +391,16 @@ MyArray& operator=(MyArray&& other) {
 }
 ```
 
+A common idiomatic implementation is the **swap assignment**: instead of releasing-then-stealing, the move-assignment operator simply *swaps* the members of `*this` with the temporary `other`. Whatever `*this` used to own ends up inside `other`, and `other`'s destructor then cleans it up automatically when the temporary dies.
+
+```cpp
+MyArray& operator=(MyArray&& other) noexcept {
+    std::swap(data, other.data);
+    std::swap(size, other.size);
+    return *this;
+}
+```
+
 ### The "Rule of Five"
 
 Any class that owns a pointer / external resource should provide:
@@ -363,7 +443,28 @@ Useful for non-copyable resources (file handles, sockets, mutexes) where copying
 
 ---
 
-## 12. Putting It All Together — `Artifact` (auto_graded_assignment_1)
+## 12. Forward Declarations
+
+A **forward declaration** informs the compiler that a class will be declared later in the program. It's needed when two classes refer to each other, or when a header only needs to know that a type *exists* (e.g. to declare a pointer or reference to it) without seeing its full definition.
+
+```cpp
+class Address;            // forward declaration — "Address exists, full definition is coming"
+
+class Person {
+    Address* home;        // OK: pointer to an incomplete type is fine
+};
+
+class Address {           // full definition follows
+    string city;
+    string street;
+};
+```
+
+Without the forward declaration, the compiler would see `Address*` inside `Person` before it has ever heard of `Address` and reject the code.
+
+---
+
+## 13. Putting It All Together — `Artifact` (auto_graded_assignment_1)
 
 The Artifact program exercises many of these concepts in one place:
 
@@ -410,6 +511,9 @@ Artifact::Artifact() : name("Unknown"), category("None"), age(0) {}
 | Copy with owned resources | custom **copy constructor** (deep copy) | class holds raw pointer / dynamic array |
 | Cheap transfer | **move constructor** / move assignment + `std::move` | avoid expensive copies of large objects |
 | Custom operators | `operator+`, `operator<<`, `operator int()` | natural syntax for your types |
+| Postfix vs. prefix | `operator++(int)` (dummy parameter) | distinguish `obj++` from `++obj` |
+| lvalue vs. rvalue reference | `T&` vs. `T&&` | bind to named objects vs. temporaries |
 | Self reference | `this->` | resolve name conflicts, return `*this` for chaining |
 | "Has-a" modeling | object as a data member | composition of concepts |
+| Cross-referencing classes | forward declaration `class Foo;` | break circular header dependencies |
 | Force / forbid defaults | `= default`, `= delete` | precise control of special member functions |
