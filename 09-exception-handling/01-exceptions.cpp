@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -81,7 +82,7 @@ int main() {
   try {
     quotient = divide(num1, num2);
     cout << "The quotient is " << quotient << endl;
-  } catch (char *exceptionString) // If the exception is a string, the program
+  } catch (string exceptionString) // If the exception is a string, the program
                                   // jumps to this catch clause
   {
     cout << exceptionString;
@@ -91,7 +92,120 @@ int main() {
   return 0;
 }
 double divide(int numerator, int denominator) {
-  if (denominator == 0)
-    throw "Error: Cannot divide by zero.\n";
+  if (denominator == 0) {
+    string exceptionString = "Error: Cannot divide by zero.\n";
+    throw exceptionString;
+  }
   return static_cast<double>(numerator) / denominator;
 }
+
+/*
+Predefined functions such as new may throw exceptions
+The value that is thrown does not need to be used in catch block.  
+in this case, no name is needed in catch parameter definition
+catch block parameter definition does need the type of exception being caught
+
+Predefined functions such as new may throw exceptions
+The value that is thrown does not need to be used in catch block.  
+in this case, no name is needed in catch parameter definition
+catch block parameter definition does need the type of exception being caught
+
+*/
+
+
+
+/*
+An exception class can be defined in a class and thrown as an exception by a member function
+An exception class may have:
+no members: used only to signal an error
+members: pass error data to catch block 
+A class can have more than one exception class
+
+*/
+
+// Specification file for the Rectangle class
+#ifndef RECTANGLE_H
+#define RECTANGLE_H
+
+class Rectangle
+{
+private:
+    double width;  // The rectangle's width
+    double length; // The rectangle's length
+
+public:
+    // Exception class
+    class NegativeSize
+    { }; // Empty class declaration
+
+    // Default constructor
+    Rectangle()
+    { 
+        width = 0.0; 
+        length = 0.0; 
+    }
+
+    // Mutator functions, defined in Rectangle.cpp
+    void setWidth(double);
+    void setLength(double);
+
+    // Accessor functions
+    double getWidth() const
+    { 
+        return width; 
+    }
+
+    double getLength() const
+    { 
+        return length; 
+    }
+
+    double getArea() const
+    { 
+        return width * length; 
+    }
+};
+
+#endif
+
+//Rectange.cpp
+//The NegativeSize class has no members. The only important part of the class is its name,
+//which will be used in the exception-handling code
+
+// Implementation file for the Rectangle class.
+#include "Rectangle.h"
+
+//*********************************************************
+// setWidth sets the value of the member variable width. *
+// If the argument is negative, it throws an exception.   *
+//*********************************************************
+
+void Rectangle::setWidth(double w)
+{
+    if (w >= 0)
+    {
+        width = w;
+    }
+    else
+    {
+        throw NegativeSize();
+    }
+}
+
+//***********************************************************
+// setLength sets the value of the member variable length. *
+// If the argument is negative, it throws an exception.     *
+//***********************************************************
+
+void Rectangle::setLength(double len)
+{
+    if (len >= 0)
+    {
+        length = len;
+    }
+    else
+    {
+        throw NegativeSize();
+    }
+}
+
