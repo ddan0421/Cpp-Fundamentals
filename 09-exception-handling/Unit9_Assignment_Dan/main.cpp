@@ -21,41 +21,36 @@ dateOfBirth, vector<int>& years).
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
+string convertDate(string dateOfBirth, vector<int> &years);
 int checkDay(const string &, const int &, const int &);
 int checkMonth(const string &);
 
 int main() {
   string inputDate;
-  cout << "Please input date of birth in month-day-year format: " << endl;
-  getline(cin, inputDate);
-  stringstream ss(inputDate);
-  string monthString, dayString, yearString;
-  int month, day, year;
 
-  getline(ss, monthString, '-');
-  getline(ss, dayString, '-');
-  getline(ss, yearString);
+  vector<int> validYears;
 
-  year = stoi(yearString);
+  while (true) {
+    cout << "Please input date of birth in month-day-year format (-99 to "
+            "quit): ";
+    getline(cin, inputDate);
+    if (inputDate == "-99") {
+      break;
+    }
 
-  try {
-    month = checkMonth(monthString);
-  } catch (const InvalidMonth &e) {
-    cout << "Error: " << e.getMessage() << endl;
+    string result = convertDate(inputDate, validYears);
+    cout << result << endl;
   }
 
-  try {
-    day = checkDay(dayString, year, month);
-  } catch (const InvalidDay &e) {
-    cout << "Error: " << e.getMessage() << endl;
+  cout << "\nValid years entered: ";
+  for (const auto &y : validYears) {
+    cout << y << " ";
   }
-
-  cout << year << endl;
-  cout << month << endl;
-  cout << day << endl;
+  cout << endl;
   return 0;
 }
 
@@ -79,3 +74,31 @@ int checkDay(const string &ds, const int &y, const int &m) {
   return day;
 }
 
+string convertDate(string dateOfBirth, vector<int> &years) {
+  stringstream ss(dateOfBirth);
+  string monthString, dayString, yearString;
+  int month, day, year;
+
+  getline(ss, monthString, '-');
+  getline(ss, dayString, '-');
+  getline(ss, yearString);
+
+  year = stoi(yearString);
+
+  try {
+    month = checkMonth(monthString);
+  } catch (const InvalidMonth &e) {
+    return "Error: " + e.getMessage();
+  }
+
+  try {
+    day = checkDay(dayString, year, month);
+  } catch (const InvalidDay &e) {
+    return "Error: " + e.getMessage();
+  }
+
+  years.push_back(year);
+
+  return "This Date " + dateOfBirth +
+         " is valid and add the year to the vector! ";
+}
