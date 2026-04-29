@@ -1,0 +1,5 @@
+/*
+Exception Handling Write a program that prompts the user to enter a person’s date of birth in numeric form. The input must be of the form month-day-year, for example: 8-27-1980. The program then outputs the date of birth in the form: August 27, 1980. Your program must contain at least two exception classes: invalidDay and invalidMonth.  If the user enters an invalid value for day, then the program should throw and catch an invalidDay object. Follow similar conventions for the invalid values of month. Rules for a leap year are not required for this lab, but can be implemented using code from a previous assignment.
+
+Read and store at least ten (10) birthdates entered from the user into a vector of birthdates that only includes the year entered. The entered birthdate must be valid before storing it. Sort the years entered and display them. Use following function and signature to process the user input:  string convertDate(string dateOfBirth, vector<int>& years).
+*/
