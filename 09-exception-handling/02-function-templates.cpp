@@ -96,6 +96,25 @@ class grade
 			T getGrade()
 };
 
+Pass type information to class template when defining objects:
+	grade<int> testList[20];
+	grade<double> quizList[20];
+Use as ordinary objects once defined
+
+
+
+
+Class Templates and Inheritance
+Class templates can inherit from other class templates:
+template <typename T>
+class Rectangle
+	{ ... };
+
+template <typename T>
+class Square : public Rectangle<T>
+	{ ... };
+Must use type parameter T everywhere base class name is used in derived class
+
 */
 
 
