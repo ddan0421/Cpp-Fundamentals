@@ -70,7 +70,7 @@ int checkDay(const string &ds, const int &y, const int &m) {
   if (day < 1 || day > daysInMonth[m])
     throw InvalidDay("Day cannot be smaller than 1 or larger than " +
                      to_string(daysInMonth[m]) + " when month is " +
-                     to_string(m));
+                     to_string(m) + " in the year " + to_string(y));
   return day;
 }
 
@@ -78,6 +78,10 @@ string convertDate(string dateOfBirth, vector<int> &years) {
   stringstream ss(dateOfBirth);
   string monthString, dayString, yearString;
   int month, day, year;
+  string monthList[] = {"deadbeef", "January",   "February", "March",
+                        "April",    "May",       "June",     "July",
+                        "August",   "September", "October",  "November",
+                        "December"};
 
   getline(ss, monthString, '-');
   getline(ss, dayString, '-');
@@ -99,6 +103,9 @@ string convertDate(string dateOfBirth, vector<int> &years) {
 
   years.push_back(year);
 
-  return "This Date " + dateOfBirth +
+  string dateOutputFormat =
+      monthList[month] + " " + dayString + ", " + yearString;
+
+  return "This Date " + dateOutputFormat +
          " is valid and add the year to the vector! ";
 }
