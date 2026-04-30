@@ -32,7 +32,40 @@ Exceptions provide a controlled mechanism to:
 
 1. A function that throws an exception is called from within a `try` block.
 2. If the function throws, that function terminates and the `try` block is **immediately exited**. The compiler searches the `catch` blocks immediately following the `try` for one that matches the thrown type.
-3. If a matching `catch` block is found, it executes. If no matching `catch` exists anywhere up the call stack, the program terminates.
+3. If a matching `catch` block is found, it executes. If no matching `catch` exists anywhere up the call stack, the program **aborts execution** — uncaught exceptions are *not* stored or queued for later, they crash the program.
+4. An exception thrown from **outside** any `try` block is automatically uncaught and will abort the program for the same reason — there's no handler to find.
+
+> **Key terminology:** A `catch` block *is* an **exception handler**. To handle a thrown exception, the program must have a `try`/`catch` construct in place at the time of the throw.
+
+### 1.4a One `try`, Many `catch` Blocks
+
+A single `try` block can be followed by **as many `catch` blocks as you need** — one per exception type you want to handle. The runtime walks the list top-down and runs the first one whose parameter type matches.
+
+```cpp
+try {
+    riskyOperation();
+}
+catch (const InvalidDay& e)   { /* handle bad day   */ }
+catch (const InvalidMonth& e) { /* handle bad month */ }
+catch (bad_alloc)             { /* handle no memory */ }
+```
+
+So the claim "a try block can only handle one type of exception" is **false** — that's one of the main reasons the construct exists.
+
+### 1.4b The Throw Point
+
+The **throw point** is the *exact* `throw` statement that fires — not the `if` that guards it, not the function name, not the return statement. Given:
+
+```cpp
+double divide(int numer, int denom) {
+    if (denom == 0)
+        throw "ERROR: Cannot divide by zero.\n";   // ← THIS is the throw point
+    else
+        return static_cast<double>(numer) / denom;
+}
+```
+
+Once execution reaches `throw "..."`, control leaves the function immediately — the `else`/`return` line is never reached, and execution does **not** "fall through" to the statement after the `if/else`. If no surrounding `try` exists, the program aborts.
 
 ### 1.5 Basic Example: Throwing a String
 
@@ -227,7 +260,7 @@ Flow when `exception1` is thrown:
 
 ### 1.11 Handling `bad_alloc`
 
-When `new` fails to allocate memory, modern C++ does **not** return `nullptr` — it throws `std::bad_alloc` (defined in `<new>`).
+When the **`new` operator** fails to allocate memory, modern C++ does **not** return `nullptr` — it throws `std::bad_alloc` (defined in `<new>`). Memorize the pairing: ***`new` ↔ `bad_alloc`***.
 
 ```cpp
 #include <iostream>
@@ -284,6 +317,7 @@ T times10(T num) {
 
 - `template <typename T>` — the **template prefix**; `typename` declares a generic data type.
 - `T` — the **type parameter**; stands in for whatever real type the caller uses.
+- The angle brackets `< >` in the prefix contain **one or more generic data types** (e.g., `<typename T>`, `<typename T1, typename T2>`). They do **not** contain the function's return type, the function definition, or constant values.
 
 ### 2.3 Calling a Template Function
 
@@ -536,6 +570,31 @@ The driver loop in `main` keeps reading dates until the sentinel `-99` is entere
 - **Localize `try`/`catch` to the smallest meaningful scope** — separate try blocks for month and day validation give cleaner control flow.
 - **Do work conditional on success** — only mutate `years` after validation passes. Exceptions help keep program state consistent.
 - **Combine units of the course** — selection sort (Unit 6), vectors (Unit 5), and stringstream parsing all show up alongside the new exception material.
+
+---
+
+## Quiz-Reinforced Key Concepts
+
+A condensed list of the high-frequency, testable facts from the Unit 9 quiz. Use this as a last-minute review.
+
+### Exceptions — Quick Facts
+
+- An **exception** is a value or object that signals an error — *exceptions* are what C++ uses to signal errors or unexpected results at runtime (not destructors, virtual functions, or templates).
+- When an error occurs, an exception is **thrown** (created and dispatched in one step — the verb is "thrown", not "passed" or "ignored").
+- If an exception is **not caught**, the program **aborts execution**. It is *not* stored, queued, or saved for later.
+- A `try` block contains the code that might throw; it is **immediately followed by one or more `catch` blocks**.
+- A single `try` can be followed by **multiple `catch` blocks** so it can handle **many different exception types** — not just one.
+- A `catch` block is also called an **exception handler**. To handle a thrown exception, the program must use a `try`/`catch` construct.
+- An exception thrown **outside any `try` block** has nowhere to be caught and will **abort execution**.
+- The **throw point** is the actual `throw <expr>;` statement — that single line is the point of no return.
+- If a class's member function throws, the class's **handler** (the matching `catch`) is what receives it. The destructor is *not* what catches the exception (though destructors of local objects do run during stack unwinding).
+- The `new` operator throws **`bad_alloc`** when allocation fails.
+- The **`noexcept`** keyword declares that a function does not throw and does not call any function that throws.
+
+### Function Templates — Quick Facts
+
+- A **function template** lets you write *one* function definition that works with **many data types**.
+- The template **prefix** (`template <...>`) contains **one or more generic data types** in the angle brackets (e.g., `template <typename T>`). It does *not* contain the return type, the function body, or constant values.
 
 ---
 
