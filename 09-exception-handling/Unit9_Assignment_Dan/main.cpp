@@ -25,9 +25,10 @@ dateOfBirth, vector<int>& years).
 
 using namespace std;
 
-string convertDate(string dateOfBirth, vector<int> &years);
+string convertDate(string, vector<int> &);
 int checkDay(const string &, const int &, const int &);
 int checkMonth(const string &);
+void selectionSort(vector<int> &);
 
 int main() {
   string inputDate;
@@ -46,7 +47,8 @@ int main() {
     cout << result << endl;
   }
 
-  cout << "\nValid years entered: ";
+  selectionSort(validYears);
+  cout << "\nValid years entered in ascending order: ";
   for (const auto &y : validYears) {
     cout << y << " ";
   }
@@ -108,4 +110,23 @@ string convertDate(string dateOfBirth, vector<int> &years) {
 
   return "This Date " + dateOutputFormat +
          " is valid and add the year to the vector! ";
+}
+
+void selectionSort(vector<int> &years) {
+  int elems = years.size();
+  int minIndex, minValue;
+
+  for (int i = 0; i < elems; i++) {
+    minIndex = i;
+    minValue = years[i];
+    for (int j = i + 1; j < elems; j++) {
+      if (years[j] < minValue) {
+        minIndex = j;
+        minValue = years[j];
+      }
+    }
+    int temp = years[i];
+    years[i] = minValue;
+    years[minIndex] = temp;
+  }
 }
