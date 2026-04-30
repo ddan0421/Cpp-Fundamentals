@@ -36,11 +36,19 @@ int main() {
   vector<int> validYears;
 
   while (true) {
+    cout << "\nValid birthdays entered: " << validYears.size() << "/10\n";
     cout << "Please input date of birth in month-day-year format (-99 to "
             "quit): ";
     getline(cin, inputDate);
+
     if (inputDate == "-99") {
-      break;
+      if (validYears.size() < 10) {
+        cout
+            << "You must enter at least 10 valid birthdates before quitting.\n";
+        continue;
+      } else {
+        break;
+      }
     }
 
     string result = convertDate(inputDate, validYears);
