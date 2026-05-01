@@ -111,3 +111,40 @@ int main() {
    */
   return 0;
 }
+
+/*
+Array Access
+- Array elements can be accessed in many ways:
+
+int vals[] = {4, 7, 17};
+int *valptr = vals;
+
+1) array name and [] : vals[2] = 17;
+2) pointer to array and [] : valptr[2] = 17;
+3) array name and subscript arithmetic : *(vals + 2) = 17;
+4) pointer to array and subscript arithmetic : *(valptr + 2) = 17;
+
+
+vals[i] = *(vals + i)
+
+
+Pointer arithmetic
+
+ex. int vals[] = {4,7,11};
+int *valptr = vals;
+
+++, -- :
+valptr++; // points at 7
+valptr--; // now points at 4;
+
++, - (pointer and int):
+cout << *(valptr + 2);
+
++=, -= (pointer and int):
+valptr = vals; // points at 4
+valptr += 2; // points at 11
+
+- (pointer from pointer):
+cout << valptr - val; // difference (number of ints) between valptr and val;
+
+*/
