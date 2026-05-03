@@ -122,3 +122,59 @@ int main() {
   cout << "The value of *ptr1 is " << *ptr1 << endl << endl;
   return 0;
 }
+
+/*
+Additional concepts: const to the left of * and right of *
+
+Const to the left of * (Pointer to a Constant)
+- You CANNOT change the data value using *p = ...
+- But CAN change the address pointing to using p = &...
+
+#include <iostream>
+using namespace std;
+int main() {
+    int a = 10;
+    int b = 20;
+
+    // 'const' is to the left of '*'
+    const int* p = &a;
+
+    //  VALID: Reading the value
+    cout << *p << endl; // Prints 10
+
+    //  VALID: Changing the address (making it point to 'b')
+    p = &b;
+    cout << *p << endl; // Prints 20
+
+    // ❌ ERROR: Trying to change the value of 'b' through the pointer
+    // *p = 30; // Will not compile!
+}
+
+
+Const to the Right of * (Constant Pointer)
+- You CAN change the data value using *p = ...
+- CANNOT change the address pointing to using p = &...
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    int a = 10;
+    int b = 20;
+
+    // 'const' is to the right of '*'
+    // Must be assigned right away!
+    int* const p = &a;
+
+    //  VALID: Reading the value
+    cout << *p << endl; // Prints 10
+
+    //  VALID: Changing the data value of 'a' through the pointer
+    *p = 15;
+    cout << a << endl;  // Prints 15
+
+    // ❌ ERROR: Trying to change the address (pointing it to 'b')
+    // p = &b; // Will not compile!
+}
+
+*/
