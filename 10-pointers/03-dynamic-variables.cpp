@@ -105,7 +105,7 @@ int main() {
                          // allocate enough memory for the array.
     cout << "Error allocating memory!\n";
     // The program should output an appropriate
-    return -1; // error message and return with a value
+    return 1; // error message and return with a value
   } // other than 0 to signal a problem.
   cout << "Enter the grades below\n";
 
