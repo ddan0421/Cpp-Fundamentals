@@ -9,8 +9,8 @@ using namespace std;
 Appointment::Appointment()
     : startMonth(0), startDay(0), startYear(0), startHour(0), startMin(0),
       startPeriod(""), endMonth(0), endDay(0), endYear(0), endHour(0),
-      endMin(0), endPeriod(""), startTimeStamp(0), endTimeStamp(0),
-      description("") {}
+      endMin(0), endPeriod(""), description(""), startTimeStamp(0),
+      endTimeStamp(0) {}
 
 void Appointment::setStart(int sMonth, int sDay, int sYear, int sHour, int sMin,
                            string sPeriod) {
