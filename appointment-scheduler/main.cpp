@@ -1,6 +1,7 @@
 #include "Appointment.h"
 #include "Calendar.h"
 #include <iostream>
+#include <limits>
 #include <string>
 
 using namespace std;
@@ -39,8 +40,7 @@ int main() {
     getValidDateTime(y, m, d, h, mn, period, "END TIME");
     newAppt.setEnd(m, d, y, h, mn, period);
 
-    // 4. Get Description
-    cin.ignore(1000, '\n');
+    // 4. Get Description (newline already consumed after valid date/time entry)
     cout << "\nDescription: ";
     getline(cin, desc);
     newAppt.setDescription(desc);
@@ -109,25 +109,69 @@ bool getValidDateTime(int &y, int &m, int &d, int &h, int &mn, string &p,
     cout << "Year (or -99 to quit): ";
     cin >> y;
 
-    if (y == -99) // Only Start Time prompts allows user to enter -99
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      cout << ">> INVALID INPUT: Enter a whole number for the year." << endl;
+      continue;
+    }
+
+    if (y == -99) {
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
       return false;
+    }
 
     cout << "Month (1-12): ";
     cin >> m;
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      cout << ">> INVALID INPUT: Enter a whole number for the month." << endl;
+      continue;
+    }
+
     cout << "Day: ";
     cin >> d;
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      cout << ">> INVALID INPUT: Enter a whole number for the day." << endl;
+      continue;
+    }
+
     cout << "Hour (1-12): ";
     cin >> h;
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      cout << ">> INVALID INPUT: Enter a whole number for the hour." << endl;
+      continue;
+    }
+
     cout << "Minute (0-59): ";
     cin >> mn;
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      cout << ">> INVALID INPUT: Enter a whole number for the minute." << endl;
+      continue;
+    }
+
     cout << "AM/PM: ";
     cin >> p;
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      cout << ">> INVALID INPUT: Could not read AM/PM." << endl;
+      continue;
+    }
 
     if (isValidInput(y, m, d, h, mn, p)) {
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
       return true;
-    } else {
-      cout << ">> INVALID DATE/TIME. Please try again." << endl;
-      cin.ignore(1000, '\n');
     }
+
+    cout << ">> INVALID DATE/TIME. Please try again." << endl;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
   }
 }
