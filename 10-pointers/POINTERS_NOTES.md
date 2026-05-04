@@ -20,6 +20,7 @@ These notes consolidate everything from this unit's source files (`01-pointer-va
 12. [Smart Pointers — Avoiding Memory Leaks](#12-smart-pointers--avoiding-memory-leaks)
 13. [Quick Reference Cheat Sheet](#13-quick-reference-cheat-sheet)
 14. [Pre-Lab Q&A Recap](#14-pre-lab-qa-recap)
+15. [Quiz Concept Recap](#15-quiz-concept-recap)
 
 ---
 
@@ -679,6 +680,77 @@ pointer = &pay;
 8. `cout << *pointer;` → **3.75**
 9. `cout << &pay;` → **an address**
 10. `cout << pay;` → **3.75**
+
+---
+
+## 15. Quiz Concept Recap
+
+A distilled review of the key concepts tested on the Unit 10 quiz. Each item lists the concept, the correct answer, and the *why* behind it.
+
+### True/False fundamentals
+
+1. **No bounds checking.** C++ does **not** perform array bounds checking, so a pointer can legally hold the address of an element outside an array — the compiler will not stop you, but you'll get undefined behavior at runtime. (*True*)
+2. **Subscript ↔ pointer arithmetic.** `myValues[index]` and `*(myValues + index)` are exactly the same expression. The subscript operator is just sugar for "add `index * sizeof(element)` to the base address, then dereference." (*True*)
+3. **Smart pointers manage memory for you.** A smart pointer dynamically allocates memory and automatically deletes it when the smart pointer goes out of scope — you do not call `delete` yourself. (*True*)
+4. **`weak_ptr` does NOT share ownership.** `weak_ptr` is a *non-owning* observer of a `shared_ptr`. Only `shared_ptr` shares ownership via reference counting. (*False*)
+5. **`unique_ptr` is the sole owner.** Exactly one `unique_ptr` owns its memory at a time; it cannot be copied, only moved. (*True*)
+
+### Operators and terminology
+
+6. **Address-of operator.** The **ampersand (`&`)**, also called the address operator, returns the memory address of a variable.
+7. **Indirect manipulation.** With pointer variables you can **indirectly** manipulate data stored in other variables — you reach the variable through its address.
+8. **Dereferencing.** When you work with a *dereferenced* pointer (`*ptr`), you are working with **the actual value of the variable whose address is stored in the pointer** — not a copy.
+
+### Functions returning pointers
+
+9. **Safe return rule.** A function may return a pointer, but the programmer must ensure the pointer **still points to a valid object after the function ends**. That means: return a pointer to memory that was passed in *or* dynamically allocated with `new` — **never** to a local variable.
+
+### Declarations
+
+10. **`double *num2;`** — this **declares a pointer variable named `num2`** that can point to a `double`. It does *not* initialize it (the pointer holds garbage until you assign it).
+11. **Spotting invalid pointer code.** Of these, all are invalid:
+    - `int ptr = int *num1;` — syntax garbage.
+    - `float num1 = &ptr2;` — assigning an address to a `float`.
+    - `int ptr = &num1;` — assigning an address to a non-pointer `int`.
+
+    The correct form would be `int *ptr = &num1;` (note the `*`).
+
+### `new` / `delete`
+
+12. **Deleting a dynamic array.** Use **`delete [] array;`** — the `[]` is required so the runtime calls the destructor for each element and frees the whole block.
+13. **Printing an address.** **`cout << &numb;`** — the address-of operator yields the variable's address. (`cout << numb;` prints the value; `cout << *numb;` only works if `numb` is itself a pointer.)
+
+### Smart pointers as leak prevention
+
+14. **Definition.** A **smart pointer** automatically deletes a chunk of dynamically allocated memory when that memory is no longer being used, helping prevent memory leaks.
+17. **Declaring a `unique_ptr`.** **`unique_ptr<int> uniq( new int );`** — angle brackets specify the pointed-to type, and `new int` supplies the heap memory. (Watch for typos like `neww` or missing `<int>` in distractors.)
+
+### Pointer arithmetic / array equivalence
+
+15. **Output of the loop.**
+    ```cpp
+    int *numbers = new int[5];
+    for (int i = 0; i <= 4; i++)
+        *(numbers + i) = i;
+    cout << numbers[2] << endl;
+    ```
+    Prints **`2`**. The loop assigns `numbers[i] = i`, so element 2 is `2`.
+16. **`ptr++` on an `int*`.** Given `int *ptr = numbers; ptr++;`, `ptr` now holds **the address of `numbers[1]`**. `++` on a pointer advances by `sizeof(*ptr)` bytes — one full element, not one byte.
+
+### "Select all that apply"
+
+18. **Things usable as pointers:** **array names**. Keywords and numeric constants cannot be used as pointers — only an array name (which decays to the address of its first element) acts like one.
+19. **Valid pointer arithmetic operations:** **addition** and **subtraction**. You can `++`, `--`, `+= n`, `-= n`, or subtract two pointers. **Multiplication, division, and modulus are not allowed on pointers.**
+20. **Equivalent pointer declarations:** **`int *ptr = nullptr;`** and **`int* ptr = nullptr;`** — whitespace around `*` is irrelevant. `int ptr = nullptr;`, `*int ptr = nullptr;`, and `int ptr* = nullptr;` are all invalid.
+
+### Common quiz traps to remember
+
+- `ptr++` moves by **one element**, not one byte.
+- `cout << ptr;` prints an **address**; `cout << *ptr;` prints the **value**.
+- `delete` vs `delete[]` — match it to how you allocated.
+- `weak_ptr` ≠ shared ownership — it just *observes* a `shared_ptr`.
+- Pointer math allows only `+` and `-` (and `++` / `--`). No `*`, `/`, `%`.
+- The `*` in `int *p;` is part of the *declaration*; the `*` in `*p = 5;` is the *dereference operator*. Same symbol, different jobs.
 
 ---
 
