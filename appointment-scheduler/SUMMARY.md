@@ -169,11 +169,54 @@ therefore, it is more suitable for loading and writing operations.
   February.
 - `bool getValidDateTime(int &y, int &m, int &d, int &h, int &mn,`
   `string &p, string label)` — prompts the user for each field,
-  calls `isValidInput` in a `while (true)` loop, and only returns
-  when the user types a valid date/time. Writes its results back
-  through **reference parameters** (out-parameters). Returns `false`
-  if the user enters `-99` for the year, which is the sentinel used
-  to quit the program.
+  checks **`cin.fail()`** after every numeric read (see below), calls
+  `isValidInput` in a `while (true)` loop, and only returns when the
+  user types a valid date/time. On success it **`ignore`s through the
+  newline** after `AM/PM` so the next `getline` for the description
+  sees a clean line. Writes its results back through **reference
+  parameters** (out-parameters). Returns `false` if the user enters
+  `-99` for the year (the sentinel used to quit the program).
+
+### Non-numeric input and “infinite loop” behavior
+
+If the user types **letters** (for example `oops`) where **`cin >>`
+expects an `int`** (year, month, day, hour, or minute), the extraction
+**fails**. That puts **`cin` into *fail state***: later **`cin >>`
+calls fail immediately** without waiting for new keyboard input. The
+outer `while (true)` in `getValidDateTime` keeps spinning and re-printing
+prompts, which **looks like an infinite loop**.
+
+**How we handle it:** After each read that must be numeric (year,
+month, day, hour, minute), we:
+
+1. **`if (cin.fail())`** — detect bad input / EOF-style failure  
+2. **`cin.clear()`** — clear the error flag so reads work again  
+3. **`cin.ignore(numeric_limits<streamsize>::max(), '\n')`** — throw
+   away the rest of that line (including the bad token) so the next
+   prompt starts clean  
+
+The same **`clear` + `ignore`** pattern is used on the
+validation-failure path (`isValidInput` returned false) so leftover
+characters cannot confuse the next prompt.
+
+For **`y == -99`**, we still **`ignore`** the rest of the line so stray
+characters after `-99` don’t confuse the next menu.
+
+On **success**, we **`ignore`** through the newline after **`AM/PM`** so
+the **`Description:`** line can use **`getline`** correctly. That’s why
+**`cin.ignore(1000, '\n')` before `getline` in `main` was removed** —
+doing **both** would drop the **first character** of the description.
+
+**Why not plain `cin.ignore()` after `cin.fail()`?**  
+With **no arguments**, `cin.ignore()` uses its **default count of one**:
+it removes **only a single character** from the buffer. After a failed
+integer read, the junk the user typed (`oops`, extra digits, etc.) often
+spans **many characters** before the newline. One-character **`ignore`**
+leaves the rest of that garbage in the buffer, so the **next** read can
+still skip ahead **silently** or **fail again**. Using
+**`ignore(numeric_limits<streamsize>::max(), '\n')`** throws away **everything
+up to and including the next newline** — i.e. **the whole typed line** —
+which is what we want before asking again.
 
 ### High-level flow
 
@@ -189,8 +232,9 @@ therefore, it is more suitable for loading and writing operations.
    human-readable overload `setStart(m, d, y, h, mn, period)`.
 5. Call `getValidDateTime(..., "END TIME")` and set the end the same
    way.
-6. `cin.ignore(1000, '\n')` to discard the leftover newline, then
-   `getline(cin, desc)` to read the free-text description.
+6. `getline(cin, desc)` to read the free-text description (the newline
+   after the last `cin >>` was already consumed inside
+   `getValidDateTime` when the end time was accepted).
 7. Sanity check: if `newAppt.getEnd() <= newAppt.getStart()`, print
    an error and `continue` to the top of the loop — the entry is
    discarded.
@@ -252,8 +296,11 @@ the course.
 - `while (true) { ... break; }` in `main()` for the interactive
   session, exited only by the `-99` sentinel, and another
   `while (true)` inside `getValidDateTime` to re-prompt on bad input.
-- `cin.ignore(1000, '\n')` before `getline(cin, desc)` so the newline
-  left over from the previous `cin >>` does not eat the description.
+- After a successful `getValidDateTime`, **`cin.ignore(..., '\n')`**
+  inside that function clears the newline following `AM/PM` so
+  **`getline(cin, desc)`** reads the full description instead of an
+  empty line; **`numeric_limits<streamsize>::max()`** is used so the
+  entire remainder of the line is discarded in one shot (see §4 above).
 
 ### Functions
 - Separation of declaration (in the `.h` file) and definition (in the
