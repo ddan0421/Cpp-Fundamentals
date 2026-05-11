@@ -194,7 +194,43 @@ public:
 
 ### Stream insertion `<<` overload — `auto_graded_assignment_1.cpp`
 
-`cout` is an instance of `ostream`. To make `cout << myObject` work, define a free function (often a friend) that takes the stream by reference and returns it:
+For built-in types and `std::string`, `cout << value` is handled by **member functions** on `std::ostream` (conceptually `cout.operator<<(value)`). Your `Artifact` type is not part of `ostream`, so the compiler cannot add a member to `ostream` for you. The usual pattern is a **non-member** (free) function:
+
+```cpp
+ostream& operator<<(ostream& os, const Artifact& obj);
+```
+
+**What the `&` means in `ostream &operator<<` (and in the parameters):**  
+In a **declaration**, a type followed by `&` is a **reference** — an *alias* for an object that already exists, not a separate copy. So `ostream&` reads “reference to an `ostream`.” Spacing is only style: `ostream& os`, `ostream &os`, and `ostream & operator<<` are the same to the compiler.
+
+- **Do not confuse** this with the **unary `&`** in an *expression* (e.g. `&x`), which means “address of” and produces a pointer. Here every `&` sits in a **type** position (`ostream&`, `const Artifact&`) and means **reference**.
+
+**Why the stream must use `&` (parameter and return):**  
+`std::ostream` (and thus `cout`) is **non-copyable** — its copy constructor is deleted. So you **cannot** write `ostream operator<<(ostream os, …)` passing or returning the stream **by value**; that would require copying `os`. You must pass the real stream in by **reference** (`ostream& os`) so the function writes to the same object `cout` (or `cerr`, or a file stream) that the caller is using. Returning **`ostream&`** returns a **reference to that same stream** (typically `return os;`), again **without copying**. That returned reference becomes the left-hand side for the next `<<` in a chain.
+
+**Why this shape?** (recap)
+
+- **First parameter:** the **left-hand** operand of `<<` is the stream — **`ostream&`** as above (no copying).
+- **Second parameter `const Artifact& obj`:** the **right-hand** operand; **`&`** avoids copying the whole object just to print it; **`const`** matches **`const`** getters and forbids accidental mutation.
+- **Return type `ostream&`:** return the **same** stream object by reference so **`<<`** chains left-to-right.
+
+The compiler rewrites `cout << art` as an ordinary function call **`operator<<(cout, art)`** — same idea as the comment block in the assignment file:
+
+```91:101:08-more-classes-objects/auto_graded_assignment_1.cpp
+/*
+When you write: cout << "hello"; the compiler turns it into:
+cout.operator<<("hello"); (this uses built-in overloads provided by the standard
+library)
+
+cout is an object of type ostream. So cout is an instance of a class ostream
+
+so when you overload << for a custom type, you define a function like:
+operator<<(ostream& os, const Artifact& artifact); and then the expression:
+cout << artifact becomes operator<<(cout, artifact);
+*/
+```
+
+Implementation: write to **`os`** (not necessarily `cout` — the same overload works for **`cerr`**, a **`std::ofstream`**, or any `ostream`), using accessors because **`operator<<` is not a member of `Artifact`** and therefore has **no special access** to `private` data unless you declare it **`friend`** inside the class.
 
 ```102:106:08-more-classes-objects/auto_graded_assignment_1.cpp
 ostream &operator<<(ostream &os, const Artifact &obj) {
@@ -204,7 +240,18 @@ ostream &operator<<(ostream &os, const Artifact &obj) {
 }
 ```
 
-Returning `os` by reference is what enables chaining: `cout << a << b;`.
+**Chaining:** Returning `os` means `cout << "\nArtifact Details:" << endl;` first evaluates `cout << "\nArtifact Details:"`, which returns `cout`, then evaluates `that_result << endl`. Similarly, a lone `cout << art;` is enough to print the whole line; you could also chain further literals or manipulators after `art` if you returned `os` as shown.
+
+```126:133:08-more-classes-objects/auto_graded_assignment_1.cpp
+  cout << "\nArtifact Details:" << endl;
+  cout << art;
+
+  cout << "\nUpdate artifact's category: ";
+  getline(cin, ArtCat);
+  art.setCategory(ArtCat);
+  cout << "Updated Artifact Details: " << endl;
+  cout << art;
+```
 
 ### The "dummy parameter" — distinguishing prefix from postfix
 
