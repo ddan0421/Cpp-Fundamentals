@@ -467,6 +467,8 @@ Calling `Buffer b = move(a);` **steals** `a`'s pointer:
 - `b.data` now holds what was `a.data`
 - `a.data` is set to `nullptr` so its destructor doesn't double-free
 
+When `main` finishes and execution reaches the final `return 0;`, local objects are destroyed in **reverse order of construction** — `b` was built after `a`, so **`b` is destroyed first**, then **`a`**. Each destructor runs `delete[] data`. For **`b`**, that frees the **real** array that ownership was moved into. For **`a`**, `data` is **`nullptr`**, and **`delete[] nullptr` is a no-op** in C++, so nothing is freed twice.
+
 ### Copy vs. Move at a glance
 
 | Operation | Signature | Effect of `a = b;` |
