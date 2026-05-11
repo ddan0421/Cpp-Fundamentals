@@ -171,7 +171,7 @@ Operator overloading lets you redefine what built-in operators (`+`, `-`, `<<`, 
 
 ### Arithmetic operator overload — `Point2D.cpp`
 
-```6:17:08-more-classes-objects/Unit8_Assignment_Dan/Point2D.cpp
+```7:22:08-more-classes-objects/Unit8_Assignment_Dan/Point2D.cpp
 class Point2D {
 private:
     int x, y;
@@ -180,13 +180,17 @@ public:
     double operator-(const Point2D& right) {
         return sqrt(pow((x - right.x), 2) + pow((y - right.y), 2));
     }
-    double operator+(const Point2D& right) {
-        return sqrt(pow((x + right.x), 2) + pow((y + right.y), 2));
+    Point2D operator+(const Point2D& right) {
+        return Point2D(x + right.x,  y + right.y);
     }    
+
+    string printPoint2D(){
+        return "point is (" + to_string(x) + ", " + to_string(y) + ")"; 
+    }
 };
 ```
 
-`point1 - point2` becomes `point1.operator-(point2)`.
+`point1 - point2` calls `operator-` and yields the **distance** between the two points. `point1 + point2` calls `operator+` and yields a **new `Point2D`** whose coordinates are the sums of `x` and `y` (vector addition), not another distance.
 
 ### Stream insertion `<<` overload — `auto_graded_assignment_1.cpp`
 
