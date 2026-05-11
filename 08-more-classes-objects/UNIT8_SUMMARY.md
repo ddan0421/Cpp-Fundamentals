@@ -123,7 +123,21 @@ public:
 
 Both `b1` and `b2` end up pointing to the **same memory**. When destructors run, the same address is `delete`d twice → undefined behavior.
 
-### Deep copy (the fix) — `Number.cpp`
+### Deep copy (the fix) — same `Box` pattern
+
+```cpp
+class Box {
+public:
+    int* value;
+    Box(int v)              { value = new int(v); }
+    Box(const Box& other)   { value = new int(*other.value); } // ✅ new heap int, copy value
+    ~Box()                  { delete value; }
+};
+```
+
+Allocating fresh memory and copying the *pointed-to value* keeps the two objects independent — each destructor `delete`s its own block.
+
+### Another deep-copy example — `Number.cpp`
 
 ```5:18:08-more-classes-objects/Unit8_Assignment_Dan/Number.cpp
 class Number {
@@ -142,11 +156,7 @@ public:
 };
 ```
 
-Allocating fresh memory and copying the *pointed-to value* keeps the two objects independent — modifying `num2` no longer affects `num1`.
-
-### Why this matters (from `short_paragraph.txt`)
-
-> The copy constructor is a very important tool in building financial software… we need to create copies of different portfolio scenarios to simulate various market conditions… I cannot simply perform shallow copies because this would cause both copies to point to the same memory address.
+Same idea as `Box`: the copy constructor duplicates the integer on the heap so `num1` and `num2` never share one `int*`.
 
 ---
 
