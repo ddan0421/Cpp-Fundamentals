@@ -192,29 +192,35 @@ public:
 
 `point1 - point2` calls `operator-` and yields the **distance** between the two points. `point1 + point2` calls `operator+` and yields a **new `Point2D`** whose coordinates are the sums of `x` and `y` (vector addition), not another distance.
 
-### Stream insertion `<<` overload — `auto_graded_assignment_1.cpp`
+### Stream insertion and extraction (`<<` / `>>`) — `Artifact` / `auto_graded_assignment_1.cpp`
 
-For built-in types and `std::string`, `cout << value` is handled by **member functions** on `std::ostream` (conceptually `cout.operator<<(value)`). Your `Artifact` type is not part of `ostream`, so the compiler cannot add a member to `ostream` for you. The usual pattern is a **non-member** (free) function:
+By default, the **stream insertion** (`<<`) and **stream extraction** (`>>`) operators are only defined for built-in types. **Overloading** them for a class like `Artifact` lets your objects use **`cout`** and **`cin`** with the same readable syntax as `int` or `string`, and supports **chaining** several reads or writes in one expression. The usual rules and rationale are summarized well in [GeeksforGeeks — Overloading stream insertion operators in C++](https://www.geeksforgeeks.org/cpp/overloading-stream-insertion-operators-c/):
 
-```cpp
-ostream& operator<<(ostream& os, const Artifact& obj);
-```
+- **Return the stream by reference** (`ostream&` or `istream&`) so the result of one `<<` or `>>` becomes the left-hand operand of the next — that is what makes **`cout << a << b`** or **`cin >> a >> b`** work.
+- **Pass the stream by reference** — `istream` and `ostream` are **not copyable**; value parameters would try to copy them.
+- **Pass the object by reference** — avoid copying something you are only printing or filling in.
+- Use **`const`** for the object in **`operator<<`** (output must not logically change what you are printing). Use a **non-const** object in **`operator>>`** (input **must** modify the object to store the values read).
+- Implement **`operator<<`** and **`operator>>`** as **non-member functions** (often **`friend`**s if they need direct access to **`private`** members). As [GeeksforGeeks](https://www.geeksforgeeks.org/cpp/overloading-stream-insertion-operators-c/) explains, an expression like **`cout << art`** has **`ostream`** on the **left**, not your class, so these operators cannot be ordinary **member** functions of `Artifact` — you would have to add them to `ostream` / `istream`, which you do not control. A **free function** with two parameters matches how the compiler calls them: **`operator<<(cout, art)`** and **`operator>>(cin, art)`**.
 
-**What the `&` means in `ostream &operator<<` (and in the parameters):**  
-In a **declaration**, a type followed by `&` is a **reference** — an *alias* for an object that already exists, not a separate copy. So `ostream&` reads “reference to an `ostream`.” Spacing is only style: `ostream& os`, `ostream &os`, and `ostream & operator<<` are the same to the compiler.
+Your **`Artifact`** overload uses **public getters** for **`operator<<`**, so **`friend`** is not required there.
 
-- **Do not confuse** this with the **unary `&`** in an *expression* (e.g. `&x`), which means “address of” and produces a pointer. Here every `&` sits in a **type** position (`ostream&`, `const Artifact&`) and means **reference**.
+---
 
-**Why the stream must use `&` (parameter and return):**  
-`std::ostream` (and thus `cout`) is **non-copyable** — its copy constructor is deleted. So you **cannot** write `ostream operator<<(ostream os, …)` passing or returning the stream **by value**; that would require copying `os`. You must pass the real stream in by **reference** (`ostream& os`) so the function writes to the same object `cout` (or `cerr`, or a file stream) that the caller is using. Returning **`ostream&`** returns a **reference to that same stream** (typically `return os;`), again **without copying**. That returned reference becomes the left-hand side for the next `<<` in a chain.
+#### What the `&` means (`ostream&`, `istream&`, …)
 
-**Why this shape?** (recap)
+In a **declaration**, a type followed by **`&`** is a **reference** (an alias to an existing object), not a copy. Spacing is style-only: **`ostream&`**, **`ostream &`**, and **`ostream &operator<<`** are equivalent. Do **not** confuse this with unary **`&`** in an *expression* (e.g. **`&x`**), which means “address of” and yields a pointer.
 
-- **First parameter:** the **left-hand** operand of `<<` is the stream — **`ostream&`** as above (no copying).
-- **Second parameter `const Artifact& obj`:** the **right-hand** operand; **`&`** avoids copying the whole object just to print it; **`const`** matches **`const`** getters and forbids accidental mutation.
-- **Return type `ostream&`:** return the **same** stream object by reference so **`<<`** chains left-to-right.
+**Streams:** **`istream`** and **`ostream`** are **non-copyable**. Parameters and return types must be **references** (e.g. **`ostream& os`**, **`return os`**) so you never copy the stream and chaining still refers to the **same** `cout` or `cin`.
 
-The compiler rewrites `cout << art` as an ordinary function call **`operator<<(cout, art)`** — same idea as the comment block in the assignment file:
+**Recap for `<<`:** first parameter **`ostream&`** (left operand); second **`const`** object (right operand, not mutated); return **`ostream&`**.
+
+**Recap for `>>`:** first parameter **`istream&`**; second **non-const** object (it is **filled in**); return **`istream&`**.
+
+---
+
+#### Output — `operator<<` (assignment file)
+
+The compiler rewrites **`cout << art`** as **`operator<<(cout, art)`** — same idea as the comment in your file:
 
 ```91:101:08-more-classes-objects/auto_graded_assignment_1.cpp
 /*
@@ -230,7 +236,7 @@ cout << artifact becomes operator<<(cout, artifact);
 */
 ```
 
-Implementation: write to **`os`** (not necessarily `cout` — the same overload works for **`cerr`**, a **`std::ofstream`**, or any `ostream`), using accessors because **`operator<<` is not a member of `Artifact`** and therefore has **no special access** to `private` data unless you declare it **`friend`** inside the class.
+Write to **`os`** so the overload works for **`cerr`**, **`ofstream`**, or any **`ostream`**, not only **`cout`**.
 
 ```102:106:08-more-classes-objects/auto_graded_assignment_1.cpp
 ostream &operator<<(ostream &os, const Artifact &obj) {
@@ -240,7 +246,7 @@ ostream &operator<<(ostream &os, const Artifact &obj) {
 }
 ```
 
-**Chaining:** Returning `os` means `cout << "\nArtifact Details:" << endl;` first evaluates `cout << "\nArtifact Details:"`, which returns `cout`, then evaluates `that_result << endl`. Similarly, a lone `cout << art;` is enough to print the whole line; you could also chain further literals or manipulators after `art` if you returned `os` as shown.
+**Chaining:** `cout << "\nArtifact Details:" << endl;` evaluates the first `<<`, gets **`cout`** back by reference, then applies the next `<<`.
 
 ```126:133:08-more-classes-objects/auto_graded_assignment_1.cpp
   cout << "\nArtifact Details:" << endl;
@@ -252,6 +258,35 @@ ostream &operator<<(ostream &os, const Artifact &obj) {
   cout << "Updated Artifact Details: " << endl;
   cout << art;
 ```
+
+---
+
+#### `<<` and `>>` with **`friend`** (GeeksforGeeks pattern)
+
+The same article’s **`Complex`** example shows both **insertion** and **extraction** in one place: **`operator<<`** formats **`real`** and **`imag`** for output; **`operator>>`** reads them from input. Because those fields are **`private`**, the class declares both operators as **`friend`** so the non-member functions may touch **`c.real`** and **`c.imag`** directly (no getters/setters required). Adapted from [GeeksforGeeks — Overloading stream insertion operators in C++](https://www.geeksforgeeks.org/cpp/overloading-stream-insertion-operators-c/):
+
+```cpp
+class Complex {
+private:
+    int real, imag;
+public:
+    Complex(int r = 0, int i = 0) : real(r), imag(i) {}
+    friend ostream& operator<<(ostream& out, const Complex& c);
+    friend istream& operator>>(istream& in, Complex& c);
+};
+
+ostream& operator<<(ostream& out, const Complex& c) {
+    out << c.real << " + i" << c.imag;
+    return out;
+}
+
+istream& operator>>(istream& in, Complex& c) {
+    in >> c.real >> c.imag;
+    return in;
+}
+```
+
+**Usage:** `cin >> c1;` becomes `operator>>(cin, c1);` **`cout << c1;`** becomes **`operator<<(cout, c1);`** — same “global / non-member” idea as with **`Artifact`**, but here **`friend`** is what unlocks **`private`** data for both directions.
 
 ### The "dummy parameter" — distinguishing prefix from postfix
 
@@ -532,7 +567,7 @@ The Artifact program exercises many of these concepts in one place:
 - **Default + parameterized constructors** (overloaded constructors)
 - **Mutators / accessors** with `const` correctness on getters
 - **Member initializer list** in the default constructor
-- **Operator overloading** of `<<` for formatted output
+- **Operator overloading** of `<<` for formatted output (GeeksforGeeks **`Complex`** example in the summary shows **`>>`** and **`friend`**)
 - **Interactive I/O** with `getline`, `cin >>`, and `cin.ignore()` to mix line-based and token-based input
 
 ```56:73:08-more-classes-objects/auto_graded_assignment_1.cpp
@@ -571,7 +606,7 @@ Artifact::Artifact() : name("Unknown"), category("None"), age(0) {}
 | Grant private access | `friend` function / class | tight coupling between two collaborating types |
 | Copy with owned resources | custom **copy constructor** (deep copy) | class holds raw pointer / dynamic array |
 | Cheap transfer | **move constructor** / move assignment + `std::move` | avoid expensive copies of large objects |
-| Custom operators | `operator+`, `operator<<`, `operator int()` | natural syntax for your types |
+| Custom operators | `operator+`, `operator<<`, `operator>>`, `operator int()` | natural syntax for your types |
 | Postfix vs. prefix | `operator++(int)` (dummy parameter) | distinguish `obj++` from `++obj` |
 | lvalue vs. rvalue reference | `T&` vs. `T&&` | bind to named objects vs. temporaries |
 | Self reference | `this->` | resolve name conflicts, return `*this` for chaining |
