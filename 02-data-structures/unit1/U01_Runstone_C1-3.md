@@ -192,15 +192,120 @@ public:
 };
 ```
 
-### 1.11 Fraction class as class-design case study
-- Build a numeric ADT with constructor, state, and methods.
-- Overload operators (`+`, `==`, stream output) for natural syntax.
-- Use helper functions (e.g., GCD) to enforce canonical representation.
-- Demonstrates API design, correctness constraints, and encapsulation.
+### 1.10.1 Operator Overloading Detail
+Operator overloading allows C++ operators to have user-defined meanings when applied to user-defined types (classes). This enables custom objects to use standard syntax (like `+`, `-`, `<<`), making the code more intuitive and readable.
 
+#### Overloading the Stream Insertion Operator (`<<`)
+To print a custom object using `std::cout`, we must overload the `<<` operator. This is typically done as a **non-member friend function**.
+
+**Example:**
+```cpp
+friend std::ostream &operator<<(std::ostream &os, const Fraction &f) {
+    os << f.num << "/" << f.den;
+    return os;
+}
+```
+
+**Detailed Explanation:**
+1.  **`friend` Keyword**: Since the `<<` operator's left-hand operand is an `ostream` (not our class), it cannot be a member function of our class. By declaring it a `friend`, we grant it access to the class's `private` data members while keeping it as a non-member.
+2.  **Return by Reference (`std::ostream &`)**: The function returns the `os` stream by reference. This is critical for **operator chaining**, allowing you to write `std::cout << f1 << " and " << f2 << std::endl;`.
+3.  **The Parameters**:
+    *   `std::ostream &os`: A reference to the output stream (like `std::cout`).
+    *   `const Fraction &f`: A constant reference to the object we want to print. We use a reference to avoid a costly copy and `const` to guarantee the object isn't modified during printing.
+4.  **The Body**: We use the standard `<<` on the internal members and then return the stream to allow further operations.
+
+#### Overloading the Addition Operator (`+`)
+Binary operators like `+` can be overloaded in two primary ways: as a **member function** or as a **non-member friend function**.
+
+**1. Member Function Implementation:**
 ```cpp
 #include <iostream>
+using namespace std;
 
+class Fraction {
+    public:
+        Fraction(int top = 0, int bottom = 1) {
+            num = top;
+            den = bottom;
+        }
+        // Member function: 'this' is the left operand
+        Fraction operator +(const Fraction &otherFrac) {
+            int newnum = otherFrac.num*den + otherFrac.den*num;
+            int newden = den*otherFrac.den;
+            return Fraction(newnum, newden);
+        }
+
+    friend ostream &operator << (ostream &stream, const Fraction &frac);
+
+    private:
+        int num, den;
+};
+
+ostream &operator << (ostream &stream, const Fraction &frac) {
+    stream << frac.num << "/" << frac.den;
+    return stream;
+}
+```
+*   **What the compiler sees**: `f1 + f2` is translated to **`f1.operator+(f2)`**.
+*   **Context**: The object on the left (`f1`) is the "host" or calling object. The keyword `this` points to `f1`.
+
+**2. Non-member Friend Function Implementation:**
+```cpp
+#include <iostream>
+using namespace std;
+
+class Fraction {
+    public:
+        Fraction(int top = 0, int bottom = 1) {
+            num = top;
+            den = bottom;
+        }
+
+    friend ostream &operator << (ostream &stream, const Fraction &frac);
+    // Friend function: both operands are passed explicitly
+    friend Fraction operator +(const Fraction &frac1, const Fraction &frac2);
+
+    private:
+        int num, den;
+};
+
+ostream &operator << (ostream &stream, const Fraction &frac) {
+    stream << frac.num << "/" << frac.den;
+    return stream;
+}
+
+Fraction operator +(const Fraction &frac1, const Fraction &frac2) {
+    int newnum = frac1.num * frac2.den + frac1.den * frac2.num;
+    int newden = frac1.den * frac2.den;
+    return Fraction(newnum, newden);
+}
+```
+*   **What the compiler sees**: `f1 + f2` is translated to **`operator+(f1, f2)`**.
+*   **Context**: Both operands are passed as explicit arguments. Neither is a "host" object; it behaves like a regular function that has access to `private` data via the `friend` declaration.
+
+#### Comparison and Key Differences
+
+| Feature | Member Function | Friend Function |
+| :--- | :--- | :--- |
+| **Translation** | `f1.operator+(f2)` | `operator+(f1, f2)` |
+| **Parameters** | 1 explicit (the RHS) | 2 explicit (LHS and RHS) |
+| **Implicit `this`** | Yes (`this` is the LHS) | No |
+| **Symmetry** | Asymmetric | Symmetric |
+
+**Why "Symmetry" is the deciding factor:**
+The **Friend Function** is superior because it allows **Symmetry** when dealing with implicit type conversions.
+- **With Friend**: Both `f1 + 5` and `5 + f1` work. In `5 + f1`, the compiler can convert `5` to a temporary `Fraction(5, 1)` and call `operator+(Fraction, Fraction)`.
+- **With Member**: `f1 + 5` works (`f1.operator+(5)`), but **`5 + f1` fails** because the integer `5` cannot call a member method of the `Fraction` class.
+
+### 1.11 Fraction class as class-design case study
+Building a custom numeric ADT demonstrates how to manage state, enforce invariants (like canonical forms), and provide a natural API via operator overloading.
+
+#### Full Implementation Example
+```cpp
+#include <iostream>
+using namespace std;
+
+// Helper function to find Greatest Common Divisor
 int gcd(int m, int n) {
     while (m % n != 0) {
         int oldm = m;
@@ -213,31 +318,73 @@ int gcd(int m, int n) {
 
 class Fraction {
 public:
+    // Parameterized constructor
     Fraction(int top, int bottom) {
-        int common = gcd(top, bottom);
-        num = top / common;
-        den = bottom / common;
+        num = top;
+        den = bottom;
+    }
+    // Single-parameter constructor (allows implicit conversion from int)
+    Fraction(int top) {
+        num = top;
+        den = 1;
+    }
+    // Default constructor
+    Fraction() {
+        num = 1;
+        den = 1;
     }
 
-    Fraction operator+(const Fraction &other) const {
-        int newnum = num * other.den + den * other.num;
-        int newden = den * other.den;
-        return Fraction(newnum, newden);
+    // Overloading + (Member function)
+    // Uses gcd to ensure the result is in simplest form
+    Fraction operator +(const Fraction &otherFrac) {
+        int newnum = num * otherFrac.den + den * otherFrac.num;
+        int newden = den * otherFrac.den;
+        int common = gcd(newnum, newden);
+        return Fraction(newnum / common, newden / common);
     }
 
-    bool operator==(const Fraction &other) const {
-        return num * other.den == den * other.num;
+    // Overloading == for value comparison
+    bool operator ==(const Fraction &otherFrac) {
+        int firstnum = num * otherFrac.den;
+        int secondnum = otherFrac.num * den;
+        return firstnum == secondnum;
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const Fraction &f) {
-        os << f.num << "/" << f.den;
-        return os;
-    }
+    // Friend function for stream output
+    friend ostream& operator<<(ostream& stream, const Fraction& fraction);
 
 private:
     int num, den;
 };
+
+ostream& operator << (ostream& stream, const Fraction& fraction) {
+    stream << fraction.num << "/" << fraction.den;
+    return stream;
+}
+
+int main() {
+    Fraction x(1, 2);
+    Fraction y(2, 4);
+    
+    // Demonstrates operator+ and operator<<
+    cout << x << " + " << y << " = " << x + y << endl;
+    
+    // Demonstrates operator==
+    if (x == y) {
+        cout << "x is equal to y" << endl;
+    } else {
+        cout << "x is not equal to y" << endl;
+    }
+    
+    return 0;
+}
 ```
+
+#### Key Lessons from the Fraction Case Study
+1.  **Multiple Constructors**: Providing default and single-parameter constructors improves usability and allows the compiler to treat integers as fractions automatically when needed.
+2.  **Canonical Form**: Using `gcd` inside operations ensures that fractions like `2/4` are always represented/returned in their simplest form (`1/2`).
+3.  **State Protection**: Keeping `num` and `den` `private` ensures that the internal state can only be modified through controlled class methods.
+4.  **Natural Syntax**: Overloading `+` and `==` allows users of the class to treat `Fraction` objects like primitive numeric types.
 
 ### 1.12 Inheritance and simulation example
 - Builds class hierarchy for logic gates (`LogicGate`, unary/binary variants, specific gates).
