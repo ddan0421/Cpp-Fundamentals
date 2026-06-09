@@ -386,37 +386,143 @@ int main() {
 3.  **State Protection**: Keeping `num` and `den` `private` ensures that the internal state can only be modified through controlled class methods.
 4.  **Natural Syntax**: Overloading `+` and `==` allows users of the class to treat `Fraction` objects like primitive numeric types.
 
-### 1.12 Inheritance and simulation example
-- Builds class hierarchy for logic gates (`LogicGate`, unary/binary variants, specific gates).
-- Distinguishes:
-  - **IS-A** relationship (inheritance),
-  - **HAS-A** relationship (composition, e.g., connectors between gates).
-- Uses virtual methods for subtype-specific behavior.
+### 1.12 Inheritance: Logic Gates and Circuits
+Inheritance is a fundamental OOP concept that allows classes to reuse code and establish relationships. Two primary relationships are explored:
+
+-   **IS-A Relationship (Inheritance)**: This relationship implies that a specialized class is a version of a more general class.
+    -   *Example*: An `AndGate` **is-a** `BinaryGate`, and a `BinaryGate` **is-a** `LogicGate`. Subclasses inherit all data and behavior from their parent classes.
+-   **HAS-A Relationship (Composition)**: This relationship occurs when one class uses another class as a component or member.
+    -   *Example*: A `LogicGate` **has-a** `string` label. In complex simulations, a `Connector` (composition) **has-a** source gate and a target gate, allowing them to communicate without being in the same inheritance tree.
+
+This example models logic gates using a "Template Method" pattern, where a base class provides a standard interface (`getOutput`) that calls a specialized internal method (`performGateLogic`).
+
+#### 1. The LogicGate Base Class
+The base class handles the label and the public interface for getting the output. Note how `getOutput` triggers the internal logic.
 
 ```cpp
 class LogicGate {
 public:
-    LogicGate(string n) { label = n; }
-    virtual bool getOutput() = 0;
+    LogicGate(string n) {
+        label = n;
+    }
+
+    string getLabel() {
+        return label;
+    }
+
+    bool getOutput() {
+        output = performGateLogic();
+        return output;
+    }
+
+    // Hook for subclasses to implement specific logic
+    virtual bool performGateLogic() {
+        cout << "ERROR! performGateLogic BASE" << endl;
+        return false;
+    }
+
 protected:
     string label;
+    bool output;
 };
+```
 
+#### 2. Intermediate Classes (BinaryGate & UnaryGate)
+These classes manage the input pins. They use "Taken" flags to track if a value has already been provided (either via `cin` or a connection), preventing multiple prompts.
+
+```cpp
 class BinaryGate : public LogicGate {
 public:
-    BinaryGate(string n) : LogicGate(n) {}
-    virtual bool getPinA() = 0;
-    virtual bool getPinB() = 0;
+    BinaryGate(string n) : LogicGate(n) {
+        pinATaken = false;
+        pinBTaken = false;
+    }
+
+    bool getPinA() {
+        if (pinATaken == false) {
+            cout << "Enter Pin A input for gate " << getLabel() << " : ";
+            cin >> pinA;
+            pinATaken = true;
+        }
+        return pinA;
+    }
+
+    bool getPinB() {
+        if (pinBTaken == false) {
+            cout << "Enter Pin B input for gate " << getLabel() << " : ";
+            cin >> pinB;
+            pinBTaken = true;
+        }
+        return pinB;
+    }
+
+protected:
+    bool pinA, pinB;
+    bool pinATaken, pinBTaken;
 };
 
+class UnaryGate : public LogicGate {
+public:
+    UnaryGate(string n) : LogicGate(n) {
+        pinTaken = false;
+    }
+
+    bool getPin() {
+        if (pinTaken == false) {
+            cout << "Enter Pin input for gate " << getLabel() << " : ";
+            cin >> pin;
+            pinTaken = true;
+        }
+        return pin;
+    }
+
+protected:
+    bool pin;
+    bool pinTaken;
+};
+```
+
+#### 3. Concrete Gate Implementations
+These subclasses only need to override `performGateLogic` to provide the specific boolean operation.
+
+```cpp
 class AndGate : public BinaryGate {
 public:
     AndGate(string n) : BinaryGate(n) {}
-    virtual bool getOutput() {
-        return getPinA() && getPinB();
+
+    virtual bool performGateLogic() override {
+        bool a = getPinA();
+        bool b = getPinB();
+        return (a == 1 && b == 1);
+    }
+};
+
+class OrGate : public BinaryGate {
+public:
+    OrGate(string n) : BinaryGate(n) {}
+
+    virtual bool performGateLogic() override {
+        bool a = getPinA();
+        bool b = getPinB();
+        return (a == 1 || b == 1);
+    }
+};
+
+class NotGate : public UnaryGate {
+public:
+    NotGate(string n) : UnaryGate(n) {}
+
+    virtual bool performGateLogic() override {
+        return !getPin();
     }
 };
 ```
+
+#### Key Architecture Points:
+1.  **Template Method Pattern**: `getOutput()` is the stable template; `performGateLogic()` is the variable hook.
+2.  **State Tracking**: The `pinTaken` flags ensure the user is only prompted once for each input pin.
+3.  **Constructors & Initialization**: Each subclass uses initializer lists (e.g., `: BinaryGate(n)`) to ensure the parent class's state (the label) is correctly set.
+
 
 ### 1.13 Optional graphics section (C-Turtle)
 - Shows C++ use in graphics-oriented workflows.
