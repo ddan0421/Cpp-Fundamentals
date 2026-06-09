@@ -629,6 +629,96 @@ void benchmark() {
 - `O(2^n)` exponential
 - (`O(n!)` appears in brute-force combinatorial tasks and grows even faster)
 
+#### Example: Calculating Big-O from Code
+To find the Big-O notation for a fragment of code, we count the number of assignment operations and express it as a function of the input size `n`.
+
+**Code Fragment:**
+```cpp
+#include <iostream>
+using namespace std;
+
+int main(){
+    int a=5;
+    int b=6;
+    int c=10;
+    for (int i=0; i<n; i++){
+        for (int j=0; j<n; j++){
+            int x = i * i;
+            int y = j * j;
+            int z = i * j;
+        }
+    }
+
+    for (int k = 0; k < n; k++){
+        int w = a*k + 45;
+        int v = b*b;
+    }
+    int d = 33;
+    return 0;
+}
+```
+
+**Step-by-Step Analysis:**
+The number of assignment operations is the sum of four terms:
+1.  **Term 1**: The constant **3**, representing the three assignment statements at the start (`a`, `b`, `c`).
+2.  **Term 2**: **3n²**, since there are three statements inside the nested loop (`x`, `y`, `z`) that are performed `n * n` times.
+3.  **Term 3**: **2n**, representing two statements (`w`, `v`) iterated `n` times in the second loop.
+4.  **Term 4**: The constant **1**, representing the final assignment statement (`d`).
+
+**Total Operations (T(n)):**
+$$T(n) = 3 + 3n^2 + 2n + 1 = 3n^2 + 2n + 4$$
+
+#### The "Crossover Point": Why Constants Matter for Small N
+Big-O notation describes the **asymptotic** behavior of an algorithm—how it performs as $n$ approaches infinity. However, for small values of $n$, an algorithm with a "worse" Big-O classification can actually be faster than a "better" one due to constant factors.
+
+**Comparison Example:**
+-   **Algorithm 1**: $T_1(n) = 100n + 1$ (Linear, $O(n)$)
+-   **Algorithm 2**: $T_2(n) = n^2 + n + 1$ (Quadratic, $O(n^2)$)
+
+**Which algorithm is better?**
+In terms of scalability, **Algorithm 1** is superior because linear growth always beats quadratic growth eventually. However, look at what happens for small $n$:
+-   If $n = 10$:
+    -   Algorithm 1: $100(10) + 1 = 1001$ steps.
+    -   Algorithm 2: $10^2 + 10 + 1 = 111$ steps.
+    -   *Result*: Algorithm 2 is nearly 10x faster!
+
+**The Crossover Point:**
+The crossover point is the value of $n$ where the two algorithms require the same number of steps. For these functions:
+$$100n + 1 = n^2 + n + 1$$
+$$99n = n^2$$
+$$n = 99$$
+
+**Key Takeaway:**
+-   **Before the crossover point ($n < 99$)**: Algorithm 1 requires a **greater number of steps** than Algorithm 2. The large constant (100) makes it inefficient for small data.
+-   **At the crossover point ($n = 99$)**: Both algorithms take the same number of steps.
+-   **After the crossover point ($n > 99$)**: Algorithm 1 becomes significantly faster, while Algorithm 2's execution time explodes due to the $n^2$ term.
+
+This explains why Big-O ignores constants: we are concerned with the **crossover into large-scale data**, where the growth rate (the exponent) becomes the only thing that truly matters.
+
+#### Example: Estimating Runtime using Big-O Ratios
+Big-O can be used to predict how much longer an algorithm will take if the input size $n$ increases. We use the proportion:
+$$\frac{T(n_1)}{f(n_1)} = \frac{T(n_2)}{f(n_2)} \implies T(n_2) = T(n_1) \cdot \frac{f(n_2)}{f(n_1)}$$
+
+**Problem:**
+An algorithm is **$O(\log_2 n)$**. It takes **2 seconds** for **3,000,000** inputs. How long will it take for **4,000,000** inputs?
+
+**Calculation:**
+1.  **Identify the values**:
+    -   $T(n_1) = 2$
+    -   $f(n_1) = \log_2(3,000,000)$
+    -   $f(n_2) = \log_2(4,000,000)$
+2.  **Apply the ratio**:
+    $$T(n_2) = 2 \cdot \frac{\log_2(4,000,000)}{\log_2(3,000,000)}$$
+3.  **Simplify** (Note: base of log doesn't matter for the ratio):
+    -   $\log_{10}(3,000,000) \approx 6.477$
+    -   $\log_{10}(4,000,000) \approx 6.602$
+    -   Ratio $\approx \frac{6.602}{6.477} \approx 1.019$
+4.  **Final Result**:
+    $$T(n_2) = 2 \cdot 1.019 \approx \mathbf{2.038 \text{ seconds}}$$
+
+**Why this matters:**
+Notice that even though the input size increased by **33%** (from 3m to 4m), the time only increased by about **2%**. This demonstrates the incredible efficiency of $O(\log n)$ algorithms—they can handle massive increases in data with very little impact on performance.
+
 ### 2.6 Best, average, and worst case
 - Some algorithms depend on input arrangement.
 - Analysis may distinguish:
