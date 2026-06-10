@@ -748,19 +748,31 @@ int sumOfN2(int n) {
 ```
 
 ### 2.8 Key worked example: anagram detection
-Four approaches show dramatic complexity differences:
+Four approaches show dramatic complexity differences based on their operation counts ($T(n)$):
 
-1. **Checking off matches**  
-   Nested search per character -> `O(n^2)`
+1. **Checking off matches**
+   - **Logic**: For each character in the first string, iterate through the second string to find a match and "check it off" (e.g., replace with a null character).
+   - **Operation Count**: The first character compares $n$ times, the second $n-1$, and so on.
+   - **$T(n)$**: $\sum_{i=1}^{n} i = \frac{n(n+1)}{2} = \frac{1}{2}n^2 + \frac{1}{2}n$
+   - **Complexity**: $O(n^2)$
 
-2. **Sort and compare**  
-   Dominated by sort cost -> `O(n log n)` (or `O(n^2)` for slower sort strategies)
+2. **Sort and compare**
+   - **Logic**: Convert strings to a sortable collection (like `std::vector<char>`), sort them, then compare.
+   - **Operation Count**: Two parts:
+     1. Converting strings and comparing results: $O(n)$.
+     2. Sorting both collections: $O(n \log n)$ or $O(n^2)$ depending on the algorithm used (STL `std::sort` is typically $O(n \log n)$).
+   - **Complexity**: $O(n \log n)$ (dominated by the sort).
 
-3. **Brute force permutations**  
-   Try all permutations -> `O(n!)` (infeasible quickly)
+3. **Brute force permutations**
+   - **Logic**: Generate all $n!$ possible permutations of the first string and check if the second string matches any of them.
+   - **$T(n)$**: $n!$
+   - **Complexity**: $O(n!)$ (Infeasible even for small $n$; for $n=20$, this would take billions of years).
 
-4. **Count and compare character frequencies**  
-   Count arrays + compare -> `O(n)` time, extra fixed-size space
+4. **Count and compare character frequencies**
+   - **Logic**: Create two frequency arrays of size 26 (for each letter of the alphabet). Iterate through both strings once to increment counts, then compare the two arrays.
+   - **$T(n)$**: $n + n + 26 = 2n + 26$
+   - **Complexity**: $O(n)$
+   - **Trade-off**: This is the fastest approach but requires extra space (the two frequency arrays), illustrating the **time-space trade-off**.
 
 ```cpp
 bool anagramSolution4(string s1, string s2) {
