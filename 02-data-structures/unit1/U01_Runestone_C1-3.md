@@ -1104,12 +1104,33 @@ int postfixEval(string postfixExpr) {
 ```
 
 ### 3.5 Queue
-#### Concept
-- FIFO (first in, first out)
-- enqueue at rear, dequeue at front.
+#### Definition
+A **queue** is an ordered collection of items where new items are added at one end, called the **rear**, and existing items are removed from the other end, called the **front**. The ordering principle is **FIFO (first-in, first-out)**: the item that has been in the queue the longest is always the next one removed.
 
 #### Core ADT operations
-- `push`, `pop`, `front`, `back`, `empty`, `size`
+- **`queue queueName`** (constructor): Creates a new queue that is empty. It needs no parameters and returns an empty queue.
+- **`push(item)`** (enqueue): Adds a new item to the rear of the queue. It needs the item and returns nothing.
+- **`pop()`** (dequeue): Removes the front item from the queue. It needs no parameters. The queue is modified. (In `std::queue`, `pop()` returns `void`; use `front()` first if you need the removed value.)
+- **`front()`**: Returns the front item from the queue but does not remove it. It needs no parameters. The queue is not modified.
+- **`back()`**: Returns the rear item from the queue but does not remove it. It needs no parameters. The queue is not modified.
+- **`empty()`**: Tests to see whether the queue is empty. It needs no parameters and returns a boolean value.
+- **`size()`**: Returns the number of items in the queue. It needs no parameters and returns an integer.
+
+#### Sample Queue Operations Trace (Table 3.11.1)
+The following table shows the state of a queue `q` after a sequence of operations. Queue contents are shown with the **front on the right**; `4` was the first item pushed, so it is the first item removed by `pop()`.
+
+| Queue Operation | Queue Contents (Rear -> Front) | Return Value |
+| :--- | :--- | :--- |
+| `q.empty()` | `[]` | `true` |
+| `q.push(4)` | `[4]` | |
+| `q.push(12)` | `[12, 4]` | |
+| `q.push(3)` | `[3, 12, 4]` | |
+| `q.size()` | `[3, 12, 4]` | `3` |
+| `q.empty()` | `[3, 12, 4]` | `false` |
+| `q.push(97)` | `[97, 3, 12, 4]` | |
+| `q.pop()` | `[97, 3, 12]` | |
+| `q.pop()` | `[97, 3]` | |
+| `q.size()` | `[97, 3]` | `2` |
 
 #### STL usage
 - `std::queue`
