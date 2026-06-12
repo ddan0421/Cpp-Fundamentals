@@ -849,12 +849,34 @@ Chapter 3 introduces linear ADTs and shows how ordering rules (`LIFO`, `FIFO`, t
   - Deque
 
 ### 3.3 Stack
-#### Concept
-- LIFO (last in, first out)
-- operations occur at top.
+#### Definition
+A **stack** (sometimes called a "push-down stack") is an ordered collection of items where the addition of new items and the removal of existing items always takes place at the same end. This end is commonly referred to as the **"top"**, and the opposite end is known as the **"base"**.
+
+The base of the stack is significant because items stored near the base are those that have been in the stack the longest. The most recently added item is the one that is in the position to be removed first. This ordering principle is called **LIFO (last-in, first-out)**. It provides ordering based on length of time in the collection; newer items are near the top, while older items are near the base.
 
 #### Core ADT operations
-- `push`, `pop`, `top`, `empty`, `size`
+- **`push(item)`**: Adds a new item to the top of the stack. It needs the item and returns nothing.
+- **`pop()`**: Removes the top item from the stack. It needs no parameters and returns the item. The stack is modified.
+- **`peek()`** (or `top()` in STL): Returns the top item from the stack but does not remove it. It needs no parameters. The stack is not modified.
+- **`isEmpty()`**: Tests to see whether the stack is empty. It needs no parameters and returns a boolean value.
+- **`size()`**: Returns the number of items on the stack. It needs no parameters and returns an integer.
+
+#### Sample Stack Operations Trace
+The following table shows the state of a stack `s` after a series of operations:
+
+| Stack Operation | Stack Contents (Base -> Top) | Return Value |
+| :--- | :--- | :--- |
+| `s.isEmpty()` | `[]` | `true` |
+| `s.push(4)` | `[4]` | |
+| `s.push("dog")` | `[4, "dog"]` | |
+| `s.peek()` | `[4, "dog"]` | `"dog"` |
+| `s.push(true)` | `[4, "dog", true]` | |
+| `s.size()` | `[4, "dog", true]` | `3` |
+| `s.isEmpty()` | `[4, "dog", true]` | `false` |
+| `s.push(8.4)` | `[4, "dog", true, 8.4]` | |
+| `s.pop()` | `[4, "dog", true]` | `8.4` |
+| `s.pop()` | `[4, "dog"]` | `true` |
+| `s.size()` | `[4, "dog"]` | `2` |
 
 ```cpp
 #include <vector>
