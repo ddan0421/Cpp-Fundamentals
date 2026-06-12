@@ -903,7 +903,7 @@ public:
 
 #### Typical use cases
 1. **Balanced parentheses/symbol checking**  
-   Push opening symbols, pop/match on closing symbols.
+   Push opening symbols, pop/match on closing symbols. Start with single-type `(` `)` checking, then extend to multiple symbol pairs (Exploration 3.7.1).
 
 ```cpp
 bool parChecker(string symbolString) {
@@ -926,6 +926,76 @@ bool parChecker(string symbolString) {
     return balanced && s.isEmpty();
 }
 ```
+
+**Generalized balance symbol checking (Exploration 3.7.1)**  
+The simple checker above only handles `(` and `)`. Real languages nest several symbol pairs—parentheses `(` `)`, brackets `[` `]`, and braces `{` `}`—and each pair must match its own type. The stack algorithm stays the same: push opening symbols, pop on closing symbols. The only extension is verifying that each popped opener matches the current closer (not merely that both are “some” open/close symbol).
+
+Helper functions:
+- **`inString(symbol, symbols)`** — returns whether `symbol` appears in the allowed set.
+- **`matches(open, close)`** — returns whether the opener and closer are the same *pair* by comparing their indices in aligned opener/closer strings.
+
+> **Textbook bug fix:** The Runestone C++ version of `matches` uses `inString(open, opens) == inString(close, closers)`, which only checks that one symbol is *some* opener and the other is *some* closer—it would accept `[)` as balanced. It also misaligns the strings (`"({["` vs `")]}"`). The correct approach (from the Python edition and standard algorithm presentations) compares indices in parallel strings `"([{"` and `")]}"`.
+
+```cpp
+#include <iostream>
+#include <stack>
+#include <string>
+using namespace std;
+
+bool inString(string symbol, string symbols) {
+    return symbols.find(symbol) != string::npos;
+}
+
+bool matches(string open, string close) {
+    string opens = "([{";
+    string closers = ")]}";  // aligned with opens: index 0=( ), 1=[ ], 2={ }
+
+    return opens.find(open) == closers.find(close);
+}
+
+bool parChecker(string symbolString) {
+    stack<string> s;
+    bool balanced = true;
+    int index = 0;
+    int symbolLength = symbolString.length();
+    string opens = "([{";
+    string closes = ")]}";
+
+    while (index < symbolLength && balanced) {
+        string symbol(1, symbolString[index]);
+
+        if (inString(symbol, opens)) {
+            s.push(symbol);
+        } else if (inString(symbol, closes)) {
+            if (s.empty()) {
+                balanced = false;
+            } else {
+                string top = s.top();
+                s.pop();
+                if (!matches(top, symbol)) {
+                    balanced = false;
+                }
+            }
+        }
+        index++;
+    }
+    return balanced && s.empty();
+}
+
+int main() {
+    cout << parChecker("{}") << endl;           // 1 (true)
+    cout << parChecker("[{()}]") << endl;       // 1 (true)
+    cout << parChecker("{{([][])}()}") << endl; // 1 (true)
+    cout << parChecker("[{()]") << endl;         // 0 (false) — ] matched (
+    return 0;
+}
+```
+
+Algorithm trace (same stack pattern as simple parentheses):
+1. Scan left to right; ignore characters that are not open/close symbols (if any appear in extended variants).
+2. On an opener, push it.
+3. On a closer, if the stack is empty → unbalanced; otherwise pop and call `matches`.
+4. After the scan, balanced iff no mismatch occurred and the stack is empty.
 
 2. **Base conversion (decimal to binary / base-N)**  
    Store remainders in stack to reverse output order.
