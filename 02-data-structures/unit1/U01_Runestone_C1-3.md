@@ -1353,43 +1353,268 @@ Queue after push:
 
 **FIFO guarantee:** Task@92 will always be served before Task@98 or Task@101, no matter how many pages each has. The queue orders by **arrival time**, not by job size — exactly the behavior the textbook uses to study average wait and remaining backlog.
 
-### 3.6 Deque (double-ended queue)
-#### Concept
-- Insert/remove at both front and back.
-- Hybrid flexibility of stack + queue behavior.
+### 3.6 Deque (double-ended queue) — Runestone §3.15–3.16
 
-#### Core ADT operations
-- `push_front`, `push_back`, `pop_front`, `pop_back`, `empty`, `size`
+#### Definition (§3.15 — *What Is a Deque?*)
+A **deque** (pronounced "deck," short for **double-ended queue**) is an ordered collection of items similar to a queue. It has two ends — a **front** and a **rear** — and items remain positioned in the collection in the order they were added.
+
+What makes a deque different from a queue is the **unrestrictive** nature of adding and removing items:
+- New items can be added at **either** the front **or** the rear.
+- Existing items can be removed from **either** end.
+
+In that sense, a deque is a hybrid linear structure that provides the capabilities of both stacks and queues in a single ADT. You can use one end like a stack (LIFO) or both ends like a queue (FIFO) — but the deque itself **does not enforce** LIFO or FIFO ordering. It is up to the programmer to use the addition and removal operations consistently for the problem at hand.
+
+```
+Deque with mixed access (front on right, rear on left):
+
+  REAR                                    FRONT
+    │                                       │
+    ▼                                       ▼
+  [ ... older items ... | ... newer items ... ]
+         push_back / pop_back          push_front / pop_front
+```
+
+#### Core ADT operations (§3.16 — *The Deque Abstract Data Type*)
+The deque abstract data type is defined by the following structure and operations. A deque is structured as an ordered collection of items where items are added and removed from **either end** — front or rear.
+
+- **`deque dequeName`** (constructor): Creates a new deque that is empty. It needs no parameters and returns an empty deque.
+- **`push_front(item)`**: Adds a new item to the **front** of the deque. It needs the item and returns nothing.
+- **`push_back(item)`**: Adds a new item to the **rear** of the deque. It needs the item and returns nothing.
+- **`pop_front()`**: Removes the front item from the deque. It needs no parameters. The deque is modified. (In `std::deque`, `pop_front()` returns `void`; use `front()` first if you need the removed value.)
+- **`pop_back()`**: Removes the rear item from the deque. It needs no parameters. The deque is modified. (In `std::deque`, `pop_back()` returns `void`; use `back()` first if you need the removed value.)
+- **`front()`**: Returns the front item without removing it. The deque is not modified.
+- **`back()`**: Returns the rear item without removing it. The deque is not modified.
+- **`empty()`**: Tests whether the deque is empty. It needs no parameters and returns a boolean value.
+- **`size()`**: Returns the number of items in the deque. It needs no parameters and returns an integer.
+
+#### Sample Deque Operations Trace (Table 3.16.1)
+The following table shows the state of a deque `d` after a sequence of operations from the textbook. Deque contents are shown with the **front on the right** — it is important to keep track of which end is front and which is rear as items move in and out.
+
+| Deque Operation | Deque Contents (Rear -> Front) | Return Value |
+| :--- | :--- | :--- |
+| `d.empty()` | `[]` | `true` |
+| `d.push_back(4)` | `[4]` | |
+| `d.push_back(17)` | `[17, 4]` | |
+| `d.push_front(93)` | `[17, 4, 93]` | |
+| `d.push_front(65)` | `[17, 4, 93, 65]` | |
+| `d.size()` | `[17, 4, 93, 65]` | `4` |
+| `d.empty()` | `[17, 4, 93, 65]` | `false` |
+| `d.push_back(25)` | `[25, 17, 4, 93, 65]` | |
+| `d.pop_back()` | `[17, 4, 93, 65]` | |
+| `d.pop_front()` | `[17, 4, 93]` | |
+
+**Reading the trace step by step:**
+1. `push_back(4)` then `push_back(17)` — both items enter at the **rear**; `4` ends up at the front (right).
+2. `push_front(93)` then `push_front(65)` — both enter at the **front**; `65` is now the rightmost (front) item.
+3. `push_back(25)` — adds at the **rear** (left), so `25` becomes the new leftmost item.
+4. `pop_back()` — removes `25` from the **rear** (left).
+5. `pop_front()` — removes `65` from the **front** (right).
 
 #### STL usage
-- `std::deque`
+- `std::deque` provides these behaviors directly.
 
-#### Typical use case
-- **Palindrome checking**:
-  compare front and back characters iteratively until mismatch or center reached.
+#### Running example (§3.17 — *Using a Deque in C++*)
 
 ```cpp
+// Example code of a deque.
+
+#include <iostream>
 #include <deque>
+#include <string>
+
+using namespace std;
+
+int main() {
+    deque<string> d;
+    cout << "Deque Empty? " << d.empty() << endl;
+    d.push_back("Zebra");
+    cout << "Deque Empty? " << d.empty() << endl;
+
+    d.push_front("Turtle"); // pushes to the front of the deque.
+    d.push_front("Panda");
+    d.push_back("Catfish"); // pushes to the back of the deque.
+    d.push_back("Giraffe");
+
+    cout << "Deque Size: " << d.size() << endl;
+    cout << "Item at the front: " << d.front() << endl;
+    cout << "Item at the back: " << d.back() << endl;
+
+    cout << endl << "Items in the Deque: " << endl;
+    int dsize = d.size();
+    for (int i = 0; i < dsize; i++) {
+        // prints each item in the deque.
+        cout << d.at(i) << " ";
+    }
+
+    cout << endl;
+
+    d.pop_back();
+    d.pop_front();
+
+    cout << endl << "Item at the front: " << d.front() << endl;
+    cout << "Itm at the back: " << d.back() << endl;
+    cout << "Deque Size: " << d.size() << endl;
+
+    cout << endl << "Items in the Deque: " << endl;
+    int dsize2 = d.size();
+    for (int i = 0; i < dsize2; i++) {
+        // prints each item in the deque.
+        cout << d.at(i) << " ";
+    }
+
+    return 0;
+}
+```
+
+**Sample output:**
+
+```
+Deque Empty? 1
+Deque Empty? 0
+Deque Size: 5
+Item at the front: Panda
+Item at the back: Giraffe
+
+Items in the Deque: 
+Panda Turtle Zebra Catfish Giraffe 
+
+Item at the front: Turtle
+Itm at the back: Catfish
+Deque Size: 3
+
+Items in the Deque: 
+Turtle Zebra Catfish 
+```
+
+**What the run demonstrates:**
+- `empty()` returns `1` (`true`) on a new deque, then `0` (`false`) after the first `push_back`.
+- `push_front` adds at the **front** (index 0): `Panda` ends up before `Turtle`, which ends up before the original `Zebra`.
+- `push_back` adds at the **rear**: `Catfish` and `Giraffe` follow `Zebra`.
+- `front()` / `back()` peek at the two ends without removing; `at(i)` walks the deque left-to-right (front → rear).
+- After `pop_front()` removes `Panda` and `pop_back()` removes `Giraffe`, three items remain: `Turtle Zebra Catfish`.
+
+#### Typical use case — Palindrome checking (§3.17, advanced checker)
+
+The textbook's advanced palindrome checker uses a deque to compare characters from **both ends** simultaneously. A `processor()` helper first normalizes the string (lowercase, strip punctuation/spaces) so phrases like `"Radar"` or long sentence palindromes can be evaluated correctly.
+
+```cpp
+// program that detects palindromes.
+
+/*
+The Advanced Palindrome Checker
+By: David Reynoso and David Andrejsin
+*/
+
+using namespace std;
+#include <deque>
+#include <fstream> // for file handling
+#include <iostream>
+#include <string>
+#include "stdlib.h" // for the system command
+#include <algorithm> // provides an algorithm for easier removal of characters from a string
+
+string processor(string aString) {
+    // goes through string and finds uppercase letters and converts
+    // them to lower case, also finds special characters and gets rid of them
+    // ultimately, prepares a string for a correct palindrome evaluation
+    int strLen = aString.length();
+    string str = "";
+    for (int i = 0; i < strLen; i++) {
+        str += tolower(aString[i]);
+    }
+    str.erase(remove(str.begin(), str.end(), ' '), str.end());
+    str.erase(remove(str.begin(), str.end(), '.'), str.end());
+    str.erase(remove(str.begin(), str.end(), '?'), str.end());
+    str.erase(remove(str.begin(), str.end(), '!'), str.end());
+    str.erase(remove(str.begin(), str.end(), ','), str.end());
+    str.erase(remove(str.begin(), str.end(), ';'), str.end());
+    str.erase(remove(str.begin(), str.end(), ':'), str.end());
+    str.erase(remove(str.begin(), str.end(), '#'), str.end());
+    str.erase(remove(str.begin(), str.end(), '"'), str.end());
+    str.erase(remove(str.begin(), str.end(), '\''), str.end());
+    // we had to use a backslash to espace the function of '
+    str.erase(remove(str.begin(), str.end(), '-'), str.end());
+    str.erase(remove(str.begin(), str.end(), '('), str.end());
+    str.erase(remove(str.begin(), str.end(), ')'), str.end());
+
+    return str;
+}
 
 bool palchecker(string aString) {
-    std::deque<char> chardeque;
-    for (char ch : aString) {
-        chardeque.push_back(ch);
+    // an algorithm that checks whether a string is a palindrome
+    aString = processor(aString); // calls a function that prepares the string for a proper evaluation of the palindrome
+
+    deque<char> chardeque;
+    int strLen = aString.length();
+    for (int i = 0; i < strLen; i++) {
+        // pushes each char in the string to the deque.
+        chardeque.push_back(aString[i]);
     }
 
     bool stillEqual = true;
+
     while (chardeque.size() > 1 && stillEqual) {
         char first = chardeque.front();
         chardeque.pop_front();
         char last = chardeque.back();
         chardeque.pop_back();
-        if (first != last) {
+        if (first != last) { // if the two opposite positions of the
+             // word is not the same, then it is not
+             // a palindrome.
             stillEqual = false;
         }
     }
     return stillEqual;
 }
+
+int main() {
+    cout << palchecker("Radar") << endl;
+    cout << palchecker("Are we not pure? 'No sir!' Panama's moody Noriega brags. 'It is garbage!' Irony dooms a man; a prisoner up to new era.") << endl;
+    cout << palchecker("Barge in! Relate mere war of 1991 for a were-metal Ernie grab!") << endl;
+    cout << palchecker("not a palindrome") << endl;
+}
 ```
+
+**Sample output** (`1` = true, `0` = false):
+
+```
+1
+1
+1
+0
+```
+
+| Test string | Result | Why |
+| :--- | :--- | :--- |
+| `"Radar"` | `1` (palindrome) | After processing → `"radar"` |
+| Long Panama-style sentence | `1` (palindrome) | Punctuation/spaces stripped; reads same forward and backward |
+| `"Barge in! Relate mere war..."` | `1` (palindrome) | Same normalization + two-ended compare |
+| `"not a palindrome"` | `0` (not a palindrome) | Mismatch found when comparing front vs back |
+
+**Where the deque is used:**
+
+| Step | Deque operation | Role |
+| :--- | :--- | :--- |
+| Load string | `push_back(ch)` | Place each processed character into the deque, front-to-rear |
+| Compare loop | `front()` + `pop_front()` | Take the leftmost remaining character |
+| Compare loop | `back()` + `pop_back()` | Take the rightmost remaining character |
+| Loop guard | `size() > 1` | Stop when 0 or 1 characters remain (palindrome confirmed so far) |
+
+**Visual example** — after processing `"Radar"` → `"radar"`:
+
+```
+Initial deque (front → rear):  r  a  d  a  r
+
+Round 1:  front=r, back=r  → match → pop both
+          [ a  d  a ]
+
+Round 2:  front=a, back=a  → match → pop both
+          [ d ]
+
+size() == 1 → done → palindrome
+```
+
+For `"not a palindrome"`, after processing → `"notapalindrome"`: the first mismatch (`n` vs `e`) sets `stillEqual = false` and the loop exits early.
 
 ### 3.7 Performance themes in linear structures
 - ADT behavior is conceptual; performance depends on implementation.
