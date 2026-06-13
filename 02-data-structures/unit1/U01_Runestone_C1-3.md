@@ -1161,31 +1161,197 @@ string hotPotato(std::vector<string> nameList, int num) {
 }
 ```
 
-2. **Printer queue simulation**  
-   models task arrivals, printer service, queue wait times.
+2. **Printer queue simulation** (Runestone §3.14 — *Simulation: Printing Tasks*)  
+   Models task arrivals, printer service, and queue wait times over a simulated hour.
    - Demonstrates throughput, latency, and capacity planning.
    - Shows effect of pages-per-minute on average wait and backlog.
+   - Uses `std::queue<Task>` as the FIFO waiting line: tasks arrive at the **rear** (`push`) and are served from the **front** (`front` + `pop`).
+
+#### Full program (textbook listing)
 
 ```cpp
-class Printer {
+// Program that simulates printing task management.
+
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <cstdlib>
+using namespace std;
+
+class Task {
 public:
-    Printer(int ppm) : pageRate(ppm), timeRemaining(0), currentTask(nullptr) {}
-    void tick() {
-        if (currentTask != nullptr) {
-            timeRemaining--;
-            if (timeRemaining <= 0) currentTask = nullptr;
-        }
+    Task(int time) {
+        timestamp = time;
+        pages = (rand() % 20) + 1;
     }
-    bool busy() { return currentTask != nullptr; }
-    void startNext(Task* newTask) {
-        currentTask = newTask;
-        timeRemaining = (newTask->getPages() * 60) / pageRate;
+
+    int getStamp() {
+        return timestamp;
+    }
+
+    int getPages() {
+        return pages;
+    }
+
+    int waitTime(int currenttime) {
+        return (currenttime - timestamp);
     }
 private:
-    int pageRate, timeRemaining;
-    Task* currentTask;
+    int timestamp;
+    int pages;
 };
+
+class Printer {
+public:
+    Printer(int pagesPerMinute) {
+        pagerate = pagesPerMinute;
+        timeRemaining = 0;
+        working = false;
+    }
+
+    void tick() {
+        // Performed once per second in the simulation.
+
+        if (working) { // If we're working on something...
+            timeRemaining--; // Subtract the remaining time.
+            if (timeRemaining <= 0)
+                working = false; // When finished, stop working.
+        }
+    }
+
+    bool busy() {
+        return working;
+    }
+
+    void startNext(Task newtask) {
+        currentTask = newtask;
+        timeRemaining = newtask.getPages() * 60 / pagerate;
+        working = true;
+    }
+
+private:
+    int pagerate; // unit is pages per minute.
+    Task currentTask = {0}; // Current task. default is a dummy value.
+    bool working; // Are we working on the current task?
+    int timeRemaining; // Time remaining, in "seconds".
+};
+
+bool newPrintTask() {
+    // Uses random to decide if there is a new print task.
+    // Generates a random number from 1...180, and returns
+    // a boolean indicating whether or not it equals 180.
+    return (rand() % 180 + 1) == 180;
+}
+
+void simulation(int numSeconds, int pagesPerMinute) {
+    Printer labprinter(pagesPerMinute);
+
+    // The Queue ADT from the standard container library.
+    queue<Task> printQueue;
+
+    // A vector of wait-times for each task.
+    vector<int> waitingTimes;
+
+    // For every second in the simulation...
+    for (int i = 0; i < numSeconds; i++) {
+
+        // If there's a new printing task, add it to the queue.
+        if (newPrintTask()) {
+            Task task(i); // Create it...
+            printQueue.push(task); // Push it.
+        }
+
+        // If the printer is not busy and the queue is not empty:
+        if (!labprinter.busy() && !printQueue.empty()) {
+            Task nextTask = printQueue.front(); // Assign a new task from the queue.
+            printQueue.pop(); // Remove it from the front
+
+            // Add the estimated wait time to our vector.
+            waitingTimes.push_back(nextTask.waitTime(i));
+            labprinter.startNext(nextTask);
+        }
+
+        // Process the current task.
+        labprinter.tick();
+    }
+
+    // Average out every wait time for the simulation.
+    float total = 0;
+    for (int waitTime : waitingTimes)
+        total += waitTime;
+
+    cout << "Average Wait " << total / waitingTimes.size() << " secs "
+         << printQueue.size() << " tasks remaining." << endl;
+}
+
+int main() {
+    // Seed random number generator with the current time
+    // This ensures a unique random simulation every time it's ran.
+    srand(time(nullptr));
+
+    for (int i = 0; i < 10; i++) {
+        simulation(3600, 5);
+    }
+
+    return 0;
+}
 ```
+
+#### Where the queue is used (and how)
+
+| Location | Queue operation | Role in the simulation |
+| :--- | :--- | :--- |
+| `queue<Task> printQueue;` | **construct** | Creates an empty FIFO waiting line for tasks not yet printing. |
+| `printQueue.push(task)` | **enqueue** (`push`) | When `newPrintTask()` is true at second `i`, the new `Task` joins the **rear** of the line. |
+| `printQueue.empty()` | **isEmpty** (`empty`) | Guards dequeue: only take a task when the printer is idle *and* someone is waiting. |
+| `printQueue.front()` | **peek front** (`front`) | Reads the **oldest** waiting task (next to print) without removing it yet. |
+| `printQueue.pop()` | **dequeue** (`pop`) | Removes that front task from the queue once the printer claims it. |
+| `printQueue.size()` | **size** (`size`) | After the hour, reports how many tasks are still waiting (backlog). |
+
+**Per-second loop pattern (FIFO in action):**
+1. **Arrival** — maybe `push` a new task at the rear.
+2. **Service** — if the printer is free and the queue is not empty, `front` + `pop` the oldest task, record its wait time, start printing.
+3. **Progress** — `tick()` advances the current print job by one second.
+
+The printer itself is **not** the queue; it holds at most one active task. The `std::queue` is the waiting room. That separation is the classic producer/consumer pattern: arrivals enqueue, the single printer dequeues.
+
+#### Visual example (one busy stretch)
+
+Suppose at second 100 the queue holds three tasks (front = oldest, rear = newest):
+
+```
+Second 100 — printQueue (front → rear):
+
+  FRONT                              REAR
+    │                                  │
+    ▼                                  ▼
+  [ Task@85, 7pg ] → [ Task@92, 12pg ] → [ Task@98, 3pg ]
+    oldest waiting                     just arrived
+```
+
+Printer is idle at second 100, so the simulation does:
+
+```
+nextTask = printQueue.front();   // Task@85 (arrived at t=85)
+printQueue.pop();                  // remove from front
+
+Queue after pop:
+  [ Task@92, 12pg ] → [ Task@98, 3pg ]
+
+waitTime = 100 - 85 = 15 seconds
+printer.startNext(Task@85)
+```
+
+At second 101, a new job might arrive:
+
+```
+printQueue.push(Task(101));        // enqueue at rear
+
+Queue after push:
+  [ Task@92, 12pg ] → [ Task@98, 3pg ] → [ Task@101, ?pg ]
+```
+
+**FIFO guarantee:** Task@92 will always be served before Task@98 or Task@101, no matter how many pages each has. The queue orders by **arrival time**, not by job size — exactly the behavior the textbook uses to study average wait and remaining backlog.
 
 ### 3.6 Deque (double-ended queue)
 #### Concept
