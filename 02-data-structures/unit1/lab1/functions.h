@@ -4,19 +4,18 @@
 #include <iostream>
 
 /*************************************************************************
-* Name: Your name        CSC 240
-* Date: Today’s date     Lab #
-*************************************************************************
-* Statement:
-* Specifications:
-* Input -
-* Output -
-*************************************************************************/
-
+ * Name: Dan Dan        CSC 240
+ * Date: 06-13-26       Lab #1
+ *************************************************************************
+ * Statement:
+ * Specifications:
+ * Input -
+ * Output -
+ *************************************************************************/
 
 /**********************************************************************
  * IMPORTANT IMPLEMENTATION NOTES
- * 
+ *
  * - All template functions MUST be fully implemented in this header file.
  *   (Templates cannot be separated into a .cpp file.)
  *
@@ -32,19 +31,19 @@
 
 // Precondition: a and b are valid references to objects of the same type.
 // Postcondition: The values of a and b are exchanged.
-template <class type>
-void swapIt(type &a, type &b)
-{
-    // STUDENT IMPLEMENTATION
+template <class type> void swapIt(type &a, type &b) {
+  type stored = a;
+  a = b;
+  b = stored;
 }
 
-// Precondition: item points to a valid array of at least n elements, and n >= 0.
-// Postcondition: Outputs the memory address of each element in the array,
+// Precondition: item points to a valid array of at least n elements, and n >=
+// 0. Postcondition: Outputs the memory address of each element in the array,
 // one address per element.
-template <class type>
-void printAddresses(type *item, int n)
-{
-    // STUDENT IMPLEMENTATION
+template <class type> void printAddresses(type *item, int n) {
+  for (int i = 0; i < n; i++) {
+    std::cout << &item[i] << std::endl;
+  }
 }
 
 /**********************************************************************
@@ -62,7 +61,8 @@ bool isDigitString(const char *theString);
 void reverse(char *theString);
 
 // Precondition: theString is a valid null-terminated C-string (not null).
-// Postcondition: Outputs the ASCII decimal value of each character in theString.
+// Postcondition: Outputs the ASCII decimal value of each character in
+// theString.
 void printASCII(const char *theString);
 
 // Precondition: theString is a valid null-terminated C-string (not null).
@@ -70,8 +70,8 @@ void printASCII(const char *theString);
 int countOccurrences(const char *theString, char target);
 
 // Precondition: theString is a valid null-terminated C-string (not null).
-// Postcondition: Returns true if the string reads the same forward and backward.
-// Empty string is considered a palindrome.
+// Postcondition: Returns true if the string reads the same forward and
+// backward. Empty string is considered a palindrome.
 bool isPalindrome(const char *theString);
 
 // Precondition: theString is a valid null-terminated C-string representing
