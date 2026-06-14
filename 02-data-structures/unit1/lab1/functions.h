@@ -74,7 +74,7 @@ template <class type> void swapIt(type &a, type &b) {
 // one address per element.
 template <class type> void printAddresses(type *item, int n) {
   for (int i = 0; i < n; i++) {
-    std::cout << static_cast<const void *>(item + i) << std::endl;
+    std::cout << static_cast<const void *>(&item[i]) << std::endl;
   }
 }
 
