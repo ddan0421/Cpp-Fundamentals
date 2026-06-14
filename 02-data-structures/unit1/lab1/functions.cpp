@@ -15,7 +15,7 @@ bool isDigitString(const char *theString) {
     return false;
   }
   for (int i = 0; theString[i] != '\0'; i++) {
-    if (theString[i] < '0' || theString[i] > '9') {
+    if (!std::isdigit(static_cast<unsigned char>(theString[i]))) {
       return false;
     }
   }
