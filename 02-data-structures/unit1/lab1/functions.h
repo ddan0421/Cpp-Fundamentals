@@ -8,9 +8,41 @@
  * Date: 06-13-26       Lab #1
  *************************************************************************
  * Statement:
+ * This Program implements several functions that work with C-strings
+ * including checking for digit-only strings, reversing strings in place,
+ * printing ASCII values, counting character occurrences, checking for
+ * palindromes, and converting numeric strings to integers. It also
+ * provides template functions to swap two values and print the memory
+ * addresses of array elements.
+
  * Specifications:
+ * The program uses C-style strings (char *), loops, pointer traversal,
+ * and template functions. Non-template functions are implemented in
+ * functions.cpp; template functions are implemented in functions.h.
+ * The reverse and isPalindrome functions use the two-pointer technique.
+ * stringToInt uses "digit-by-digit" conversion. Only basic loops, arrays,
+ * pointers, and strlen() are used; advanced STL features are not used.
+ * Functions assume valid input where preconditions specify.
+ * Modifying functions change their arguments in place: swapIt exchanges
+ * two values passed by reference, and reverse reverses a C-string in place.
+ * Non-modifying functions leave input data unchanged: isDigitString,
+ * countOccurrences, isPalindrome, and stringToInt return a result; printASCII
+ * and printAddresses write output to the console only.
+
  * Input -
+ * C-strings, characters, and variables passed into functions by the test
+ * driver (for example, null-terminated char arrays, a target character for
+ * counting, and two values (a and b) or an array with a length for the template
+ * functions).
+
  * Output -
+ * Modifying functions update their arguments directly: swapIt changes the
+ * values of a and b, and reverse changes the contents of the C-string.
+ * Non-modifying functions return values without altering input: isDigitString
+ * and isPalindrome return bool; countOccurrences and stringToInt return int.
+ * Non-modifying functions that print only: printAddresses outputs memory
+ * addresses of array elements, and printASCII outputs ASCII decimal values.
+
  *************************************************************************/
 
 /**********************************************************************
