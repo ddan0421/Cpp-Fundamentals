@@ -53,21 +53,80 @@ The pattern is: keep the logical interface identical, swap out the implementatio
 
 - A **generic data type** specifies operations without committing to a concrete item type.
 - C++ supports this with **templates**.
-- Dale's textbook simulates a generic by using a user-defined `ItemType` class that provides at least a `ComparedTo(other)` method.
+- Dale's textbook simulates a generic by using a user-defined `ItemType` class that provides at least a `ComparedTo(other)` method. The list code calls only `ComparedTo`, `Initialize`, and `Print` — swap in any `ItemType` that implements them and the list works unchanged.
+
+#### Specification — `ItemType.h`
 
 ```cpp
-// Conceptual ItemType the list relies on
+// ItemType.h
+#ifndef ITEMTYPE_H
+#define ITEMTYPE_H
+
+#include <iostream>
+
+const int MAX_ITEMS = 5;                  // capacity used by the array-based list
 enum RelationType { LESS, GREATER, EQUAL };
 
 class ItemType {
 public:
+    ItemType();                           // default ctor: value = 0
     RelationType ComparedTo(ItemType other) const;
-    void Initialize(int value);
-    void Print() const;
+    void Initialize(int number);
+    void Print(std::ostream& out) const;
 private:
     int value;
 };
+
+#endif
 ```
+
+#### Implementation — `ItemType.cpp`
+
+```cpp
+// ItemType.cpp
+#include "ItemType.h"
+
+ItemType::ItemType() {
+    value = 0;
+}
+
+RelationType ItemType::ComparedTo(ItemType other) const {
+    if (value < other.value) return LESS;
+    if (value > other.value) return GREATER;
+    return EQUAL;
+}
+
+void ItemType::Initialize(int number) {
+    value = number;
+}
+
+void ItemType::Print(std::ostream& out) const {
+    out << value;
+}
+```
+
+#### How the list uses it
+
+The list ADT never touches `value` directly — it only invokes the public interface above. To make the list hold `string` keys, `Date` keys, or anything else, write a new `ItemType` with the same four members; **no list code needs to change**.
+
+```cpp
+// Example client snippet
+UnsortedType list;
+ItemType x, y, z;
+x.Initialize(42);
+y.Initialize(17);
+z.Initialize(99);
+list.PutItem(x);
+list.PutItem(y);
+list.PutItem(z);
+
+bool found;
+ItemType target; target.Initialize(17);
+ItemType result = list.GetItem(target, found);
+if (found) result.Print(std::cout);       // prints "17"
+```
+
+> **Note on real templates**: Dale's `NodeType<ItemType>` shown later *is* a true C++ template. Templating the list class itself (`template <class T> class UnsortedType`) is the natural next step — but the textbook keeps `ItemType` concrete for clarity in chapters 3–4.
 
 ---
 
