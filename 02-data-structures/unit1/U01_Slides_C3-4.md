@@ -342,6 +342,101 @@ myPtr->next
 
 ### 7. Linked-List-Based Implementation
 
+#### Simpler intro example (head + tail, append, print)
+
+Before the full `UnsortedType` ADT below, this minimal example shows the core pointer wiring with plain `int` data. It uses **both `head` and `tail`** so `Append` is O(1) and preserves insertion order — unlike Dale's `PutItem`, which inserts at the **head** with a single pointer.
+
+```cpp
+#include <iostream>
+
+// 1. The Node Structure
+class SinglyLinkedNode {
+public:
+   int data;
+   SinglyLinkedNode* next;
+
+   SinglyLinkedNode(int initialData) {
+      data = initialData;
+      next = nullptr;
+   }
+};
+
+// 2. The Linked List Class
+class SinglyLinkedList {
+private:
+   SinglyLinkedNode* head;
+   SinglyLinkedNode* tail;
+
+public:
+   // Constructor: Sets up our empty list
+   SinglyLinkedList() {
+      head = nullptr;
+      tail = nullptr;
+   }
+
+   // The high-level function you call to add a number
+   void Append(int item) {
+      AppendNode(new SinglyLinkedNode(item));
+   }
+
+   // The low-level function that wires the pointers together
+   void AppendNode(SinglyLinkedNode* newNode) {
+      if (head == nullptr) { // Check if list is empty
+         head = newNode;
+         tail = newNode;
+      }
+      else { // If list already has items
+         tail->next = newNode;
+         tail = newNode;
+      }
+   }
+
+   // Helper function to print the list so we can see it working
+   void Print() const {
+      SinglyLinkedNode* temp = head;
+      while (temp != nullptr) {
+         std::cout << temp->data << " -> ";
+         temp = temp->next;
+      }
+      std::cout << "null\n";
+   }
+};
+
+// 3. Execution
+int main() {
+    SinglyLinkedList list;
+
+    std::cout << "Appending 95...\n";
+    list.Append(95);
+    list.Print();
+
+    std::cout << "\nAppending 42...\n";
+    list.Append(42);
+    list.Print();
+
+    return 0;
+}
+```
+
+Output:
+
+```
+Appending 95...
+95 -> null
+
+Appending 42...
+95 -> 42 -> null
+```
+
+| This example | Dale `UnsortedType` (below) |
+|---|---|
+| `int` only | Generic `ItemType` |
+| `Append` at **tail** | `PutItem` at **head** |
+| `head` + `tail` | `listData` (head only) |
+| `Append` / `Print` only | Full ADT + destructor / `delete` |
+
+---
+
 #### Node structure
 
 A **node** has two fields: `info` (the data) and `next` (a pointer to the next node).
