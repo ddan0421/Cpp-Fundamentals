@@ -342,9 +342,16 @@ myPtr->next
 
 ### 7. Linked-List-Based Implementation
 
-#### Simpler intro example (head + tail, append, prepend, print)
+#### Simpler intro example (head + tail, append, prepend, search, insert-after, print)
 
 Before the full `UnsortedType` ADT below, this minimal example shows the core pointer wiring with plain `int` data. It uses **both `head` and `tail`** so `Append` is O(1) and preserves insertion order. It also includes `Prepend` (insert at head), which matches Dale's head-insertion style.
+
+`InsertNodeAfter(currentNode, newNode)` handles 3 insertion scenarios:
+1. **Insert as first node**: if `head == nullptr`, set both `head` and `tail` to `newNode`.
+2. **Insert after tail**: if `currentNode == tail`, wire `tail->next` to `newNode` and move `tail`.
+3. **Insert in middle**: wire `newNode->next` to `currentNode->next`, then `currentNode->next` to `newNode`.
+
+`currentNode` is a pointer to an existing node, but can be `nullptr` when inserting into an empty list.
 
 ```cpp
 #include <iostream>
@@ -408,6 +415,34 @@ public:
       }
    }
 
+   // Search for the first node whose data matches dataValue
+   SinglyLinkedNode* Search(int dataValue) const {
+      SinglyLinkedNode* currentNode = head;
+      while (currentNode) {
+         if (currentNode->data == dataValue) {
+            return currentNode;
+         }
+         currentNode = currentNode->next;
+      }
+      return nullptr;
+   }
+
+   void InsertNodeAfter(SinglyLinkedNode* currentNode,
+      SinglyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else if (currentNode == tail) {
+         tail->next = newNode;
+         tail = newNode;
+      }
+      else {
+         newNode->next = currentNode->next;
+         currentNode->next = newNode;
+      }
+   }
+
    // Helper function to print the list so we can see it working
    void Print() const {
       SinglyLinkedNode* temp = head;
@@ -435,6 +470,20 @@ int main() {
     list.Prepend(13);
     list.Print();
 
+    std::cout << "\nSearching for 95...\n";
+    SinglyLinkedNode* found = list.Search(95);
+    if (found) {
+       std::cout << "Found node with data = " << found->data << "\n";
+    } else {
+       std::cout << "95 not found\n";
+    }
+
+    if (found) {
+       std::cout << "\nInserting 77 after 95...\n";
+       list.InsertNodeAfter(found, new SinglyLinkedNode(77));
+       list.Print();
+    }
+
     return 0;
 }
 ```
@@ -450,6 +499,12 @@ Appending 42...
 
 Prepending 13...
 13 -> 95 -> 42 -> null
+
+Searching for 95...
+Found node with data = 95
+
+Inserting 77 after 95...
+13 -> 95 -> 77 -> 42 -> null
 ```
 
 | This example | Dale `UnsortedType` (below) |
@@ -457,7 +512,7 @@ Prepending 13...
 | `int` only | Generic `ItemType` |
 | `Append` at **tail** | `PutItem` at **head** |
 | `head` + `tail` | `listData` (head only) |
-| `Append` / `Prepend` / `Print` only | Full ADT + destructor / `delete` |
+| `Append` / `Prepend` / `Search` / `InsertNodeAfter` / `Print` only | Full ADT + destructor / `delete` |
 
 ---
 
