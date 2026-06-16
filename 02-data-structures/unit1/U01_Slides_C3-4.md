@@ -342,9 +342,9 @@ myPtr->next
 
 ### 7. Linked-List-Based Implementation
 
-#### Simpler intro example (head + tail, append, print)
+#### Simpler intro example (head + tail, append, prepend, print)
 
-Before the full `UnsortedType` ADT below, this minimal example shows the core pointer wiring with plain `int` data. It uses **both `head` and `tail`** so `Append` is O(1) and preserves insertion order — unlike Dale's `PutItem`, which inserts at the **head** with a single pointer.
+Before the full `UnsortedType` ADT below, this minimal example shows the core pointer wiring with plain `int` data. It uses **both `head` and `tail`** so `Append` is O(1) and preserves insertion order. It also includes `Prepend` (insert at head), which matches Dale's head-insertion style.
 
 ```cpp
 #include <iostream>
@@ -391,6 +391,23 @@ public:
       }
    }
 
+   // The high-level function you call to add a number at the front
+   void Prepend(int item) {
+      PrependNode(new SinglyLinkedNode(item));
+   }
+
+   // The low-level function that wires the pointers at the front
+   void PrependNode(SinglyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         newNode->next = head;
+         head = newNode;
+      }
+   }
+
    // Helper function to print the list so we can see it working
    void Print() const {
       SinglyLinkedNode* temp = head;
@@ -414,6 +431,10 @@ int main() {
     list.Append(42);
     list.Print();
 
+    std::cout << "\nPrepending 13...\n";
+    list.Prepend(13);
+    list.Print();
+
     return 0;
 }
 ```
@@ -426,6 +447,9 @@ Appending 95...
 
 Appending 42...
 95 -> 42 -> null
+
+Prepending 13...
+13 -> 95 -> 42 -> null
 ```
 
 | This example | Dale `UnsortedType` (below) |
@@ -433,13 +457,40 @@ Appending 42...
 | `int` only | Generic `ItemType` |
 | `Append` at **tail** | `PutItem` at **head** |
 | `head` + `tail` | `listData` (head only) |
-| `Append` / `Print` only | Full ADT + destructor / `delete` |
+| `Append` / `Prepend` / `Print` only | Full ADT + destructor / `delete` |
 
 ---
 
 #### Node structure
 
 A **node** has two fields: `info` (the data) and `next` (a pointer to the next node).
+
+#### Required supporting types (`ItemType` + `NodeType`)
+
+`UnsortedType` depends on:
+1. an `ItemType` with `ComparedTo`, `Initialize`, and `Print`,
+2. a node template that stores one `ItemType` plus a link.
+
+```cpp
+enum RelationType { LESS, EQUAL, GREATER };
+
+class ItemType {
+public:
+    ItemType() : value(0) {}
+
+    RelationType ComparedTo(ItemType other) const {
+        if (value < other.value) return LESS;
+        if (value > other.value) return GREATER;
+        return EQUAL;
+    }
+
+    void Initialize(int number) { value = number; }
+    void Print(std::ostream& out) const { out << value; }
+
+private:
+    int value;
+};
+```
 
 ```cpp
 template <class ItemType>
@@ -615,6 +666,174 @@ When the `UnsortedType` object leaves scope, its memory is reclaimed *but the no
 
 ```cpp
 UnsortedType::~UnsortedType() { MakeEmpty(); }
+```
+
+#### Full combined implementation file (linked `UnsortedType`)
+
+Now that each component is explained separately, here is the same linked-list `UnsortedType` assembled into one implementation file.
+
+```cpp
+// UnsortedType_linked.cpp
+#include <iostream>
+#include <new>       // std::bad_alloc
+
+enum RelationType { LESS, EQUAL, GREATER };
+
+class ItemType {
+public:
+    ItemType() : value(0) {}
+
+    RelationType ComparedTo(ItemType other) const {
+        if (value < other.value) return LESS;
+        if (value > other.value) return GREATER;
+        return EQUAL;
+    }
+
+    void Initialize(int number) { value = number; }
+    void Print(std::ostream& out) const { out << value; }
+
+private:
+    int value;
+};
+
+template <class ItemType>
+struct NodeType {
+    ItemType        info;
+    NodeType<ItemType>* next;
+};
+
+class UnsortedType {
+public:
+    UnsortedType();
+    ~UnsortedType();
+
+    bool IsFull() const;
+    int  GetLength() const { return length; }
+    void MakeEmpty();
+
+    ItemType GetItem(ItemType item, bool& found);
+    void PutItem(ItemType item);
+    void DeleteItem(ItemType item);
+
+    void ResetList();
+    ItemType GetNextItem();
+
+private:
+    NodeType<ItemType>* listData;   // head pointer
+    int length;
+    NodeType<ItemType>* currentPos; // iterator cursor
+};
+
+UnsortedType::UnsortedType() {
+    length = 0;
+    listData = NULL;
+    currentPos = NULL;
+}
+
+UnsortedType::~UnsortedType() {
+    MakeEmpty();
+}
+
+bool UnsortedType::IsFull() const {
+    NodeType<ItemType>* location;
+    try {
+        location = new NodeType<ItemType>;
+        delete location;
+        return false;
+    } catch (std::bad_alloc exception) {
+        return true;
+    }
+}
+
+void UnsortedType::PutItem(ItemType item) {
+    NodeType<ItemType>* location;
+    location = new NodeType<ItemType>;
+    location->info = item;
+    location->next = listData;
+    listData = location;
+    length++;
+}
+
+ItemType UnsortedType::GetItem(ItemType item, bool& found) {
+    NodeType<ItemType>* location = listData;
+    found = false;
+    while (location != NULL && !found) {
+        if (location->info.ComparedTo(item) == EQUAL) {
+            found = true;
+            item = location->info;
+        } else {
+            location = location->next;
+        }
+    }
+    return item;
+}
+
+void UnsortedType::DeleteItem(ItemType item) {
+    NodeType<ItemType>* location = listData;
+    NodeType<ItemType>* tempLocation;
+
+    // Special case: item at head
+    if (item.ComparedTo(listData->info) == EQUAL) {
+        tempLocation = listData;
+        listData = listData->next;
+    } else {
+        while (location->next->info.ComparedTo(item) != EQUAL) {
+            location = location->next;
+        }
+        tempLocation = location->next;
+        location->next = (location->next)->next;
+    }
+    delete tempLocation;
+    length--;
+}
+
+void UnsortedType::ResetList() {
+    currentPos = NULL;
+}
+
+ItemType UnsortedType::GetNextItem() {
+    if (currentPos == NULL) currentPos = listData;
+    else                    currentPos = currentPos->next;
+    return currentPos->info;
+}
+
+void UnsortedType::MakeEmpty() {
+    NodeType<ItemType>* tempPtr;
+    while (listData != NULL) {
+        tempPtr = listData;
+        listData = listData->next;
+        delete tempPtr;
+    }
+    length = 0;
+    currentPos = NULL;
+}
+
+int main() {
+    UnsortedType list;
+
+    ItemType a, b, c;
+    a.Initialize(10);
+    b.Initialize(25);
+    c.Initialize(17);
+
+    list.PutItem(a);
+    list.PutItem(b);
+    list.PutItem(c);
+
+    bool found = false;
+    ItemType target;
+    target.Initialize(25);
+    ItemType result = list.GetItem(target, found);
+
+    std::cout << "Found 25? " << (found ? "yes" : "no") << "\n";
+    if (found) {
+        std::cout << "Matched item: ";
+        result.Print(std::cout);
+        std::cout << "\n";
+    }
+
+    return 0;
+}
 ```
 
 #### Lifetime of a variable
