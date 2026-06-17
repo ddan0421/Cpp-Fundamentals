@@ -6,6 +6,72 @@
 
 ---
 
+## Reference: Pointers and the `->` operator
+
+Linked lists lean heavily on pointers. This section is the general rule; linked-list code applies it to `head`, `tail`, and `next`.
+
+### Pointer vs object
+
+A **pointer variable** stores a **memory address** — where something lives — not the object itself.
+
+```cpp
+int value = 42;
+int* p = &value;    // p holds the address of value
+```
+
+| Syntax | Meaning |
+|--------|---------|
+| `&value` | address-of: "where does `value` live?" |
+| `*p` | dereference: "go to what `p` points at" |
+| `p` alone | the address itself (a bookmark) |
+
+### `.` vs `->`
+
+Use **`.`** when you have the object directly. Use **`->`** when you have a **pointer to** an object.
+
+```cpp
+struct Node {
+    int data;
+    Node* next;
+};
+
+Node node;          // an actual node object
+Node* ptr = &node;  // a pointer to that node
+
+node.data = 10;     // dot: object.member
+ptr->data = 10;     // arrow: pointer->member
+
+// These are equivalent:
+ptr->data
+(*ptr).data
+```
+
+**Rule:** `->` means *follow the pointer, then access the member*.
+
+### What `->` is **not**
+
+- **`head->next`** does not mean "`head` has a `next` field." `head` is just a pointer variable on the list object. `->` follows `head` to a **node**, then reads that node's `next`.
+- The **`->` in diagrams** (e.g. `[ Bobby ] -> [ Judy ]`) shows logical flow between nodes — related idea, but not C++ syntax.
+
+### Linked-list examples
+
+```cpp
+SinglyLinkedNode* head;   // bookmark — no data, no next
+SinglyLinkedNode* tail;   // bookmark — no data, no next
+
+// head points at a node; that node has data and next:
+head->data              // read the first node's value
+head->next              // follow link to second node (or null)
+
+// Append: tail points at the last node; we update THAT node's next, then move tail:
+tail->next = newNode;   // link old last node → new node
+tail = newNode;         // update bookmark (not a -> operation)
+```
+
+When you see `something->field`, ask: **"What does `something` point at?"** The field belongs to that target, not to the pointer variable itself.
+
+---
+
 ## Big Picture
 
 A **list** is the first non-trivial ADT we build. Both chapters build the same logical thing — a linear collection of items — but they explore four different *implementations*:
@@ -331,18 +397,21 @@ After the leak:
 
 #### Arrow operator
 
-If `myPtr` points to a struct/class object, use `->` to reach its fields:
+See **Reference: Pointers and the `->` operator** at the top of these notes for the full rule (`.` vs `->`, pointer vs object).
+
+In linked-list code, `->` almost always means "follow this node pointer, then use a field":
 
 ```cpp
-myPtr->info        // equivalent to (*myPtr).info
-myPtr->next
+location->info = item;     // equivalent to (*location).info = item
+location->next = listData; // wire the chain
+tail->next = newNode;      // tail points at a node; update THAT node's next
 ```
 
 ---
 
 ### 7. Linked-List-Based Implementation
 
-#### Simpler intro example (head + tail, append, prepend, search, insert-after, print)
+#### Simpler intro example (head + tail, append, prepend, search, insert-after, remove-after, print)
 
 Before the full `UnsortedType` ADT below, this minimal example shows the core pointer wiring with plain `int` data. It uses **both `head` and `tail`** so `Append` is O(1) and preserves insertion order. It also includes `Prepend` (insert at head), which matches Dale's head-insertion style.
 
@@ -351,7 +420,13 @@ Before the full `UnsortedType` ADT below, this minimal example shows the core po
 2. **Insert after tail**: if `currentNode == tail`, wire `tail->next` to `newNode` and move `tail`.
 3. **Insert in middle**: wire `newNode->next` to `currentNode->next`, then `currentNode->next` to `newNode`.
 
-`currentNode` is a pointer to an existing node, but can be `nullptr` when inserting into an empty list.
+`RemoveNodeAfter(currentNode)` handles 2 removal scenarios:
+1. **Remove head**: if `currentNode == nullptr`, advance `head`, `delete` the old head; if the list is now empty, set `tail = nullptr`.
+2. **Remove node after `currentNode`**: skip over `currentNode->next`, `delete` it; if that was the last node, set `tail = currentNode`.
+
+`currentNode` is a pointer to an existing node. Pass **`nullptr`** to remove the head.
+
+`currentNode` can also be `nullptr` when inserting into an empty list (`InsertNodeAfter` only).
 
 ```cpp
 #include <iostream>
@@ -443,6 +518,29 @@ public:
       }
    }
 
+   void RemoveNodeAfter(SinglyLinkedNode* currentNode) {
+      if (currentNode == nullptr) {
+         // Special case: remove head
+         SinglyLinkedNode* nodeToRemove = head;
+         head = head->next;
+         delete nodeToRemove;
+
+         if (head == nullptr) {
+            tail = nullptr; // Last item was removed
+         }
+      }
+      else if (currentNode->next) {
+         SinglyLinkedNode* nodeToRemove = currentNode->next;
+         SinglyLinkedNode* succeedingNode = nodeToRemove->next;
+         currentNode->next = succeedingNode;
+         delete nodeToRemove;
+
+         if (succeedingNode == nullptr) {
+            tail = currentNode; // Last item was removed
+         }
+      }
+   }
+
    // Helper function to print the list so we can see it working
    void Print() const {
       SinglyLinkedNode* temp = head;
@@ -484,6 +582,23 @@ int main() {
        list.Print();
     }
 
+    if (found) {
+       std::cout << "\nRemoving node after 95 (77)...\n";
+       list.RemoveNodeAfter(found);
+       list.Print();
+    }
+
+    std::cout << "\nRemoving head (13)...\n";
+    list.RemoveNodeAfter(nullptr);
+    list.Print();
+
+    found = list.Search(95);
+    if (found) {
+       std::cout << "\nRemoving node after 95 (42)...\n";
+       list.RemoveNodeAfter(found);
+       list.Print();
+    }
+
     return 0;
 }
 ```
@@ -505,6 +620,15 @@ Found node with data = 95
 
 Inserting 77 after 95...
 13 -> 95 -> 77 -> 42 -> null
+
+Removing node after 95 (77)...
+13 -> 95 -> 42 -> null
+
+Removing head (13)...
+95 -> 42 -> null
+
+Removing node after 95 (42)...
+95 -> null
 ```
 
 | This example | Dale `UnsortedType` (below) |
@@ -512,7 +636,56 @@ Inserting 77 after 95...
 | `int` only | Generic `ItemType` |
 | `Append` at **tail** | `PutItem` at **head** |
 | `head` + `tail` | `listData` (head only) |
-| `Append` / `Prepend` / `Search` / `InsertNodeAfter` / `Print` only | Full ADT + destructor / `delete` |
+| `Append` / `Prepend` / `Search` / `InsertNodeAfter` / `RemoveNodeAfter` / `Print` only | Full ADT + destructor / `delete` |
+
+#### Clarification: `head` / `tail` vs `next`
+
+**`head` and `tail` do not have `next`.** Only **nodes** do.
+
+There are two different kinds of things in play:
+
+| Kind | What it is | Has `next`? |
+|------|------------|-------------|
+| **`SinglyLinkedList`** | The list object | No — it only stores pointer *variables* |
+| **`SinglyLinkedNode`** | A node on the heap | Yes — each node has `data` and `next` |
+
+```cpp
+// On the list object — just bookmarks (addresses), not nodes:
+SinglyLinkedNode* head;
+SinglyLinkedNode* tail;
+
+// On each node — the actual chain links:
+SinglyLinkedNode* next;
+```
+
+After `Append(95)` then `Append(42)`:
+
+```
+SinglyLinkedList object          nodes on the heap
+┌─────────────────┐
+│ head ───────────────► [ data: 95 | next ────┐ ]
+│ tail ───────────────────────────────────────┼──► [ data: 42 | next: null ]
+└─────────────────┘                           │
+                                              └──────────────►
+```
+
+- **`head`** — where the list starts (traverse, print, search).
+- **`tail`** — shortcut to the last node so append is O(1) without walking the whole chain.
+- **`next`** — lives inside each node; `tail->next` means “the `next` field of the node `tail` points at,” not “tail’s next.”
+
+When appending to a non-empty list, both lines are required:
+
+```cpp
+tail->next = newNode;   // link old last node → new node  (update a node in the chain)
+tail = newNode;         // move tail bookmark to new last (update the list object)
+```
+
+| If you only do… | What goes wrong |
+|-----------------|-----------------|
+| `tail = newNode` only | Old last node still has `next = null`; new node is not connected. |
+| `tail->next = newNode` only | Chain is linked, but `tail` still points at the old node; next append breaks. |
+
+On an **empty** list there is no old last node, so you set both bookmarks directly: `head = newNode; tail = newNode;`
 
 ---
 
