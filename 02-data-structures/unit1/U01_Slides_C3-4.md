@@ -689,6 +689,130 @@ On an **empty** list there is no old last node, so you set both bookmarks direct
 
 ---
 
+#### Doubly-linked list
+
+A **doubly-linked list** is a data structure for implementing a list ADT, where each node has **data**, a pointer to the **next** node, and a pointer to the **previous** node. The list structure typically has pointers to the first node and the last node. The doubly-linked list's first node is called the **head**, and the last node the **tail**.
+
+A doubly-linked list is similar to a singly-linked list, but instead of using a single pointer to the next node in the list, each node has a pointer to the next **and** previous nodes. Such a list is called "doubly-linked" because each node has two pointers, or "links". A doubly-linked list is a type of **positional list**: a list where elements contain pointers to the next and/or previous elements in the list.
+
+```
+DoublyLinkedList object          nodes on the heap
+┌─────────────────┐
+│ head ───────────────►  ┌─────────┐      ┌─────────┐      ┌─────────┐      ┌─────────┐
+│                      │ data 77 │      │ data 18 │      │ data 61 │      │ data 54 │
+│ tail ──────────────────────────────────────────────────────────────────────────────►│
+└─────────────────┘      │ next ───┼─────►│ next ───┼─────►│ next ───┼─────►│ next: null
+                         │ previous: null │ previous ◄─┼─────┤ previous ◄─┼─────┤ previous ◄─┼─────┤
+                         └─────────┘      └─────────┘      └─────────┘      └─────────┘
+```
+
+- **`head`** — bookmark to the first node (`77`); that node's `previous` is `null`.
+- **`tail`** — bookmark to the last node (`54`); that node's `next` is `null`.
+- **`next` / `previous`** — live inside each node; every interior node points both forward and backward.
+
+| | **Singly-linked** | **Doubly-linked** |
+|---|---|---|
+| Links per node | `next` only | `next` **and** `previous` |
+| List bookmarks | often `head` (sometimes `head` + `tail`) | typically `head` **and** `tail` |
+| Walk forward | yes | yes |
+| Walk backward | no (must restart from head) | yes (follow `previous`) |
+| Delete a known node | need the **predecessor** (inchworm walk) | update `previous` and `next` on neighbors directly |
+
+> Dale's `UnsortedType` / `SortedType` in chapters 3–4 use **singly-linked** lists. Doubly-linked lists are a common alternative when you need efficient deletion or backward traversal; more on that below.
+
+#### Simpler intro example (head + tail, append, prepend)
+
+Same pattern as the singly-linked intro above: plain `int` data, `head` + `tail` bookmarks, and separate high-level (`Append` / `Prepend`) vs low-level (`AppendNode` / `PrependNode`) wiring functions. The difference is that every link update must set **both** directions — when you attach a new node, its `previous` and the neighbor's `next`/`previous` must all be updated.
+
+```cpp
+#include <iostream>
+
+// 1. The Node Structure
+class DoublyLinkedNode {
+public:
+   int data;
+   DoublyLinkedNode* next;
+   DoublyLinkedNode* previous;
+
+   DoublyLinkedNode(int initialData) {
+      data = initialData;
+      next = nullptr;
+      previous = nullptr;
+   }
+};
+
+// 2. The Linked List Class
+class DoublyLinkedList {
+private:
+   DoublyLinkedNode* head;
+   DoublyLinkedNode* tail;
+
+public:
+   DoublyLinkedList() {
+      head = nullptr;
+      tail = nullptr;
+   }
+
+   void Append(int item) {
+      AppendNode(new DoublyLinkedNode(item));
+   }
+
+   void AppendNode(DoublyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         tail->next = newNode;
+         newNode->previous = tail;
+         tail = newNode;
+      }
+   }
+
+   void Prepend(int item) {
+      DoublyLinkedNode* newNode = new DoublyLinkedNode(item);
+      PrependNode(newNode);
+   }
+
+   void PrependNode(DoublyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         newNode->next = head;
+         head->previous = newNode;
+         head = newNode;
+      }
+   }
+};
+```
+
+**Append to a non-empty list** — three updates (singly-linked only needed two):
+
+```cpp
+tail->next = newNode;        // old last node → new node
+newNode->previous = tail;      // new node ← old last node
+tail = newNode;                // move tail bookmark
+```
+
+**Prepend to a non-empty list** — same idea at the front:
+
+```cpp
+newNode->next = head;          // new node → old first node
+head->previous = newNode;      // old first node ← new node
+head = newNode;                // move head bookmark
+```
+
+| If you only wire `next`… | What goes wrong |
+|--------------------------|-----------------|
+| Append without `newNode->previous = tail` | Forward chain works, but you cannot walk backward from the new node. |
+| Prepend without `head->previous = newNode` | Forward chain works, but the old head's `previous` still points at nothing useful. |
+
+More methods (search, insert, remove, print, etc.) to follow.
+
+---
+
 #### Node structure
 
 A **node** has two fields: `info` (the data) and `next` (a pointer to the next node).
