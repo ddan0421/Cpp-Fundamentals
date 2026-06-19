@@ -720,7 +720,7 @@ DoublyLinkedList object          nodes on the heap
 
 > Dale's `UnsortedType` / `SortedType` in chapters 3–4 use **singly-linked** lists. Doubly-linked lists are a common alternative when you need efficient deletion or backward traversal; more on that below.
 
-#### Simpler intro example (head + tail, append, prepend)
+#### Simpler intro example (head + tail, append, prepend, search, insert-after)
 
 Same pattern as the singly-linked intro above: plain `int` data, `head` + `tail` bookmarks, and separate high-level (`Append` / `Prepend`) vs low-level (`AppendNode` / `PrependNode`) wiring functions. The difference is that every link update must set **both** directions — when you attach a new node, its `previous` and the neighbor's `next`/`previous` must all be updated.
 
@@ -785,6 +785,39 @@ public:
          head = newNode;
       }
    }
+
+   // Search for the first node whose data matches dataValue
+   DoublyLinkedNode* Search(int dataValue) const {
+      DoublyLinkedNode* currentNode = head;
+      while (currentNode) {
+         if (currentNode->data == dataValue) {
+            return currentNode;
+         }
+         currentNode = currentNode->next;
+      }
+
+      return nullptr;
+   }
+
+   void InsertNodeAfter(DoublyLinkedNode* currentNode,
+      DoublyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else if (currentNode == tail) {
+         tail->next = newNode;
+         newNode->previous = tail;
+         tail = newNode;
+      }
+      else {
+         DoublyLinkedNode* successor = currentNode->next;
+         newNode->next = successor;
+         newNode->previous = currentNode;
+         currentNode->next = newNode;
+         successor->previous = newNode;
+      }
+   }
 };
 ```
 
@@ -809,7 +842,7 @@ head = newNode;                // move head bookmark
 | Append without `newNode->previous = tail` | Forward chain works, but you cannot walk backward from the new node. |
 | Prepend without `head->previous = newNode` | Forward chain works, but the old head's `previous` still points at nothing useful. |
 
-More methods (search, insert, remove, print, etc.) to follow.
+More methods (remove, print, etc.) to follow.
 
 ---
 
