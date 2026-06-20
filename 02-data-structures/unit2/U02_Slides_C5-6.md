@@ -204,6 +204,21 @@ Before:   topPtr -> [B|*] -> [A|NULL]
 Push(C):  topPtr -> [C|*] -> [B|*] -> [A|NULL]
 ```
 
+**What is `topPtr`?** It's the stack's *single data member* — a pointer that holds the **memory address of the top node** (the head of the chain). It is *not* a node itself; it just "points at" the most-recently-pushed node. When the stack is empty, `topPtr == NULL`. Everything below the top is reached by following each node's `next` link, so `topPtr` is the one and only handle the object keeps to the entire list.
+
+**Why `location->next = topPtr` matters:** `location` is the brand-new node we just allocated. Before we touch `topPtr`, it still points at the *old* top. This line makes the new node's `next` link point to that old top — i.e., it **hooks the new node onto the front of the existing chain** so nothing below it is lost.
+
+```
+Step 1: location->next = topPtr     // new node grabs the old top
+   topPtr ------> [B|*] -> [A|NULL]
+   location --> [C|*] ----^         (C->next now points to B)
+
+Step 2: topPtr = location           // top officially moves up to C
+   topPtr --> [C|*] -> [B|*] -> [A|NULL]
+```
+
+> Order is critical: link the new node to the old top **first**, *then* move `topPtr`. If you reassigned `topPtr = location` first, you'd lose the address of the old top (a memory leak / orphaned chain) before `location->next` could ever capture it.
+
 #### Pop (textbook, page 640) — the "save, advance, delete" pattern
 
 ```cpp
@@ -240,7 +255,17 @@ bool StackType::IsFull() const {                       // try to allocate one no
     try   { location = new NodeType; delete location; return false; }
     catch (std::bad_alloc) { return true; }
 }
+```
 
+Inside the `try` block, the code performs a clever test:
+
+- **`location = new NodeType;`** — It literally attempts to allocate a brand-new node from the system's heap memory.
+- **`delete location;`** — If that allocation succeeds, it means the stack is **not** full (there is still memory available). Because we don't actually need this node right now, we immediately delete it to avoid a memory leak.
+- **`return false;`** — It returns `false`, telling the program: "Nope, we aren't full yet. Keep pushing items!"
+
+If `new` fails, the runtime throws `std::bad_alloc`, the `catch` runs, and `IsFull()` returns `true`.
+
+```cpp
 StackType::~StackType() {                              // walk the chain, free each node
     NodeType* tempPtr;
     while (topPtr != NULL) {
