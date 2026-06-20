@@ -258,7 +258,11 @@ public:
       length--;
       return array[length];
    }
+```
 
+**`Pop()` precondition:** This implementation always decrements `length` and returns `array[length]` — it does not check whether the stack is empty first. If `Pop()` is called when `length` is 0, `length` becomes `-1` and `array[-1]` is an out-of-bounds access. The caller must ensure the stack has at least one item (e.g. check `GetLength() > 0` or `!IsEmpty()`) before calling `Pop()`.
+
+```cpp
    virtual void Print(std::ostream& printStream = std::cout,
       const std::string& separator = ", ") const override {
       if (length > 0) {
