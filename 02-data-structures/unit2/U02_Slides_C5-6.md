@@ -156,6 +156,191 @@ StackType::~StackType()       { delete [] items; }
 
 > **Rule of thumb**: any class that holds a heap pointer needs a destructor. (Later, also a copy constructor and `operator=` — see Ch. 6, "Rule of the Big 3.")
 
+#### Zybooks example (Array-based stack implementation)
+
+Supports both a **bounded** stack (fixed `maxLength`) and an **unbounded** stack that doubles its allocation when full (`Resize()`). `Push` returns `bool` — `false` when the bounded stack hits its cap.
+
+**`StackADT.h`**
+
+```cpp
+#ifndef STACKADT_H
+#define STACKADT_H
+
+#include <iostream>
+
+class StackADT {
+public:
+   // Member functions that may change the stack
+   virtual bool Push(int item) = 0;
+   virtual int Pop() = 0;
+
+   // Member functions that do not change the stack
+   virtual int GetLength() const = 0;
+   virtual bool IsEmpty() const = 0;
+   virtual int Peek() const = 0;
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const = 0;
+};
+
+#endif
+```
+
+**`ArrayStack.h`**
+
+```cpp
+#ifndef ARRAYSTACK_H
+#define ARRAYSTACK_H
+
+#include <iostream>
+#include "StackADT.h"
+
+class ArrayStack : public StackADT {
+private:
+   int allocationSize;
+   int* array;
+   int length;
+   int maxLength;
+
+   void Resize() {
+      // Allocate new array and copy existing items
+      int newSize = allocationSize * 2;
+      int* newArray = new int[newSize];
+      for (int i = 0; i < length; i++) {
+         newArray[i] = array[i];
+      }
+
+      // Free old array and assign new
+      delete[] array;
+      array = newArray;
+      allocationSize = newSize;
+   }
+
+public:
+   ArrayStack(int optionalMaxLength = -1) {
+      allocationSize = 1;
+      array = new int[allocationSize];
+      length = 0;
+      maxLength = optionalMaxLength;
+   }
+```
+
+**One constructor, two modes.** The default argument `= -1` lets a single `ArrayStack` class behave as either bounded or unbounded, depending on how you construct it:
+
+| How you call it | What `maxLength` becomes | Behavior |
+|----------------|--------------------------|----------|
+| `ArrayStack bounded(4);` | `4` | **Bounded** — `Push` returns `false` once `length` reaches 4 |
+| `ArrayStack unbounded;` | `-1` (the default) | **Unbounded** — no fixed cap; `Resize()` grows the array as needed |
+
+**Why `-1` works as "no limit":** `Push` rejects new items with `if (length == maxLength) return false;`. Since `length` is always `>= 0`, it can never equal `-1`. So when you omit the argument, that check never triggers and the stack keeps growing via `Resize()`.
+
+```cpp
+   virtual ~ArrayStack() {
+      delete[] array;
+   }
+
+   virtual int GetLength() const override {
+      return length;
+   }
+
+   virtual int GetMaxLength() const {
+      return maxLength;
+   }
+
+   virtual bool IsEmpty() const override {
+      return 0 == length;
+   }
+
+   virtual int Peek() const override {
+      return array[length - 1];
+   }
+
+   virtual int Pop() override {
+      length--;
+      return array[length];
+   }
+
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const override {
+      if (length > 0) {
+         // Print first item with no separator
+         printStream << array[length - 1];
+      }
+
+      // Print remaining items, each preceded by the separator
+      for (int i = length - 2; i >= 0; i--) {
+         printStream << separator << array[i];
+      }
+   }
+
+   virtual bool Push(int item) override {
+      // If at max length, return false
+      if (length == maxLength) {
+         return false;
+      }
+
+      // Resize if length equals allocation size
+      if (length == allocationSize) {
+         Resize();
+      }
+
+      // Push the item and return true
+      array[length] = item;
+      length++;
+      return true;
+   }
+};
+
+#endif
+```
+
+**`ArrayBasedStacks.cpp`**
+
+```cpp
+#include <iostream>
+#include "ArrayStack.h"
+using namespace std;
+
+int main(int argc, char* argv[]) {
+   // Make two stacks, one bounded to 4 items and the other unbounded
+   ArrayStack boundedStack(4);
+   ArrayStack unboundedStack;
+
+   // Push 8 items to each
+   cout << "Pushing values 1 through 8 to each stack" << endl;
+   for (int i = 1; i <= 8; i++) {
+      boundedStack.Push(i);
+      unboundedStack.Push(i);
+   }
+
+   // Pop two items off each stack
+   cout << "Popping twice" << endl;
+   for (int i = 0; i < 2; i++) {
+      boundedStack.Pop();
+      unboundedStack.Pop();
+   }
+
+   // Push 4 more items onto each stack
+   cout << "Pushing values to each stack: 10, 20, 30 and 40" << endl;
+   for (int i = 10; i <= 40; i += 10) {
+      boundedStack.Push(i);
+      unboundedStack.Push(i);
+   }
+
+   // Display contents of each stack
+   cout << "Bounded stack (maxLength=" << boundedStack.GetMaxLength();
+   cout << ") contents:" << endl;
+   while (boundedStack.GetLength() > 0) {
+      cout << "  " << boundedStack.Pop() << endl;
+   }
+   cout << "Unbounded stack contents:" << endl;
+   while (unboundedStack.GetLength() > 0) {
+      cout << "  " << unboundedStack.Pop() << endl;
+   }
+
+   return 0;
+}
+```
+
 ---
 
 ### 6. Linked-List-Based Stack
@@ -273,6 +458,165 @@ StackType::~StackType() {                              // walk the chain, free e
         topPtr  = topPtr->next;
         delete tempPtr;
     }
+}
+```
+
+#### Zybooks example (Singly-linked-based stack implementation)
+
+**`StackADT.h`**
+
+```cpp
+#ifndef STACKADT_H
+#define STACKADT_H
+
+#include <iostream>
+
+class StackADT {
+public:
+   // Member functions that may change the stack
+   virtual void Push(int item) = 0;
+   virtual int Pop() = 0;
+
+   // Member functions that do not change the stack
+   virtual int GetLength() const = 0;
+   virtual bool IsEmpty() const = 0;
+   virtual int Peek() const = 0;
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const = 0;
+};
+
+#endif
+```
+
+**`Stack.h`**
+
+```cpp
+#ifndef STACK_H
+#define STACK_H
+
+#include <iostream>
+#include "StackADT.h"
+
+// Node to store an item in a linked-list-based stack
+class StackNode {
+public:
+   int data;
+   StackNode* next;
+
+   StackNode(int dataValue, StackNode* nextNode) {
+      data = dataValue;
+      next = nextNode;
+   }
+};
+
+// Linked-list-based stack
+class Stack : public StackADT {
+private:
+   StackNode* top;
+
+public:
+   Stack() {
+      top = nullptr;
+   }
+
+   virtual ~Stack() {
+      while (top) {
+         StackNode* nodeToDelete = top;
+         top = top->next;
+         delete nodeToDelete;
+      }
+   }
+
+   virtual int GetLength() const override {
+      StackNode* node = top;
+      int count = 0;
+      while (node) {
+         count++;
+         node = node->next;
+      }
+      return count;
+   }
+
+   virtual bool IsEmpty() const override {
+      return top == nullptr;
+   }
+
+   virtual int Peek() const override {
+      return top->data;
+   }
+
+   virtual void Push(int newData) override {
+      top = new StackNode(newData, top);
+   }
+
+   virtual int Pop() override {
+      // Copy top node's data
+      StackNode* poppedNode = top;
+      int poppedItem = top->data;
+
+      // Remove top node
+      top = top->next;
+
+      // Delete former top node
+      delete poppedNode;
+
+      // Return the popped item
+      return poppedItem;
+   }
+
+   // Prints stack items from top to bottom, with the separator string between
+   // each pair of items
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const override {
+      StackNode* node = top;
+
+      if (node) {
+         // Print first item with no separator
+         printStream << node->data;
+         node = node->next;
+      }
+
+      // Print remaining items, each preceded by the separator
+      while (node) {
+         printStream << separator << node->data;
+         node = node->next;
+      }
+   }
+};
+
+#endif
+```
+
+**`main.cpp`**
+
+```cpp
+#include <iostream>
+#include "Stack.h"
+using namespace std;
+
+int main() {
+   int numbers[] = { 76, 81, 91, 34, 62, 88, 77, 21, 18 };
+
+   // Initialize a new Stack and add numbers
+   Stack numStack;
+   for (int number : numbers) {
+       numStack.Push(number);
+   }
+
+   // Show the stack before any pop operations occur
+   cout << "Stack: ";
+   numStack.Print();
+   cout << endl;
+
+   // Pop until stack is empty, printing each popped item and remaining stack
+   while (!numStack.IsEmpty()) {
+      cout << "Popped " << numStack.Pop() << endl;
+      cout << "Stack: ";
+      numStack.Print();
+      cout << endl;
+   }
+
+   return 0;
 }
 ```
 
