@@ -694,10 +694,41 @@ Dequeue (A):    [ B ][ C ][ D ][ E ][   ]    rear=3   <-- everyone shifted left!
 
 ### 12. Floating Circular Array Queue (the *good* design)
 
-Both `front` and `rear` move. When `rear` would fall off the end, it wraps around using modular arithmetic:
+Both `front` and `rear` move. When either pointer would fall off the end of the array, it wraps back to index 0 using modular arithmetic:
 
 ```
-rear = (rear + 1) % maxQue;
+nextIndex = (currentIndex + 1) % maxQue;
+```
+
+**The "next index calculator."** Think of this formula as a safe way to advance a pointer by one slot. You take the pointer's current index, add 1 to move forward, then apply `% maxQue` so the result always stays in `[0, maxQue − 1]`. If adding 1 would go past the last slot, the modulo wraps it back to 0.
+
+The same formula drives **both** pointers — only the meaning of the move differs:
+
+**For `rear` (Enqueue — adding data)**
+
+| Step | What happens |
+|------|----------------|
+| 1 | You want to enqueue a new item |
+| 2 | Run `newRear = (rear + 1) % maxQue` |
+| 3 | Move `rear` to `newRear` |
+| 4 | Store the new item in `items[newRear]` |
+
+**For `front` (Dequeue — removing data)**
+
+| Step | What happens |
+|------|----------------|
+| 1 | You want to dequeue an item |
+| 2 | Run `newFront = (front + 1) % maxQue` |
+| 3 | Move `front` to `newFront` |
+| 4 | The item at `items[newFront]` is the one that leaves the queue |
+
+> Dale's design: `front` points to the cell **before** the first element, so the item removed is always at the *new* front index after the formula runs.
+
+**Why `front = 5` before the first dequeue:** Dale intentionally places `front` one slot *before* the first item (A at index 0). That way the **same** advance formula used for every dequeue — `front = (front + 1) % maxQue` — lands on the item to remove. First dequeue: `(5+1) % 6 = 0` → read `items[0]` (A). After that, `front = 0` sits before B at index 1, and the next dequeue does `(0+1) % 6 = 1` → read B. This also keeps empty/full simple: both pointers start at 5, and `front == rear` means empty.
+
+```
+Where the DATA is:     index 0 = A (first),  index 4 = E (last)   ← rear = 4
+Where the POINTERS are: front = 5 (before A), rear = 4 (at E)
 ```
 
 #### Visual: wrap-around in action
@@ -705,25 +736,43 @@ rear = (rear + 1) % maxQue;
 ```
 maxQue = 6
 
-After Enqueue A,B,C,D,E (front=5, rear=4):
-   index:  0   1   2   3   4   5
-          [A] [B] [C] [D] [E] [ ]
-                                ^front  (one slot before A)
+After Enqueue A,B,C,D,E:
+  current:  front=5, rear=4
+  index:    0   1   2   3   4   5
+           [A] [B] [C] [D] [E] [ ]
+            ^                          first item (A) is here at index 0
+                                 ^front  front PTR is one slot before A (index 5)
+                            ^rear       rear PTR is at E (index 4)
 
-Dequeue twice (A, B leave); front = 1:
-   index:  0   1   2   3   4   5
-          [ ] [ ] [C] [D] [E] [ ]
-               ^front          ^rear=4
+Dequeue A:
+  formula:  new_front = (5+1) % 6 = 0
+  current:  front=5, rear=4  →  new: front=0, rear=4
+  index:    0   1   2   3   4   5
+           [A] [B] [C] [D] [E] [ ]
+            ^front (item A removed from here)
+                            ^rear
 
-Enqueue F (rear = (4+1)%6 = 5):
-   index:  0   1   2   3   4   5
-          [ ] [ ] [C] [D] [E] [F]
-               ^front          ^rear=5
+Dequeue B:
+  formula:  new_front = (0+1) % 6 = 1
+  current:  front=0, rear=4  →  new: front=1, rear=4
+  index:    0   1   2   3   4   5
+           [ ] [B] [C] [D] [E] [ ]
+                ^front (item B removed from here)
+                            ^rear
 
-Enqueue G (rear = (5+1)%6 = 0):  WRAPS!
-   index:  0   1   2   3   4   5
-          [G] [ ] [C] [D] [E] [F]
-           ^rear ^front
+Enqueue F:
+  formula:  new_rear = (4+1) % 6 = 5
+  current:  front=1, rear=4  →  new: front=1, rear=5
+  index:    0   1   2   3   4   5
+           [ ] [ ] [C] [D] [E] [F]
+                ^front          ^rear (F placed here)
+
+Enqueue G — WRAPS!:
+  formula:  new_rear = (5+1) % 6 = 0   ← modulo sends us back to index 0
+  current:  front=1, rear=5  →  new: front=1, rear=0
+  index:    0   1   2   3   4   5
+           [G] [ ] [C] [D] [E] [F]
+            ^rear ^front (G placed here; rear jumped from 5 → 0)
 ```
 
 #### Distinguishing empty from full
@@ -784,6 +833,197 @@ void QueType::Dequeue(ItemType& item) {
 ```
 
 All operations are now **O(1)**.
+
+#### Zybooks example (Array-based queue implementation)
+
+Supports **bounded** (`maxLength` set) and **unbounded** (`maxLength = -1`) queues. Unlike Dale's design above, `frontIndex` points **at** the first item (not one slot before it). A separate `length` counter tracks how many items are in the queue. Wrap-around uses `(frontIndex + offset) % allocationSize`; `Resize()` compacts items and resets `frontIndex` to 0.
+
+**`QueueADT.h`**
+
+```cpp
+#ifndef QUEUEADT_H
+#define QUEUEADT_H
+
+#include <iostream>
+
+class QueueADT {
+public:
+   // Member functions that may change the queue
+   virtual bool Enqueue(int item) = 0;
+   virtual int Dequeue() = 0;
+
+   // Member functions that do not change the queue
+   virtual int GetLength() const = 0;
+   virtual bool IsEmpty() const = 0;
+   virtual int Peek() const = 0;
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const = 0;
+};
+
+#endif
+```
+
+**`ArrayQueue.h`**
+
+```cpp
+#ifndef ARRAYQUEUE_H
+#define ARRAYQUEUE_H
+
+#include "QueueADT.h"
+
+class ArrayQueue : public QueueADT {
+private:
+   int allocationSize;
+   int* array;
+   int frontIndex;
+   int length;
+   int maxLength;
+
+   void Resize() {
+      // Allocate new array and copy existing items
+      int newSize = allocationSize * 2;
+      if (maxLength >= 0 && newSize > maxLength) {
+         newSize = maxLength;
+      }
+      int* newArray = new int[newSize];
+      for (int i = 0; i < length; i++) {
+         int itemIndex = (frontIndex + i) % allocationSize;
+         newArray[i] = array[itemIndex];
+      }
+
+      // Delete old array, assign new array, and assign new allocation size
+      delete[] array;
+      array = newArray;
+      allocationSize = newSize;
+
+      // Reset frontIndex to 0
+      frontIndex = 0;
+   }
+
+public:
+   ArrayQueue(int maximumLength = -1) {
+      allocationSize = (0 == maximumLength) ? 0 : 1;
+      array = new int[allocationSize];
+      length = 0;
+      frontIndex = 0;
+      maxLength = maximumLength;
+   }
+
+   virtual ~ArrayQueue() {
+      delete[] array;
+   }
+
+   virtual int Dequeue() override {
+      // Get the item at the front of the queue
+      int toReturn = array[frontIndex];
+
+      // Decrement length and advance frontIndex
+      length--;
+      frontIndex = (frontIndex + 1) % allocationSize;
+
+      // Return the front item
+      return toReturn;
+   }
+
+   virtual bool Enqueue(int item) override {
+      // If at max length, return false
+      if (length == maxLength) {
+         return false;
+      }
+
+      // Resize if length equals allocation size
+      if (length == allocationSize) {
+         Resize();
+      }
+
+      // Enqueue the item and return true
+      int itemIndex = (frontIndex + length) % allocationSize;
+      array[itemIndex] = item;
+      length++;
+      return true;
+   }
+
+   virtual int GetLength() const override {
+      return length;
+   }
+
+   virtual int GetMaxLength() {
+      return maxLength;
+   }
+
+   virtual bool IsEmpty() const override {
+      return 0 == length;
+   }
+
+   virtual int Peek() const override {
+      return array[frontIndex];
+   }
+
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const override {
+      if (length > 0) {
+         // Front item is not preceded by separator
+         printStream << array[frontIndex];
+      }
+      for (int i = 1; i < length; i++) {
+         // Each item after the front is preceded by the separator
+         int index = (frontIndex + i) % allocationSize;
+         printStream << separator << array[index];
+      }
+   }
+};
+
+#endif
+```
+
+**`ArrayBasedQueues.cpp`**
+
+```cpp
+#include <iostream>
+#include "ArrayQueue.h"
+using namespace std;
+
+int main() {
+   // Make two queues, one bounded to 4 items and the other unbounded
+   ArrayQueue boundedQueue(4);
+   ArrayQueue unboundedQueue;
+
+   // Enqueue 8 items in each
+   cout << "Enqueueing values 1 through 8 to each queue" << endl;
+   for (int i = 1; i <= 8; i++) {
+      boundedQueue.Enqueue(i);
+      unboundedQueue.Enqueue(i);
+   }
+
+   // Dequeue two items from each queue
+   cout << "Dequeuing twice" << endl;
+   for (int i = 0; i < 2; i++) {
+      cout << "  Dequeued " << boundedQueue.Dequeue();
+      cout << " from bounded queue" << endl;
+      cout << "  Dequeued " << unboundedQueue.Dequeue();
+      cout << " from unbounded queue" << endl;
+   }
+
+   // Enqueue 4 more items
+   cout << "Enqueueing values: 10, 20, 30 and 40" << endl;
+   for (int i = 10; i <= 40; i+=10) {
+      boundedQueue.Enqueue(i);
+      unboundedQueue.Enqueue(i);
+   }
+
+   // Display contents of each queue
+   cout << "Bounded queue (maxLength=";
+   cout << boundedQueue.GetMaxLength();
+   cout << ") contents:" << endl;
+   while (boundedQueue.GetLength() > 0) {
+      cout << "  " << boundedQueue.Dequeue() << endl;
+   }
+   cout << "Unbounded queue contents:" << endl;
+   while (unboundedQueue.GetLength() > 0) {
+      cout << "  " << unboundedQueue.Dequeue() << endl;
+   }
+}
+```
 
 ---
 
@@ -898,6 +1138,179 @@ Dequeue: front -------> [B|*] -> [C|NULL] <- rear   (A node deleted, item = 'A')
 #### Why not reverse front and rear?
 
 If `front` pointed to the rear of the chain and `rear` to the head (so Enqueue mimics Push), then **Dequeue would need the predecessor of the new front node** — but singly-linked nodes can't go backward. You'd be forced into an O(N) scan. The chosen layout (front at head, rear at tail) keeps both ops O(1). [See slide 34, "A bad queue design."]
+
+#### Zybooks example (Linked-list-based queue implementation)
+
+Same two-pointer idea as the textbook (`front` at head, tail pointer at end), but uses `end` instead of `rear` and **`delete`s the front node on dequeue** — unlike the array version, which only advances an index.
+
+**`QueueADT.h`**
+
+```cpp
+#ifndef QUEUEADT_H
+#define QUEUEADT_H
+
+#include <iostream>
+
+class QueueADT {
+public:
+   // Member functions that may change the queue
+   virtual bool Enqueue(int item) = 0;
+   virtual int Dequeue() = 0;
+
+   // Member functions that do not change the queue
+   virtual int GetLength() const = 0;
+   virtual bool IsEmpty() const = 0;
+   virtual int Peek() const = 0;
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const = 0;
+};
+
+#endif
+```
+
+**`Queue.h`**
+
+```cpp
+#ifndef QUEUE_H
+#define QUEUE_H
+
+#include <iostream>
+#include "QueueADT.h"
+
+// Node to store an item in a linked-list-based queue
+class QueueNode {
+public:
+   int data;
+   QueueNode* next;
+
+   QueueNode(int dataValue, QueueNode* nextNode = nullptr) {
+      data = dataValue;
+      next = nextNode;
+   }
+};
+
+class Queue : public QueueADT {
+private:
+   QueueNode* front;
+   QueueNode* end;
+
+public:
+   Queue() {
+      front = nullptr;
+      end = nullptr;
+   }
+
+   virtual ~Queue() {
+      while (front) {
+         QueueNode* nodeToDelete = front;
+         front = front->next;
+         delete nodeToDelete;
+      }
+   }
+
+   virtual bool Enqueue(int newData) override {
+      // Create a new node
+      QueueNode* newNode = new QueueNode(newData);
+
+      // Append newNode to the end of the linked list
+      if (nullptr == front) {
+         front = newNode;
+      }
+      else {
+         end->next = newNode;
+      }
+      end = newNode;
+
+      return true;
+   }
+
+   virtual int Dequeue() override {
+      // Copy front node's data
+      QueueNode* dequeuedNode = front;
+      int dequeuedItem = front->data;
+
+      // Remove front node
+      front = front->next;
+      delete dequeuedNode;
+
+      // If empty, assign end with nullptr
+      if (nullptr == front) {
+         end = nullptr;
+      }
+
+      // Return dequeued item
+      return dequeuedItem;
+   }
+
+   virtual int GetLength() const override {
+      int length = 0;
+      QueueNode* node = front;
+      while (node) {
+         length++;
+         node = node->next;
+      }
+      return length;
+   }
+
+   virtual bool IsEmpty() const override {
+      return nullptr == front;
+   }
+
+   virtual int Peek() const override {
+      return front->data;
+   }
+
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const override {
+      QueueNode* node = front;
+      if (node) {
+         // Front item is not preceded by separator
+         printStream << node->data;
+         node = node->next;
+      }
+      while (node) {
+         // Each item after the front is preceded by the separator
+         printStream << separator << node->data;
+         node = node->next;
+      }
+   }
+};
+
+#endif
+```
+
+**`main.cpp`**
+
+```cpp
+#include <iostream>
+#include "Queue.h"
+using namespace std;
+
+int main() {
+   int numbers[] = { 83, 44, 57, 66, 92, 49, 64, 55 };
+
+   // Initialize a new Queue and add numbers
+   Queue numQueue;
+   for (int number : numbers) {
+      numQueue.Enqueue(number);
+   }
+
+   // Print queue
+   cout << "Queue: ";
+   numQueue.Print();
+   cout << endl;
+
+   // Dequeue each item and print the queue. Repeat until empty.
+   while (!numQueue.IsEmpty()) {
+      cout << "Dequeued " << numQueue.Dequeue() << endl;
+      cout << "Queue: ";
+      numQueue.Print();
+      cout << endl;
+   }
+
+   return 0;
+}
+```
 
 ---
 
