@@ -1,22 +1,21 @@
 #ifndef REMOVELASTCOMMAND_H
 #define REMOVELASTCOMMAND_H
 
+#include "UndoCommand.h"
 #include <string>
 #include <vector>
-#include "UndoCommand.h"
 
 class RemoveLastCommand : public UndoCommand {
 private:
-   std::vector<std::string>* sourceVector;
+  std::vector<std::string> *sourceVector;
 
 public:
-   RemoveLastCommand(std::vector<std::string>* vector) {
-      sourceVector = vector;
-   }
-   
-   void Execute() override {
-      // TODO: Type your code here
-   }
+  RemoveLastCommand(std::vector<std::string> *vector) { sourceVector = vector; }
+
+  void Execute() override {
+    // TODO: Type your code here
+    sourceVector->pop_back();
+  }
 };
 
 #endif
