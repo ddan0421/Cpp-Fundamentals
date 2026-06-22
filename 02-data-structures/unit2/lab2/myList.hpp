@@ -152,7 +152,10 @@ public:
   // Also used by operator<<
   void print(std::ostream &outStream) const {
     for (int i = 0; i < length; i++) {
-      outStream << items[i] << " ";
+      if (i > 0) {
+        outStream << " ";
+      }
+      outStream << items[i];
     }
   }
 
