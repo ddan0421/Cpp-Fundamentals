@@ -71,7 +71,13 @@ public:
 
     // Fill constructor
     // Creates a list of size n, filled with value theItem
-    myList(int n, const type &theItem);
+    myList(int n, const type &theItem){
+        length = n;
+        items = new type[length];
+        for(int i = 0; i < n; i++){
+            items[i] = theItem;
+        }
+    }
 
     // Array constructor
     // Creates a list from an existing array
