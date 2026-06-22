@@ -183,7 +183,24 @@ public:
   // NOTE:
   // If location is invalid, handle safely.
   // Do NOT access out-of-bounds memory.
-  void insert(const type &theItem, int location);
+  void insert(const type &theItem, int location) {
+    if (location < 0 || location > length) {
+      return;
+    }
+    type *newItems = new type[length + 1];
+    for (int i = 0; i < length + 1; i++) {
+      if (i == location) {
+        newItems[i] = theItem;
+      } else if (i < location) {
+        newItems[i] = items[i];
+      } else {
+        newItems[i] = items[i - 1];
+      }
+    }
+    delete[] items;
+    items = newItems;
+    length++;
+  }
 
   // Append to end
   //
