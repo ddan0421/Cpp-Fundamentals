@@ -1675,6 +1675,65 @@ public:
 
 Now `myStack = yourStack;` is translated by the compiler into `myStack.operator=(yourStack);` and your deep-copy code runs.
 
+#### Implementation — the actual deep copy
+
+```cpp
+template <class ItemType>
+void StackType<ItemType>::operator=(StackType<ItemType> anotherStack) {
+    NodeType<ItemType>* ptr1;     // walks the SOURCE chain
+    NodeType<ItemType>* ptr2;     // last node copied into THIS (destination)
+
+    // 1. Free this stack's existing nodes so we don't leak them.
+    NodeType<ItemType>* tempPtr;
+    while (topPtr != NULL) {
+        tempPtr = topPtr;
+        topPtr  = topPtr->next;
+        delete tempPtr;
+    }
+
+    // 2. Copy the source chain node-by-node.
+    if (anotherStack.topPtr == NULL) {
+        topPtr = NULL;                                   // source empty -> we're empty
+    } else {
+        topPtr       = new NodeType<ItemType>;           // copy the top node
+        topPtr->info = anotherStack.topPtr->info;
+        ptr1         = anotherStack.topPtr->next;         // next source node to copy
+        ptr2         = topPtr;                            // tail of the new chain
+        while (ptr1 != NULL) {
+            ptr2->next = new NodeType<ItemType>;          // allocate a fresh node
+            ptr2       = ptr2->next;
+            ptr2->info = ptr1->info;                      // copy the value
+            ptr1       = ptr1->next;                      // advance in source
+        }
+        ptr2->next = NULL;                                // terminate the new chain
+    }
+}
+```
+
+Two things that make this a *deep* copy and not a shallow one:
+
+- **Step 1 frees the old nodes first.** Without this, reassigning `topPtr` would orphan (leak) whatever `myStack` already held.
+- **Step 2 allocates a brand-new node with `new` for every source node** and copies only the `info` value — never the pointer. The result is a second, independent chain, so destroying or popping one stack can't touch the other.
+
+> **"Does the cleanup loop even run if the destination is empty?"** — Only when `this` (the left-hand stack) *already owns nodes*. The loop walks the **destination's** chain, not the source's. Two cases:
+>
+> - **Destination empty** (e.g. `StackType<int> myStack;` with nothing pushed): `topPtr == NULL`, so `while (topPtr != NULL)` is false immediately and the body **never executes** — a harmless no-op, then step 2 builds the new chain.
+> - **Destination already has items** (e.g. you pushed onto `myStack` before assigning): `topPtr != NULL`, so the loop **runs and frees those old nodes** — otherwise reassigning `topPtr` would leak them.
+>
+> This is exactly what separates `operator=` from the **copy constructor** (§5.3): the copy constructor always builds a *brand-new* object (no nodes to clean up), while `operator=` is called on an *already-existing* object that may own nodes — so it needs the extra cleanup step.
+
+```
+Before  myStack = yourStack:
+   yourStack.topPtr -> [C] -> [B] -> [A] -> NULL
+   myStack.topPtr   -> [X] -> [Y] -> NULL        (old nodes — freed in step 1)
+
+After:
+   yourStack.topPtr -> [C]  -> [B]  -> [A]  -> NULL
+   myStack.topPtr   -> [C'] -> [B'] -> [A'] -> NULL   (separate copies)
+```
+
+> Note: `anotherStack` is passed **by value**, so the copy *constructor* runs first to make a local copy. A production version usually takes a `const&` and returns `StackType&` (to support chaining like `a = b = c;`) and guards against self-assignment (`if (this == &anotherStack) return ...;`).
+
 #### Example: overloading `<`, `>`, `==` on `DateType` (textbook page 805)
 
 ```cpp
