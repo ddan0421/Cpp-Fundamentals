@@ -150,7 +150,11 @@ public:
   // Print list contents
   //
   // Also used by operator<<
-  void print(std::ostream &outStream) const;
+  void print(std::ostream &outStream) const {
+    for (int i = 0; i < length; i++) {
+      outStream << items[i] << " ";
+    }
+  }
 
   // Search for item
   //
@@ -190,10 +194,10 @@ public:
    **********************************************************************/
 
   // Return number of elements
-  int getLength() const;
+  int getLength() const { return length; }
 
   // Check if list is empty
-  bool isEmpty() const;
+  bool isEmpty() const { return length == 0; }
 
   // Remove element at index
   //
