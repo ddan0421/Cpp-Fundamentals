@@ -182,7 +182,19 @@ public:
   // 2. copy elements
   // 3. add new item
   // 4. delete old array
-  void append(const type &theItem);
+  void append(const type &theItem) {
+    type *newItems = new type[length + 1];
+    for (int i = 0; i < length + 1; i++) {
+      if (i < length) {
+        newItems[i] = items[i];
+      } else {
+        newItems[i] = theItem;
+      }
+    }
+    delete[] items;
+    items = newItems;
+    length++;
+  }
 
   // Sort list
   //
