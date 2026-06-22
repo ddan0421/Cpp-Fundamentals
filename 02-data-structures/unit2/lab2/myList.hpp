@@ -162,7 +162,14 @@ public:
   // Search for item
   //
   // Linear search
-  bool isIn(const type &theItem) const;
+  bool isIn(const type &theItem) const {
+    for (int i = 0; i < length; i++) {
+      if (items[i] == theItem) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // Insert at position
   //
@@ -233,7 +240,14 @@ public:
   // Find index of item
   //
   // Return -1 if not found
-  int find(const type &theItem) const;
+  int find(const type &theItem) const {
+    for (int i = 0; i < length; i++) {
+      if (items[i] == theItem) {
+        return i;
+      }
+    }
+    return -1;
+  }
 };
 
 #endif
