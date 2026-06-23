@@ -226,7 +226,23 @@ public:
   // Sort list
   //
   // Any correct sorting algorithm is acceptable
-  void sort();
+  void sort() {
+    int seek;
+    int minCount;
+    int minValue;
+    for (seek = 0; seek < (length - 1); seek++) {
+      minCount = seek;
+      minValue = items[seek];
+      for (int index = seek + 1; index < length; index++) {
+        if (items[index] < minValue) {
+          minValue = items[index];
+          minCount = index;
+        }
+      }
+      items[minCount] = items[seek];
+      items[seek] = minValue;
+    }
+  }
 
   /**********************************************************************
    * ADDITIONAL METHODS (REQUIRED)
