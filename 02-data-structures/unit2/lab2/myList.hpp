@@ -108,7 +108,20 @@ public:
   // 2. delete[] old memory
   // 3. allocate new memory
   // 4. copy elements
-  myList<type> &operator=(const myList<type> &rhs);
+  myList<type> &operator=(const myList<type> &rhs) {
+    if (this == &rhs) {
+      return *this;
+    }
+    type *newItems = new type[rhs.length];
+    for (int i = 0; i < rhs.length; i++) {
+      newItems[i] = rhs.items[i];
+    }
+    delete[] items;
+    items = newItems;
+    length = rhs.length;
+
+    return *this;
+  }
 
   // Add one item to end (reuse append logic)
   // Return *this to support chaining
