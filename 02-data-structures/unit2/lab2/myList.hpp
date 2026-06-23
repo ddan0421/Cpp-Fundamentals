@@ -300,12 +300,33 @@ public:
   //
   // NOTE:
   // If location is invalid, handle safely.
-  bool removeAt(int location);
+  bool removeAt(int location) {
+    if (location < 0 || location >= length) {
+      return false;
+    }
+
+    type *newItems = new type[length - 1];
+    for (int i = 0; i < length - 1; i++) {
+      if (i < location) {
+        newItems[i] = items[i];
+      } else {
+        newItems[i] = items[i + 1];
+      }
+    }
+    delete[] items;
+    items = newItems;
+    length--;
+    return true;
+  }
 
   // Clear entire list
   //
   // Should reset to empty state
-  void clear();
+  void clear() {
+    delete[] items;
+    items = nullptr;
+    length = 0;
+  }
 
   // Find index of item
   //
