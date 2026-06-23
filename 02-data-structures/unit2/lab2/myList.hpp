@@ -165,12 +165,20 @@ public:
   // Return new list with one added item
   //
   // DO NOT modify current object
-  myList<type> operator+(const type &theItem) const;
+  myList<type> operator+(const type &theItem) const {
+    myList<type> itemCopy(*this);
+    itemCopy.append(theItem);
+    return itemCopy;
+  }
 
   // Return new list combining two lists
   //
   // Similar to += but returns NEW object
-  myList<type> operator+(const myList<type> &rhs) const;
+  myList<type> operator+(const myList<type> &rhs) const {
+    myList<type> itemCopy(*this);
+    itemCopy += rhs;
+    return itemCopy;
+  }
 
   /**********************************************************************
    * CORE MEMBER FUNCTIONS
