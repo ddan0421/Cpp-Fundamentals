@@ -125,7 +125,10 @@ public:
 
   // Add one item to end (reuse append logic)
   // Return *this to support chaining
-  myList<type> &operator+=(const type &theItem);
+  myList<type> &operator+=(const type &theItem) {
+    append(theItem);
+    return *this;
+  }
 
   // Append another list
   //
@@ -134,7 +137,20 @@ public:
   // - copy current list
   // - copy rhs
   // - return *this to support chaining
-  myList<type> &operator+=(const myList<type> &rhs);
+  myList<type> &operator+=(const myList<type> &rhs) {
+    type *newItems = new type[length + rhs.length];
+    for (int i = 0; i < length + rhs.length; i++) {
+      if (i < length) {
+        newItems[i] = items[i];
+      } else {
+        newItems[i] = rhs.items[i - length];
+      }
+    }
+    delete[] items;
+    items = newItems;
+    length += rhs.length;
+    return *this;
+  }
 
   // Output operator
   //
