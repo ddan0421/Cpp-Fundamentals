@@ -103,7 +103,8 @@ private:
 
 public:
     // Constructor
-    DynamicBuffer(int s) : size(s) {
+    DynamicBuffer(int s) {
+        size = s;
         data = new int[size]; // Dynamic heap allocation
     }
 
@@ -113,7 +114,8 @@ public:
     }
 
     // Copy Constructor implementing a DEEP COPY
-    DynamicBuffer(const DynamicBuffer& other) : size(other.size) {
+    DynamicBuffer(const DynamicBuffer& other) {
+        size = other.size;
         data = new int[size]; // Allocate brand-new distinct heap memory
         for (int i = 0; i < size; ++i) {
             data[i] = other.data[i]; // Replicate actual underlying data values
@@ -150,7 +152,10 @@ private:
     int top2;
 
 public:
-    TwoWayStack(int n) : capacity(n), top1(-1), top2(n) {
+    TwoWayStack(int n) {
+        capacity = n;
+        top1 = -1;
+        top2 = n;
         arr = new int[n];
     }
 
@@ -186,7 +191,11 @@ private:
     int count;
 
 public:
-    CircularQueue(int size) : capacity(size), front(0), rear(-1), count(0) {
+    CircularQueue(int size) {
+        capacity = size;
+        front = 0;
+        rear = -1;
+        count = 0;
         arr = new int[capacity];
     }
 
@@ -295,7 +304,10 @@ class Node {
 public:
     T data;
     Node* next;
-    Node(T val) : data(val), next(nullptr) {}
+    Node(T val) {
+        data = val;
+        next = nullptr;
+    }
 };
 
 template <typename T>
@@ -303,7 +315,9 @@ class GenericStack {
 private:
     Node<T>* top;
 public:
-    GenericStack() : top(nullptr) {}
+    GenericStack() {
+        top = nullptr;
+    }
     void push(T val) {
         Node<T>* newNode = new Node<T>(val);
         newNode->next = top;
