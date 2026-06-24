@@ -166,7 +166,21 @@ public:
    * - Do not print an extra arrow after the last node.
    * - Match the expected output exactly.
    ******************************************************************/
-  void print(std::ostream &outStream) const;
+  void print(std::ostream &outStream) const {
+    if (first == nullptr) {
+      outStream << "EMPTY LIST";
+      return;
+    }
+
+    linkNode<type> *currentNode = first;
+    while (currentNode != nullptr) {
+      if (currentNode != first) {
+        outStream << " -> ";
+      }
+      outStream << currentNode->data;
+      currentNode = currentNode->nextElement;
+    }
+  }
 
   /******************************************************************
    * getFirst
@@ -402,7 +416,10 @@ public:
  ***********************************************************************/
 template <class type>
 std::ostream &operator<<(std::ostream &outStream,
-                         const myLinkedList<type> &theList);
+                         const myLinkedList<type> &theList) {
+  theList.print(outStream);
+  return outStream;
+}
 
 // ================= IMPLEMENTED PARTS =================
 
