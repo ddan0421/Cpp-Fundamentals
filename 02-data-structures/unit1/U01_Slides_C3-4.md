@@ -1415,6 +1415,319 @@ The runtime **call stack** is the implicit stack; you do not need a separate sta
 
 ---
 
+#### Singly-linked list behind an ADT interface (`ListADT` + `SinglyLinkedList`)  — 📗 zyBooks
+
+This is the polished capstone for the singly-linked examples above — the same pattern as `ListADT` + `ArrayList` in section 5, but with a **linked-list** implementation instead of a growable array.
+
+1. **`ListADT`** — the abstract interface (pure virtual operations, no storage).
+2. **`SinglyLinkedNode`** — the node type (`data` + `next`), split into its own header.
+3. **`SinglyLinkedList : public ListADT`** — the concrete class: `head` + `tail` bookmarks, destructor that walks the chain and `delete`s every node, and the full set of high-level ADT operations (`Append`, `Prepend`, `InsertAfter`, `Remove`, `Contains`, `Print`, `IsEmpty`, `GetLength`) built on the low-level pointer wiring from the intro example (`AppendNode`, `PrependNode`, `InsertNodeAfter`, `RemoveNodeAfter`, `Search`).
+
+Swap `ArrayList` for `SinglyLinkedList` and client code written against `ListADT&` keeps working unchanged.
+
+```cpp
+// ListADT.h — the interface (same contract as ArrayList)
+#ifndef LISTADT_H
+#define LISTADT_H
+
+#include <iostream>
+
+class ListADT {
+public:
+   // Member functions that may change the list
+   virtual void Append(int item) = 0;
+   virtual bool InsertAfter(int existingItem, int newItem) = 0;
+   virtual void Prepend(int item) = 0;
+   virtual bool Remove(int item) = 0;
+
+   // Member functions that do not change the list
+   virtual bool Contains(int item) const = 0;
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const = 0;
+   virtual bool IsEmpty() const = 0;
+   virtual int GetLength() const = 0;
+};
+
+#endif
+```
+
+```cpp
+// SinglyLinkedNode.h
+#ifndef SINGLYLINKEDNODE_H
+#define SINGLYLINKEDNODE_H
+
+class SinglyLinkedNode {
+public:
+   int data;
+   SinglyLinkedNode* next;
+
+   SinglyLinkedNode(int initialData) {
+      data = initialData;
+      next = nullptr;
+   }
+};
+
+#endif
+```
+
+```cpp
+// SinglyLinkedList.h — concrete singly-linked implementation of ListADT
+#ifndef SINGLYLINKEDLIST_H
+#define SINGLYLINKEDLIST_H
+
+#include <iostream>
+#include "SinglyLinkedNode.h"
+#include "ListADT.h"
+
+class SinglyLinkedList : public ListADT {
+private:
+   SinglyLinkedNode* head;
+   SinglyLinkedNode* tail;
+
+public:
+   SinglyLinkedList() {
+      head = nullptr;
+      tail = nullptr;
+   }
+
+   virtual ~SinglyLinkedList() {
+      SinglyLinkedNode* currentNode = head;
+      while (currentNode) {
+         SinglyLinkedNode* toBeDeleted = currentNode;
+         currentNode = currentNode->next;
+         delete toBeDeleted;
+      }
+   }
+
+   virtual void Append(int item) override {
+      AppendNode(new SinglyLinkedNode(item));
+   }
+
+   virtual void AppendNode(SinglyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         tail->next = newNode;
+         tail = newNode;
+      }
+   }
+
+   virtual bool Contains(int item) const override {
+      return Search(item) != nullptr;
+   }
+
+   virtual int GetLength() const override {
+      int length = 0;
+      SinglyLinkedNode* node = head;
+      while (node) {
+         // Increment length and advance to next node
+         length++;
+         node = node->next;
+      }
+      return length;
+   }
+
+   virtual bool InsertAfter(int currentItem, int newItem) override {
+      SinglyLinkedNode* currentNode = Search(currentItem);
+      if (currentNode) {
+         SinglyLinkedNode* newNode = new SinglyLinkedNode(newItem);
+         InsertNodeAfter(currentNode, newNode);
+         return true;
+      }
+      return false; // currentItem not found
+   }
+
+   virtual void InsertNodeAfter(SinglyLinkedNode* currentNode,
+      SinglyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else if (currentNode == tail) {
+         tail->next = newNode;
+         tail = newNode;
+      }
+      else {
+         newNode->next = currentNode->next;
+         currentNode->next = newNode;
+      }
+   }
+
+   virtual bool IsEmpty() const override {
+      return head == nullptr;
+   }
+
+   virtual void Prepend(int item) override {
+      PrependNode(new SinglyLinkedNode(item));
+   }
+
+   virtual void PrependNode(SinglyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         newNode->next = head;
+         head = newNode;
+      }
+   }
+
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const override {
+      SinglyLinkedNode* node = head;
+      if (node) {
+          // Head node is not preceded by separator
+          printStream << node->data;
+          node = node->next;
+      }
+      while (node) {
+         // Each node after the head is preceded by the separator
+         printStream << separator << node->data;
+         node = node->next;
+      }
+      printStream << std::endl;
+   }
+
+   virtual bool Remove(int itemToRemove) override {
+      // Traverse to the node with data equal to itemToRemove,
+      // keeping track of the previous node in the process
+      SinglyLinkedNode* previous = nullptr;
+      SinglyLinkedNode* current = head;
+      while (current) {
+         if (current->data == itemToRemove) {
+            RemoveNodeAfter(previous);
+            return true;
+         }
+
+         // Advance to next node
+         previous = current;
+         current = current->next;
+      }
+
+      // Not found
+      return false;
+   }
+
+   virtual void RemoveAfter(int currentItem) {
+      SinglyLinkedNode* currentNode = Search(currentItem);
+      if (currentNode) {
+         RemoveNodeAfter(currentNode);
+      }
+   }
+
+   virtual void RemoveNodeAfter(SinglyLinkedNode* currentNode) {
+      if (currentNode == nullptr) {
+         // Special case: remove head
+         SinglyLinkedNode* nodeToRemove = head;
+         head = head->next;
+         delete nodeToRemove;
+
+         if (head == nullptr) {
+             tail = nullptr; // Last item was removed
+         }
+      }
+      else if (currentNode->next) {
+         SinglyLinkedNode* nodeToRemove = currentNode->next;
+         SinglyLinkedNode* succeedingNode = nodeToRemove->next;
+         currentNode->next = succeedingNode;
+         delete nodeToRemove;
+
+         if (succeedingNode == nullptr) {
+            tail = currentNode; // Last item was removed
+         }
+      }
+   }
+
+   // Returns the first node in the list with the specified data value, or
+   // nullptr if no such node exists.
+   virtual SinglyLinkedNode* Search(int dataValue) const {
+      // Start the search at the list's head
+      SinglyLinkedNode* currentNode = head;
+      while (currentNode) {
+         // Compare the node's data with dataValue
+         if (currentNode->data == dataValue) {
+            return currentNode;
+         }
+
+         // Advance to next node
+         currentNode = currentNode->next;
+      }
+
+      // Not found
+      return nullptr;
+   }
+};
+
+#endif
+```
+
+```cpp
+// main.cpp — driver
+#include <iostream>
+#include "SinglyLinkedList.h"
+using namespace std;
+
+int main() {
+   SinglyLinkedList numList;
+
+   // Insert various items using Append(), Prepend(), and InsertAfter()
+   numList.Append(14);          // List: 14
+   numList.Append(2);           // List: 14, 2
+   numList.Append(20);          // List: 14, 2, 20
+   numList.Prepend(31);         // List: 31, 14, 2, 20
+   numList.InsertAfter(2, 16);  // List: 31, 14, 2, 16, 20
+   numList.InsertAfter(20, 55); // List: 31, 14, 2, 16, 20, 55
+
+   // Output list
+   cout << "List after adding items: ";
+   numList.Print(cout);
+
+   // Remove the tail node, then the head node
+   numList.Remove(55); // List: 31, 14, 2, 16, 20
+   numList.Remove(31); // List: 14, 2, 16, 20
+
+   // Output list again
+   cout << "List after removing first and last items: ";
+   numList.Print(cout);
+
+   // Insert three more items
+   numList.Prepend(67);         // List: 67, 14, 2, 16, 20
+   numList.InsertAfter(20, 58); // List: 67, 14, 2, 16, 20, 58
+   numList.Append(89);          // List: 67, 14, 2, 16, 20, 58, 89
+
+   // Output final list
+   cout << "List after inserting three more items: ";
+   numList.Print(cout);
+
+   return 0;
+}
+```
+
+Output:
+
+```
+List after adding items: 31, 14, 2, 16, 20, 55
+List after removing first and last items: 14, 2, 16, 20
+List after inserting three more items: 67, 14, 2, 16, 20, 58, 89
+```
+
+| `ListADT` member | What `SinglyLinkedList` does | Cost |
+|------------------|------------------------------|------|
+| `Append` | `AppendNode` at tail | **O(1)** |
+| `Prepend` | `PrependNode` at head | **O(1)** |
+| `InsertAfter` | `Search` then `InsertNodeAfter` | O(N) |
+| `Remove` | inchworm walk + `RemoveNodeAfter` | O(N) |
+| `Contains` / `Search` | linear scan | O(N) |
+| `Print` / `GetLength` | traverse chain | O(N) |
+| `IsEmpty` | test `head == nullptr` | O(1) |
+| destructor | walk chain, `delete` each node | O(N) |
+
+> **Array vs linked, same interface:** `ArrayList::Remove` shifts elements left; `SinglyLinkedList::Remove` unlinks a node and updates `head`/`tail`. Both honor the same `ListADT` contract — the textbook's "swap the implementation, keep the interface" lesson in zyBooks form.
+
+---
+
 #### Doubly-linked list  — 📗 zyBooks (`DoublyLinkedList`)
 
 A **doubly-linked list** is a data structure for implementing a list ADT, where each node has **data**, a pointer to the **next** node, and a pointer to the **previous** node. The list structure typically has pointers to the first node and the last node. The doubly-linked list's first node is called the **head**, and the last node the **tail**.
@@ -1651,8 +1964,6 @@ head = newNode;                // move head bookmark
 |--------------------------|-----------------|
 | Append without `newNode->previous = tail` | Forward chain works, but you cannot walk backward from the new node. |
 | Prepend without `head->previous = newNode` | Forward chain works, but the old head's `previous` still points at nothing useful. |
-
-More methods (print, etc.) to follow.
 
 ---
 
@@ -1917,6 +2228,307 @@ public:
 ```
 
 To append before the tail sentinel: `InsertNodeAfter(tail->previous, newNode)` — the node before `tail` is always valid (it is `head` when the list has no data nodes).
+
+---
+
+#### Doubly-linked list behind an ADT interface (`ListADT` + `DoublyLinkedList`)  — 📗 zyBooks
+
+The polished capstone for the doubly-linked examples above — same pattern as `ListADT` + `SinglyLinkedList` and `ListADT` + `ArrayList`.
+
+1. **`ListADT`** — the abstract interface (pure virtual operations, no storage).
+2. **`DoublyLinkedNode`** — the node type (`data` + `next` + `previous`), split into its own header.
+3. **`DoublyLinkedList : public ListADT`** — the concrete class: `head` + `tail` bookmarks, destructor that walks the chain and `delete`s every node, and the full ADT surface (`Append`, `Prepend`, `InsertAfter`, `Remove`, `Contains`, `Print`, `IsEmpty`, `GetLength`).
+
+The key advantage over the singly-linked `ListADT` implementation: **`Remove` finds the node once via `Search`, then calls `RemoveNode` directly** — no inchworm walk to locate the predecessor, because each node stores `previous`.
+
+```cpp
+// ListADT.h — the interface (same contract as ArrayList / SinglyLinkedList)
+#ifndef LISTADT_H
+#define LISTADT_H
+
+#include <iostream>
+
+class ListADT {
+public:
+   // Member functions that may change the list
+   virtual void Append(int item) = 0;
+   virtual bool InsertAfter(int existingItem, int newItem) = 0;
+   virtual void Prepend(int item) = 0;
+   virtual bool Remove(int item) = 0;
+
+   // Member functions that do not change the list
+   virtual bool Contains(int item) const = 0;
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const = 0;
+   virtual bool IsEmpty() const = 0;
+   virtual int GetLength() const = 0;
+};
+
+#endif
+```
+
+```cpp
+// DoublyLinkedNode.h
+#ifndef DOUBLYLINKEDNODE_H
+#define DOUBLYLINKEDNODE_H
+
+class DoublyLinkedNode {
+public:
+   int data;
+   DoublyLinkedNode* next;
+   DoublyLinkedNode* previous;
+
+   DoublyLinkedNode(int initialData) {
+      data = initialData;
+      next = nullptr;
+      previous = nullptr;
+   }
+};
+
+#endif
+```
+
+```cpp
+// DoublyLinkedList.h — concrete doubly-linked implementation of ListADT
+#ifndef DOUBLYLINKEDLIST_H
+#define DOUBLYLINKEDLIST_H
+
+#include <iostream>
+#include "DoublyLinkedNode.h"
+#include "ListADT.h"
+
+class DoublyLinkedList : public ListADT {
+private:
+   DoublyLinkedNode* head;
+   DoublyLinkedNode* tail;
+
+public:
+   DoublyLinkedList() {
+      head = nullptr;
+      tail = nullptr;
+   }
+
+   virtual ~DoublyLinkedList() {
+      DoublyLinkedNode* currentNode = head;
+      while (currentNode) {
+         DoublyLinkedNode* toBeDeleted = currentNode;
+         currentNode = currentNode->next;
+         delete toBeDeleted;
+      }
+   }
+
+   virtual void Append(int item) override {
+      AppendNode(new DoublyLinkedNode(item));
+   }
+
+   virtual void AppendNode(DoublyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         tail->next = newNode;
+         newNode->previous = tail;
+         tail = newNode;
+      }
+   }
+
+   virtual bool Contains(int item) const override {
+      return Search(item) != nullptr;
+   }
+
+   virtual int GetLength() const override {
+      int length = 0;
+      DoublyLinkedNode* node = head;
+      while (node) {
+         // Increment length and advance to next node
+         length++;
+         node = node->next;
+      }
+      return length;
+   }
+
+   virtual bool InsertAfter(int currentItem, int newItem) override {
+      DoublyLinkedNode* currentNode = Search(currentItem);
+      if (currentNode) {
+         DoublyLinkedNode* newNode = new DoublyLinkedNode(newItem);
+         InsertNodeAfter(currentNode, newNode);
+         return true;
+      }
+      return false; // currentItem not found
+   }
+
+   virtual void InsertNodeAfter(DoublyLinkedNode* currentNode,
+      DoublyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else if (currentNode == tail) {
+         tail->next = newNode;
+         newNode->previous = tail;
+         tail = newNode;
+      }
+      else {
+         DoublyLinkedNode* successor = currentNode->next;
+         newNode->next = successor;
+         newNode->previous = currentNode;
+         currentNode->next = newNode;
+         successor->previous = newNode;
+      }
+   }
+
+   virtual bool IsEmpty() const override {
+      return head == nullptr;
+   }
+
+   virtual void Prepend(int item) override {
+      PrependNode(new DoublyLinkedNode(item));
+   }
+
+   virtual void PrependNode(DoublyLinkedNode* newNode) {
+      if (head == nullptr) {
+         head = newNode;
+         tail = newNode;
+      }
+      else {
+         newNode->next = head;
+         head->previous = newNode;
+         head = newNode;
+      }
+   }
+
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& separator = ", ") const override {
+      DoublyLinkedNode* node = head;
+      if (node) {
+          // Head node is not preceded by separator
+          printStream << node->data;
+          node = node->next;
+      }
+      while (node) {
+         printStream << separator << node->data;
+         node = node->next;
+      }
+      printStream << std::endl;
+   }
+
+   virtual bool Remove(int itemToRemove) override {
+      DoublyLinkedNode* nodeToRemove = Search(itemToRemove);
+      if (nodeToRemove) {
+         RemoveNode(nodeToRemove);
+         return true;
+      }
+
+      return false; // not found
+   }
+
+   virtual void RemoveNode(DoublyLinkedNode* currentNode) {
+      DoublyLinkedNode* successor = currentNode->next;
+      DoublyLinkedNode* predecessor = currentNode->previous;
+
+      if (successor) {
+         successor->previous = predecessor;
+      }
+      if (predecessor) {
+         predecessor->next = successor;
+      }
+
+      if (currentNode == head) {
+         head = successor;
+      }
+      if (currentNode == tail) {
+         tail = predecessor;
+      }
+
+      delete currentNode;
+   }
+
+   // Returns the first node in the list with the specified data value, or
+   // nullptr if no such node exists.
+   virtual DoublyLinkedNode* Search(int dataValue) const {
+      // Start the search at the list's head
+      DoublyLinkedNode* currentNode = head;
+      while (currentNode) {
+         // Compare the node's data with dataValue
+         if (currentNode->data == dataValue) {
+            return currentNode;
+         }
+
+         // Advance to next node
+         currentNode = currentNode->next;
+      }
+
+      // Not found
+      return nullptr;
+   }
+};
+
+#endif
+```
+
+```cpp
+// main.cpp — driver
+#include <iostream>
+#include "DoublyLinkedList.h"
+using namespace std;
+
+int main() {
+   DoublyLinkedList numList;
+
+   // Insert various items using Append(), Prepend(), and InsertAfter()
+   numList.Append(14);          // List: 14
+   numList.Append(2);           // List: 14, 2
+   numList.Append(20);          // List: 14, 2, 20
+   numList.Prepend(31);         // List: 31, 14, 2, 20
+   numList.InsertAfter(2, 16);  // List: 31, 14, 2, 16, 20
+   numList.InsertAfter(20, 55); // List: 31, 14, 2, 16, 20, 55
+
+   // Output list
+   cout << "List after adding items: ";
+   numList.Print(cout);
+
+   // Remove the tail node, then the head node
+   numList.Remove(55); // List: 31, 14, 2, 16, 20
+   numList.Remove(31); // List: 14, 2, 16, 20
+
+   // Output list again
+   cout << "List after removing first and last items: ";
+   numList.Print(cout);
+
+   // Insert three more items
+   numList.Prepend(67);         // List: 67, 14, 2, 16, 20
+   numList.InsertAfter(20, 58); // List: 67, 14, 2, 16, 20, 58
+   numList.Append(89);          // List: 67, 14, 2, 16, 20, 58, 89
+
+   // Output final list
+   cout << "List after inserting three more items: ";
+   numList.Print(cout);
+
+   return 0;
+}
+```
+
+Output:
+
+```
+List after adding items: 31, 14, 2, 16, 20, 55
+List after removing first and last items: 14, 2, 16, 20
+List after inserting three more items: 67, 14, 2, 16, 20, 58, 89
+```
+
+| `ListADT` member | What `DoublyLinkedList` does | Cost |
+|------------------|------------------------------|------|
+| `Append` | `AppendNode` at tail (wire `next` + `previous`) | **O(1)** |
+| `Prepend` | `PrependNode` at head (wire `next` + `previous`) | **O(1)** |
+| `InsertAfter` | `Search` then `InsertNodeAfter` | O(N) |
+| `Remove` | `Search` then `RemoveNode` (patch neighbors + update `head`/`tail`) | O(N) search, **O(1)** unlink |
+| `Contains` / `Search` | linear scan | O(N) |
+| `Print` / `GetLength` | traverse chain | O(N) |
+| `IsEmpty` | test `head == nullptr` | O(1) |
+| destructor | walk chain, `delete` each node | O(N) |
+
+> **Singly vs doubly on `Remove`:** `SinglyLinkedList::Remove` must inchworm-walk to keep a `previous` pointer before calling `RemoveNodeAfter`. `DoublyLinkedList::Remove` searches once, then `RemoveNode` uses `currentNode->previous` and `currentNode->next` directly — the extra `previous` link pays off on deletion.
 
 ---
 
