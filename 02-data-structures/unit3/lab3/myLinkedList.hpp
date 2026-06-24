@@ -218,7 +218,16 @@ public:
    * - A linear traversal is enough.
    * - You may reuse indexOf if desired.
    ******************************************************************/
-  bool search(const type &item) const;
+  bool search(const type &item) const {
+    linkNode<type> *currentNode = first;
+    while (currentNode) {
+      if (currentNode->data == item) {
+        return true;
+      }
+      currentNode = currentNode->nextElement;
+    }
+    return false;
+  }
 
   /******************************************************************
    * addFirst
@@ -234,7 +243,19 @@ public:
    * - Allocate one new node.
    * - New node should point to the old first node.
    ******************************************************************/
-  void addFirst(const type &theItem);
+  void addFirst(const type &theItem) {
+    linkNode<type> *newNode = new linkNode<type>;
+    newNode->data = theItem;
+    newNode->nextElement = nullptr;
+    if (first == nullptr) {
+      first = newNode;
+      last = newNode;
+    } else {
+      newNode->nextElement = first;
+      first = newNode;
+    }
+    count++;
+  }
 
   /******************************************************************
    * addLast
@@ -336,7 +357,19 @@ public:
    * TODO:
    * - Traverse from first to last while keeping an index counter.
    ******************************************************************/
-  int indexOf(const type &item) const;
+  int indexOf(const type &item) const {
+    linkNode<type> *currentNode = first;
+    int indx = 0;
+
+    while (currentNode) {
+      if (currentNode->data == item) {
+        return indx;
+      }
+      indx++;
+      currentNode = currentNode->nextElement;
+    }
+    return -1;
+  }
 
   /******************************************************************
    * operator=
