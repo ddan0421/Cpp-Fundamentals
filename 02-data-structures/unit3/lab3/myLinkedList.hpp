@@ -4,8 +4,8 @@
 #include <iostream>
 
 /*************************************************************************
- *  Name: Your name                              CSC 240
- *  Date: Today’s Date                           Lab 3
+ *  Name: Dan Dan                              CSC 240
+ *  Date: 06/24/2026                           Lab 3
  *************************************************************************
  *  Statement:
  *  This program implements a template class that represents a singly
@@ -60,7 +60,14 @@ private:
    * - Traverse otherList from front to back.
    * - Copy DATA, not node pointers.
    ******************************************************************/
-  void copyList(const myLinkedList<type> &otherList);
+  void copyList(const myLinkedList<type> &otherList) {
+    destroyList();
+    linkNode<type> *currentNode = otherList.first;
+    while (currentNode != nullptr) {
+      addLast(currentNode->data);
+      currentNode = currentNode->nextElement;
+    }
+  }
 
 protected:
   int count;             // number of elements in the list
@@ -77,7 +84,7 @@ public:
    * TODO:
    * - Call destroyList().
    ******************************************************************/
-  ~myLinkedList();
+  ~myLinkedList() { destroyList(); }
 
   /******************************************************************
    * Default constructor
@@ -102,7 +109,14 @@ public:
    * - If n <= 0 or anArray is invalid, the list should remain empty.
    * - Reuse addLast to keep logic simple.
    ******************************************************************/
-  myLinkedList(int n, const type *anArray);
+  myLinkedList(int n, const type *anArray) {
+    setDataMembers();
+    if (n > 0 && anArray != nullptr) {
+      for (int i = 0; i < n; i++) {
+        addLast(anArray[i]);
+      }
+    }
+  }
 
   /******************************************************************
    * Copy constructor
@@ -116,7 +130,10 @@ public:
    * - Initialize data members first.
    * - Then call copyList().
    ******************************************************************/
-  myLinkedList(const myLinkedList &otherLinkedList);
+  myLinkedList(const myLinkedList &otherLinkedList) {
+    setDataMembers();
+    copyList(otherLinkedList);
+  }
 
   /******************************************************************
    * getCount
@@ -212,7 +229,20 @@ public:
    * TODO / HINTS:
    * - Handle the empty-list case separately.
    ******************************************************************/
-  void addLast(const type &theItem);
+  void addLast(const type &theItem) {
+    linkNode<type> *newNode = new linkNode<type>;
+    newNode->data = theItem;
+    newNode->nextElement = nullptr;
+
+    if (first == nullptr) {
+      first = newNode;
+      last = newNode;
+    } else {
+      last->nextElement = newNode;
+      last = newNode;
+    }
+    count++;
+  }
 
   /******************************************************************
    * insertAt
@@ -347,7 +377,17 @@ public:
    * - Walk through the list one node at a time.
    * - Save the next pointer before deleting the current node.
    ******************************************************************/
-  void destroyList();
+  void destroyList() {
+    linkNode<type> *currentNode = first;
+    while (currentNode) {
+      linkNode<type> *toBeDeleted = currentNode;
+      currentNode = currentNode->nextElement;
+      delete toBeDeleted;
+    }
+    first = nullptr;
+    last = nullptr;
+    count = 0;
+  }
 };
 
 /***********************************************************************
