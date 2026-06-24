@@ -307,7 +307,39 @@ public:
    *      newNode->nextElement = current->nextElement;
    *      current->nextElement = newNode;
    ******************************************************************/
-  bool insertAt(int location, const type &theItem);
+  bool insertAt(int location, const type &theItem) {
+    if (location < 0 || location > count) {
+      return false;
+    }
+
+    if (location == 0) {
+      addFirst(theItem);
+      return true;
+    } else if (location == count) {
+      addLast(theItem);
+      return true;
+    }
+
+    linkNode<type> *newNode = new linkNode<type>;
+    newNode->data = theItem;
+    newNode->nextElement = nullptr;
+
+    linkNode<type> *currentNode = first;
+    int indx = 0;
+
+    while (currentNode) {
+      if (location - 1 == indx) {
+        newNode->nextElement = currentNode->nextElement;
+        currentNode->nextElement = newNode;
+        count++;
+        return true;
+      }
+      indx++;
+      currentNode = currentNode->nextElement;
+    }
+
+    return false;
+  }
 
   /******************************************************************
    * deleteItem
