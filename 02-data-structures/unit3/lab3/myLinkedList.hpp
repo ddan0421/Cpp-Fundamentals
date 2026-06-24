@@ -151,7 +151,13 @@ public:
    * TODO:
    * - Use count or first consistently.
    ******************************************************************/
-  bool isEmpty() const;
+  bool isEmpty() const {
+    if (first == nullptr) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   /******************************************************************
    * print
@@ -167,7 +173,7 @@ public:
    * - Match the expected output exactly.
    ******************************************************************/
   void print(std::ostream &outStream) const {
-    if (first == nullptr) {
+    if (isEmpty()) {
       outStream << "EMPTY LIST";
       return;
     }
@@ -189,7 +195,7 @@ public:
    * POST:
    *    Returns the value stored in the first node.
    ******************************************************************/
-  type getFirst() const;
+  type getFirst() const { return first->data; }
 
   /******************************************************************
    * getLast
@@ -198,7 +204,7 @@ public:
    * POST:
    *    Returns the value stored in the last node.
    ******************************************************************/
-  type getLast() const;
+  type getLast() const { return last->data; }
 
   /******************************************************************
    * search
