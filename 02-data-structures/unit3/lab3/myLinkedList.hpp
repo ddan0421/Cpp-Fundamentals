@@ -473,7 +473,10 @@ public:
    * - Check for self-assignment first.
    * - Reuse copyList().
    ******************************************************************/
-  myLinkedList &operator=(const myLinkedList &rhs);
+  myLinkedList &operator=(const myLinkedList &rhs) {
+    copyList(rhs);
+    return *this;
+  }
 
   /******************************************************************
    * operator==
@@ -487,7 +490,22 @@ public:
    * - Check count first.
    * - Then traverse both lists together.
    ******************************************************************/
-  bool operator==(const myLinkedList<type> &rhs) const;
+  bool operator==(const myLinkedList<type> &rhs) const {
+    if (rhs.count != count) {
+      return false;
+    }
+    linkNode<type> *currentLhsNode = first;
+    linkNode<type> *currentRhsNode = rhs.first;
+
+    while (currentLhsNode) {
+      if (currentLhsNode->data != currentRhsNode->data) {
+        return false;
+      }
+      currentLhsNode = currentLhsNode->nextElement;
+      currentRhsNode = currentRhsNode->nextElement;
+    }
+    return true;
+  }
 
   /******************************************************************
    * operator!=
@@ -496,7 +514,9 @@ public:
    * POST:
    *    Returns the opposite of operator==.
    ******************************************************************/
-  bool operator!=(const myLinkedList<type> &rhs) const;
+  bool operator!=(const myLinkedList<type> &rhs) const {
+    return !(*this == rhs);
+  }
 
   /******************************************************************
    * setDataMembers
