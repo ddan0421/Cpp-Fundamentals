@@ -474,7 +474,9 @@ public:
    * - Reuse copyList().
    ******************************************************************/
   myLinkedList &operator=(const myLinkedList &rhs) {
-    copyList(rhs);
+    if (this != &rhs) {
+      copyList(rhs);
+    }
     return *this;
   }
 
