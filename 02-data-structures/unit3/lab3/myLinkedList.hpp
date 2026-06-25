@@ -356,7 +356,32 @@ public:
    * - Handle deleting the last node.
    * - If the list becomes empty, set first and last to nullptr.
    ******************************************************************/
-  void deleteItem(const type &item);
+  void deleteItem(const type &item) {
+    linkNode<type> *previousNode = nullptr;
+    linkNode<type> *currentNode = first;
+
+    while (currentNode) {
+      if (currentNode->data == item) {
+        if (previousNode == nullptr) {
+          first = currentNode->nextElement;
+          if (first == nullptr) {
+            last = nullptr;
+          }
+        } else if (currentNode->nextElement == nullptr) {
+          previousNode->nextElement = nullptr;
+          last = previousNode;
+        } else {
+          previousNode->nextElement = currentNode->nextElement;
+        }
+        delete currentNode;
+        count--;
+        return;
+      }
+
+      previousNode = currentNode;
+      currentNode = currentNode->nextElement;
+    }
+  }
 
   /******************************************************************
    * deleteAt
@@ -376,7 +401,39 @@ public:
    * - For other positions, move to the PREVIOUS node.
    * - Be sure to update last when deleting the final node.
    ******************************************************************/
-  bool deleteAt(int location);
+  bool deleteAt(int location) {
+    if (location < 0 || location >= count) {
+      return false;
+    }
+    linkNode<type> *previousNode = nullptr;
+    linkNode<type> *currentNode = first;
+
+    int indx = 0;
+
+    while (currentNode) {
+      if (location == indx) {
+        if (previousNode == nullptr) {
+          first = currentNode->nextElement;
+          if (first == nullptr) {
+            last = nullptr;
+          }
+        } else if (currentNode->nextElement == nullptr) {
+          previousNode->nextElement = nullptr;
+          last = previousNode;
+        } else {
+          previousNode->nextElement = currentNode->nextElement;
+        }
+        delete currentNode;
+        count--;
+        return true;
+      }
+
+      previousNode = currentNode;
+      currentNode = currentNode->nextElement;
+      indx++;
+    }
+    return false;
+  }
 
   /******************************************************************
    * indexOf
