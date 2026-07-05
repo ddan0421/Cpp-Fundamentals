@@ -250,7 +250,7 @@ public:
   void sort() {
     int seek;
     int minCount;
-    int minValue;
+    type minValue;
     for (seek = 0; seek < (length - 1); seek++) {
       minCount = seek;
       minValue = items[seek];
