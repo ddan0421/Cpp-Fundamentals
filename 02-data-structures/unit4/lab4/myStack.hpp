@@ -239,7 +239,7 @@ template <class type> void myStack<type>::print(std::ostream &outStream) const {
   // TODO: Print EMPTY STACK if the stack is empty.
   // Otherwise print each value from TOP to BOTTOM, one per line.
   if (isEmptyStack()) {
-    outStream << "EMPTY STACK";
+    outStream << "EMPTY STACK" << "\n";
     return;
   }
 
