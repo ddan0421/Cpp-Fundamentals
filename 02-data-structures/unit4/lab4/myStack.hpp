@@ -238,12 +238,24 @@ template <class type> int myStack<type>::getCount() const {
 template <class type> void myStack<type>::print(std::ostream &outStream) const {
   // TODO: Print EMPTY STACK if the stack is empty.
   // Otherwise print each value from TOP to BOTTOM, one per line.
+  if (isEmptyStack()) {
+    outStream << "EMPTY STACK";
+    return;
+  }
+
+  myStack<type> tempStack(*this);
+
+  while (!tempStack.isEmptyStack()) {
+    outStream << tempStack.getTop() << "\n";
+    tempStack.pop();
+  }
 }
 
 template <class type>
 std::ostream &operator<<(std::ostream &outStream,
                          const myStack<type> &theStack) {
   // TODO: Call theStack.print(outStream);
+  theStack.print(outStream);
   return outStream;
 }
 
