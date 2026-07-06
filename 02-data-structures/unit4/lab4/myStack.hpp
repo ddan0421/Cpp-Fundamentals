@@ -5,8 +5,8 @@
 #include <iostream>
 
 /*************************************************************************
- *  Name: Your name                              CSC 240
- *  Date: Today’s date                           Lab 4
+ *  Name: Dan Dan                              CSC 240
+ *  Date: 07/06/2026                           Lab 4
  *************************************************************************
  *  Statement:
  *  This program implements a template stack class using inheritance.
@@ -186,10 +186,12 @@ std::ostream &operator<<(std::ostream &outStream,
 
 template <class type> myStack<type>::myStack() {
   // TODO: Initialize this stack so it starts empty.
+  // Base class default constructor initializes an empty list/stack.
 }
 
 template <class type> myStack<type>::myStack(const myStack<type> &otherStack) {
   // TODO: Make this stack a deep copy of otherStack.
+  myLinkedList<type>::operator=(otherStack);
 }
 
 template <class type> myStack<type>::~myStack() {
@@ -200,31 +202,37 @@ template <class type> myStack<type>::~myStack() {
 template <class type>
 myStack<type> &myStack<type>::operator=(const myStack<type> &rhs) {
   // TODO: Handle self-assignment safely and reuse base-class logic.
+  if (this != &rhs) {
+    myLinkedList<type>::operator=(rhs);
+  }
   return *this;
 }
 
 template <class type> bool myStack<type>::isEmptyStack() const {
   // TODO: Return true if the stack is empty, false otherwise.
-  return false; // replace this line
+  return myLinkedList<type>::isEmpty();
 }
 
 template <class type> void myStack<type>::push(const type &theItem) {
   // TODO: Add theItem to the TOP of the stack.
+  myLinkedList<type>::addFirst(theItem);
 }
 
 template <class type> void myStack<type>::pop() {
   // TODO: Remove ONLY the TOP element if the stack is not empty.
+  if (!isEmptyStack()) {
+    myLinkedList<type>::deleteAt(0);
+  }
 }
 
 template <class type> type myStack<type>::getTop() const {
   // TODO: Return the TOP element without modifying the stack.
-  type temp{};
-  return temp; // replace this line
+  return myLinkedList<type>::getFirst();
 }
 
 template <class type> int myStack<type>::getCount() const {
   // TODO: Return the number of elements currently in the stack.
-  return 0; // replace this line
+  return myLinkedList<type>::getCount();
 }
 
 template <class type> void myStack<type>::print(std::ostream &outStream) const {
