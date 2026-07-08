@@ -43,6 +43,7 @@
    - [Iterative BST Operations](#iterative-bst-operations)
    - [Recursion or Iteration?](#recursion-or-iteration)
    - [BSTs vs. Linear Lists: Big-O](#bsts-vs-linear-lists-big-o)
+   - [Appendix: zyBooks BST Implementation](#appendix-zybooks-bst-implementation)
 
 ---
 
@@ -1488,3 +1489,496 @@ per-element deallocation is required.
   field would make it `O(1)`).
 - `MakeEmpty`, `Print`, and the destructor are `O(N)` because they traverse every
   node.
+
+---
+
+## Appendix: zyBooks BST Implementation
+
+A complete, self-contained BST implementation from zyBooks. Unlike Dale's
+`TreeType` (which uses recursive helper functions), this version stores keys as
+`int` and implements search, insertion, and removal **iteratively**. It is split
+across five files: a driver (`main.cpp`), a node (`BSTNode.h`), the tree
+(`BinarySearchTree.h`), and a pretty-printer (`BSTPrint.h`).
+
+### `main.cpp`
+
+Builds a tree by inserting values in order, prints it, then removes two values,
+printing the tree after each removal.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include "BinarySearchTree.h"
+#include "BSTPrint.h"
+using namespace std;
+
+int main() {
+   // The following values are inserted in order to build the tree
+   vector<int> valuesToInsert = { 3, 10, 7, 2, 8, 4, 9, 5, 1, 6 };
+   
+   // Then the following values are removed from the tree
+   vector<int> valuesToRemove = { 5, 3 };
+   
+   BinarySearchTree tree;
+   
+   // Insert values
+   for (int value : valuesToInsert) {
+      tree.InsertKey(value);
+   }
+      
+   // Show the tree
+   cout << "Initial tree:" << endl;
+   cout << BSTPrint::TreeToString(tree.GetRoot()) << endl;
+      
+   // Remove values
+   for (int valueToRemove : valuesToRemove) {
+      cout << endl;
+      if (tree.Remove(valueToRemove)) {
+         cout << "Tree after removing " << valueToRemove << ":" << endl;
+         cout << BSTPrint::TreeToString(tree.GetRoot()) << endl;
+      }
+      else {
+         cout << "Key " << valueToRemove << " not found" << endl;
+      }
+   }
+   
+   return 0;
+};
+```
+
+### `BSTNode.h`
+
+A minimal node holding an `int` key and left/right child pointers.
+
+```cpp
+#ifndef BSTNODE_H
+#define BSTNODE_H
+
+class BSTNode {
+public:
+   int key;
+   BSTNode* left;
+   BSTNode* right;
+   
+   BSTNode(int nodeKey, BSTNode* leftChild = nullptr, BSTNode*
+      rightChild = nullptr) {
+      
+      key = nodeKey;
+      left = nullptr;
+      right = nullptr;
+   }
+};
+
+#endif
+```
+
+### `BinarySearchTree.h`
+
+The tree class. `Search`, `InsertNode`/`InsertKey`, and `Remove` are all
+iterative. `Remove` handles the three classic cases (leaf, one child, two
+children); for the two-child case it copies the **successor** (leftmost node of
+the right subtree) rather than Dale's predecessor.
+
+```cpp
+#ifndef BINARYSEARCHTREE_H
+#define BINARYSEARCHTREE_H
+
+#include "BSTNode.h"
+
+class BinarySearchTree {
+private:
+   BSTNode* root;
+   
+   void DeleteTree(BSTNode* treeRoot) {
+      if (treeRoot) {
+         DeleteTree(treeRoot->left);
+         DeleteTree(treeRoot->right);
+         delete treeRoot;
+      }
+   }
+
+public:
+   BinarySearchTree() {
+      root = nullptr;
+   }
+   
+   virtual ~BinarySearchTree() {
+      DeleteTree(root);
+   }
+   
+   bool Contains(int key) {
+      return Search(key) != nullptr;
+   }
+   
+   BSTNode* GetRoot() const {
+      return root;
+   }
+   
+   BSTNode* Search(int searchKey) {
+      BSTNode* currentNode = root;
+      while (currentNode) {
+         // Return the node if the key matches
+         if (currentNode->key == searchKey) {
+            return currentNode;
+         }
+         
+         // Navigate to the left if the search key is 
+         // less than the node's key
+         else if (searchKey < currentNode->key) {
+            currentNode = currentNode->left;
+         }
+         
+         // Navigate to the right if the search key is 
+         // greater than the node's key
+         else {
+            currentNode = currentNode->right;
+         }
+      }
+      
+      // Key not found
+      return nullptr;
+   }
+   
+   void InsertNode(BSTNode* newNode) {
+      // Check if tree is empty
+      if (root == nullptr) {
+         root = newNode;
+      }
+      else {
+         BSTNode* currentNode = root;
+         while (currentNode) {
+            if (newNode->key < currentNode->key) {
+               // If no left child exists, add the new node
+               // here; otherwise repeat from the left child.
+               if (currentNode->left == nullptr) {
+                  currentNode->left = newNode;
+                  currentNode = nullptr;
+               }
+               else {
+                  currentNode = currentNode->left;
+               }
+            }
+            else {
+               // If no right child exists, add the new node
+               // here; otherwise repeat from the right child.
+               if (currentNode->right == nullptr) {
+                  currentNode->right = newNode;
+                  currentNode = nullptr;
+               }
+               else {
+                  currentNode = currentNode->right;
+               }
+            }
+         }
+      }
+   }
+   
+   bool InsertKey(int key) {
+      // Duplicate keys not allowed
+      if (Contains(key)) {         
+         return false;
+      }
+
+      InsertNode(new BSTNode(key));
+      return true;
+   }
+   
+   bool Remove(int key) {
+      BSTNode* parent = nullptr;
+      BSTNode* currentNode = root;
+      
+      // Search for the node
+      while (currentNode) {
+         // Check if currentNode has a matching key
+         if (currentNode->key == key) {
+            if (currentNode->left == nullptr && currentNode->right == nullptr) {
+               // Remove leaf
+               
+               if (parent == nullptr) { // Node is root
+                  root = nullptr;
+               }
+               else if (parent->left == currentNode) { 
+                  parent->left = nullptr;
+               }
+               else {
+                  parent->right = nullptr;
+               }
+               delete currentNode;
+               return true; // Node found and removed
+            }
+            else if (currentNode->left && currentNode->right == nullptr) {
+               // Remove node with only left child
+               
+               if (parent == nullptr) { // Node is root
+                  root = currentNode->left;
+               }
+               else if (parent->left == currentNode) {
+                  parent->left = currentNode->left;
+               }
+               else {
+                  parent->right = currentNode->left;
+               }
+               delete currentNode;
+               return true; // Node found and removed
+            }
+            else if (currentNode->left == nullptr && currentNode->right) {
+               // Remove node with only right child
+               
+               if (parent == nullptr) { // Node is root
+                  root = currentNode->right;
+               }
+               else if (parent->left == currentNode) {
+                  parent->left = currentNode->right;
+               }
+               else {
+                  parent->right = currentNode->right;
+               }
+               delete currentNode;
+               return true; // Node found and removed
+            }
+            else {
+               // Remove node with two children
+               
+               // Find successor (leftmost child of right subtree)
+               BSTNode* successor = currentNode->right;
+               while (successor->left) {
+                  successor = successor->left;
+               }
+               currentNode->key = successor->key; // Copy successor's key to current node
+               parent = currentNode;
+               
+               // Reassign currentNode and key so that loop continues with new key
+               currentNode = currentNode->right;
+               key = successor->key;
+            }
+         }
+         else if (currentNode->key < key) {
+            // Search right
+            
+            parent = currentNode;
+            currentNode = currentNode->right;
+         }
+         else {
+            // Search left
+            
+            parent = currentNode;
+            currentNode = currentNode->left;
+         }
+      }
+      return false; // Node not found
+   }
+};
+
+#endif
+```
+
+### `BSTPrint.h`
+
+A utility that renders a tree as ASCII art (nodes in `[brackets]` with `/` and
+`\` branches). `TreeToString` is the public entry point; `TreeToLines` builds the
+drawing recursively, handling the four cases (leaf, left-only, right-only, both
+children).
+
+```cpp
+#ifndef BSTPRINT_H
+#define BSTPRINT_H
+
+#include <algorithm>
+#include <string>
+#include <vector>
+#include "BSTNode.h"
+
+class BSTPrint {
+private:
+   static std::string GetRepeated(char toRepeat, int numberOfTimes) {
+      if (numberOfTimes <= 0) {
+         return std::string();
+      }
+
+      char* chars = new char[numberOfTimes + 1];
+      for (int i = 0; i < numberOfTimes; i++) {
+         chars[i] = toRepeat;
+      }
+      chars[numberOfTimes] = '\0';
+      std::string result(chars);
+      delete[] chars;
+      return result;
+   }
+   
+   static std::string GetSpaces(int numberOfSpaces) {
+      return GetRepeated(' ', numberOfSpaces);
+   }
+   
+   static void IndentLines(std::vector<std::string>& lines, int numberOfSpaces) {
+      if (numberOfSpaces > 0) {
+         // Prepend indentation to each line
+         std::string indent = GetSpaces(numberOfSpaces);
+         for (int i = 0; i < lines.size(); i++) {
+            lines[i] = indent + lines[i];
+         }
+      }
+   }
+
+   static std::vector<std::string> TreeToLines(BSTNode* subtreeRoot) {
+      using namespace std;
+      
+      if (subtreeRoot == nullptr) {
+         return vector<string>();
+      }
+      
+      // Make a string with the subtreeRoot's key enclosed in brackets
+      string rootString = string("[") + to_string(subtreeRoot->key) + string("]");
+      int rootStrLen = rootString.length();
+      
+      // Case 1: subtreeRoot is a leaf
+      if (subtreeRoot->left == nullptr && subtreeRoot->right == nullptr) {
+         vector<string> lines;
+         lines.push_back(rootString);
+         return lines;
+      }
+      
+      // Recursively make line strings for each child
+      vector<string> leftLines = TreeToLines(subtreeRoot->left);
+      vector<string> rightLines = TreeToLines(subtreeRoot->right);
+      
+      int lineCount = max(leftLines.size(), rightLines.size());
+      vector<string> allLines;
+      allLines.resize(lineCount + 2);
+      
+      // Case 2: subtreeRoot has no left child
+      if (subtreeRoot->left == nullptr) {
+         // Create the first 2 lines, not yet indented
+         allLines[0] = rootString;
+         allLines[1] = GetSpaces(rootStrLen) + "\\";
+         
+         // Find where the right child starts
+         int rightChildIndent = (int)rightLines[0].find('[');
+         
+         // Goal: Indent lines appropriately so that the parent's right branch 
+         // character ('\') matches up with the right child's '['.
+         
+         if (rightChildIndent <= rootStrLen) {
+            // Indent all lines below
+            IndentLines(rightLines, rootStrLen - rightChildIndent);
+         }
+         else {
+            // Indent first 2 lines
+            string indent = GetSpaces(rightChildIndent - rootStrLen);
+            allLines[0] = indent + allLines[0];
+            allLines[1] = indent + allLines[1];
+         }
+         
+         // Copy rightLines into allLines starting at index 2
+         for (size_t i = 0; i < rightLines.size(); i++) {
+            allLines[i + 2] = rightLines[i];
+         }
+         
+         return allLines;
+      }
+      
+      // Case 3: subtreeRoot has no right child
+      if (subtreeRoot->right == nullptr) {
+         // Goal: Indent lines appropriately so that the parent's left branch 
+         // character ('/') matches up with the left child's ']'.
+         
+         // Create the first 2 lines
+         string indent = GetSpaces(leftLines[0].find(']'));
+         allLines[0] = indent + " " + rootString;
+         allLines[1] = indent + "/";
+         
+         // Copy leftLines into allLines starting at index 2
+         for (size_t i = 0; i < leftLines.size(); i++) {
+            allLines[i + 2] = leftLines[i];
+         }
+         
+         return allLines;
+      }
+      
+      // Case 4: subtreeRoot has both a left and right child
+      
+      // The goal is to have the two child nodes as close to the parent as 
+      // possible without overlap on any level.
+      
+      // Compute absolute indentation, in number of spaces, needed for right lines
+      int indentNeeded = 0;
+      if (rightLines.size() > 0) {
+         // Indent should at least get the immediate right child to be to the 
+         // right of the root
+         int left0Len = (int)leftLines[0].length();
+         indentNeeded = max(0, 
+            left0Len + (int)rootString.length() - (int)rightLines[0].find('['));
+      }
+      for (int i = 0; i < leftLines.size() && i < rightLines.size(); i += 2) {
+         // Lines with branches are skipped, so the line of interest has only 
+         // nodes. The difference between where the left line ends and the 
+         // right line begins should be at least 3 spaces for clarity.
+         int rightBegin = (int)rightLines[i].find('[');
+         
+         int forThisLine = (int)leftLines[i].length() + 3 - rightBegin;
+         indentNeeded = max(indentNeeded, forThisLine);
+      }
+      
+      // Build final lines in allLines starting at index 2
+      string absoluteIndent = GetSpaces(indentNeeded);
+      for (size_t i = 0; i < leftLines.size() || i < rightLines.size(); i++) {
+         // If no right line, just take the left
+         if (i >= rightLines.size()) {
+            allLines[2 + i] = leftLines[i];
+         }
+         else {
+            string left = "";
+            if (i < leftLines.size()) {
+               left = leftLines[i];
+            }
+            string right = absoluteIndent + rightLines[i];
+            allLines[2 + i] = left + right.substr(left.length());
+         }
+      }
+      
+      // The first 2 lines remain. allLines[2] has the proper string for the 
+      // 2 child nodes, and thus can be used to create branches in allLines[1].
+      int leftIndex = (int)allLines[2].find(']');
+      int rightIndex = (int)allLines[2].rfind('[');
+      allLines[1] = GetSpaces(leftIndex) + "/" + 
+         GetSpaces(rightIndex - leftIndex - 1) + "\\";
+      
+      // The space between leftIndex and rightIndex is the space that 
+      // subtreeRoot's string should occupy. If rootString is too short, put 
+      // underscores on the sides.
+      rootStrLen = rightIndex - leftIndex - 1;
+      if (rootString.length() < rootStrLen) {
+         int difference = rootStrLen - (int)rootString.length();
+         string underscores = GetRepeated('_', difference / 2);
+         if (difference % 2 == 0) {
+            rootString = underscores + rootString + underscores;
+         }
+         else {
+            rootString = underscores + rootString + underscores + "_";
+         }
+      }
+      allLines[0] = GetSpaces(leftIndex + 1) + rootString;
+      
+      return allLines;
+   }
+
+public:
+   static std::string TreeToString(BSTNode* subtreeRoot) {
+      if (subtreeRoot == nullptr) {
+         return "(empty tree)";
+      }
+      
+      // First convert the tree to an array of line strings
+      std::vector<std::string> lines = BSTPrint::TreeToLines(subtreeRoot);
+      
+      // Combine all lines into 1 string
+      std::string treeString = lines[0];
+      for (int i = 1; i < lines.size(); i++) {
+         treeString += ("\n" + lines[i]);
+      }
+      return treeString;
+   }
+};
+
+#endif
+```
