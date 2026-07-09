@@ -1578,12 +1578,15 @@ public:
 The tree class. `Search`, `InsertNode`/`InsertKey`, and `Remove` are all
 iterative. `Remove` handles the three classic cases (leaf, one child, two
 children); for the two-child case it copies the **successor** (leftmost node of
-the right subtree) rather than Dale's predecessor.
+the right subtree) rather than Dale's predecessor. A free function
+`BSTPrintInOrder` does a **recursive inorder traversal**, printing keys from
+smallest to largest.
 
 ```cpp
 #ifndef BINARYSEARCHTREE_H
 #define BINARYSEARCHTREE_H
 
+#include <iostream>
 #include "BSTNode.h"
 
 class BinarySearchTree {
@@ -1769,6 +1772,16 @@ public:
       return false; // Node not found
    }
 };
+
+// Recursively prints the tree's keys in ascending (inorder) order:
+// left subtree, then the node, then the right subtree.
+void BSTPrintInOrder(BSTNode* node) {
+   if (node) {
+      BSTPrintInOrder(node->left);
+      std::cout << node->key << " ";
+      BSTPrintInOrder(node->right);
+   }
+}
 
 #endif
 ```
