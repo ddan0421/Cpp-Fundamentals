@@ -1575,10 +1575,12 @@ public:
 
 ### `BinarySearchTree.h`
 
-The tree class. `Search`, `InsertNode`/`InsertKey`, and `Remove` are all
-iterative. `Remove` handles the three classic cases (leaf, one child, two
-children); for the two-child case it copies the **successor** (leftmost node of
-the right subtree) rather than Dale's predecessor. Four free functions perform
+The tree class. `Search` is iterative, while `InsertNode` (via the
+`InsertNodeRecursive` helper) is **recursive**. Two removal paths are shown: the
+iterative `Remove`, and a recursive `RemoveKey` that uses `BSTGetParent` to find
+the parent and then `RemoveNode` (which only recurses in the two-child case).
+Both removals copy the **successor** (leftmost node of the right subtree) for the
+two-child case rather than Dale's predecessor. Four free functions perform
 **recursive traversals** — `BSTPrintInOrder` (ascending),
 `BSTPrintReverseInOrder` (descending), `BSTPrintPreOrder`, and
 `BSTPrintPostOrder` — printing each key with `std::cout`, and `BSTGetHeight`
@@ -1646,36 +1648,32 @@ public:
       return nullptr;
    }
    
-   void InsertNode(BSTNode* newNode) {
-      // Check if tree is empty
+   // Recursive insertion: if the tree is empty the new node becomes the
+   // root, otherwise a helper walks down to the correct leaf position.
+   void InsertNode(BSTNode* node) {
       if (root == nullptr) {
-         root = newNode;
+         root = node;
       }
       else {
-         BSTNode* currentNode = root;
-         while (currentNode) {
-            if (newNode->key < currentNode->key) {
-               // If no left child exists, add the new node
-               // here; otherwise repeat from the left child.
-               if (currentNode->left == nullptr) {
-                  currentNode->left = newNode;
-                  currentNode = nullptr;
-               }
-               else {
-                  currentNode = currentNode->left;
-               }
-            }
-            else {
-               // If no right child exists, add the new node
-               // here; otherwise repeat from the right child.
-               if (currentNode->right == nullptr) {
-                  currentNode->right = newNode;
-                  currentNode = nullptr;
-               }
-               else {
-                  currentNode = currentNode->right;
-               }
-            }
+         InsertNodeRecursive(root, node);
+      }
+   }
+
+   void InsertNodeRecursive(BSTNode* parent, BSTNode* nodeToInsert) {
+      if (nodeToInsert->key < parent->key) {
+         if (parent->left == nullptr) {
+            parent->left = nodeToInsert;
+         }
+         else {
+            InsertNodeRecursive(parent->left, nodeToInsert);
+         }
+      }
+      else {
+         if (parent->right == nullptr) {
+            parent->right = nodeToInsert;
+         }
+         else {
+            InsertNodeRecursive(parent->right, nodeToInsert);
          }
       }
    }
@@ -1773,6 +1771,93 @@ public:
          }
       }
       return false; // Node not found
+   }
+   
+   // Recursive alternative to Remove: locate the node (and its parent),
+   // then hand off to RemoveNode, which recurses only in the two-child case.
+   bool RemoveKey(int key) {
+      BSTNode* node = Search(key);
+      if (node) {
+         BSTNode* parent = BSTGetParent(root, node);
+         RemoveNode(parent, node);
+         return true;
+      }
+      return false; // key not found
+   }
+
+   void RemoveNode(BSTNode* parent, BSTNode* node) {
+      // Case 1: Internal node with 2 children
+      if (node->left && node->right) {
+         // Find successor and successor's parent
+         BSTNode* successorNode = node->right;
+         BSTNode* successorParent = node;
+         while (successorNode->left) {
+            successorParent = successorNode;
+            successorNode = successorNode->left;
+         }
+               
+         // Copy the key from the successor node
+         node->key = successorNode->key;
+               
+         // Recursively remove successor node
+         RemoveNode(successorParent, successorNode);
+      }
+
+      // Case 2: Root node (with 1 or 0 children)
+      else if (node == root) {
+         if (node->left) {
+            root = node->left;
+         }
+         else {
+            root = node->right;
+         }
+         delete node;
+      }
+
+      // Case 3: Internal with left child only
+      else if (node->left) {
+         // Replace node with node's left child
+         if (parent->left == node) {
+            parent->left = node->left;
+         }
+         else {
+            parent->right = node->left;
+         }
+         delete node;
+      }
+
+      // Case 4: Internal with right child only OR leaf
+      else {
+         // Replace node with node's right child
+         if (parent->left == node) {
+            parent->left = node->right;
+         }
+         else {
+            parent->right = node->right;
+         }
+         delete node;
+      }
+   }
+
+   // Returns the parent of the target node, or nullptr if the target is the
+   // root. Delegates to a recursive helper that navigates by BST ordering.
+   BSTNode* BSTGetParent(BSTNode* treeRoot, BSTNode* node) {
+      return BSTGetParentRecursive(treeRoot, node);
+   }
+
+   BSTNode* BSTGetParentRecursive(BSTNode* subtreeRoot, BSTNode* node) {
+      if (subtreeRoot == nullptr) {
+         return nullptr;
+      }
+
+      if (subtreeRoot->left == node || subtreeRoot->right == node) {
+         return subtreeRoot;
+      }
+
+      if (node->key < subtreeRoot->key) {
+         return BSTGetParentRecursive(subtreeRoot->left, node);
+      }
+      return BSTGetParentRecursive(subtreeRoot->right, node);
    }
 };
 
