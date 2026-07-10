@@ -1,0 +1,395 @@
+#ifndef MYCALC_H_
+#define MYCALC_H_
+
+#include "myStack.hpp"
+#include <cctype>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+/*************************************************************************
+ *  Name: Dan Dan                              CSC 240
+ *  Date: 07/09/2026                           Lab 5
+ *************************************************************************
+ *  Statement:
+ *  This program implements a simple integer calculator using stacks.
+ *  The calculator stores an infix expression, converts the expression to
+ *  postfix notation, and evaluates the postfix expression.
+ *
+ *  Specifications:
+ *  This lab must use the student-created myStack class. The expression is
+ *  assumed to contain positive integers, the operators +, -, *, /,
+ *  parentheses, and the ending symbol =.
+ *
+ *  Input -
+ *  A valid infix expression stored as a string.
+ *
+ *  Output -
+ *  The postfix form of the input expression and the evaluated integer value.
+ *
+ *  Example:
+ *  Input expression:  (10+3)*(51/2)/(30-4)=
+ *  Postfix form:      10 3 + 51 2 / * 30 4 - /
+ *  Value:             12
+ *************************************************************************/
+
+/*************************************************************************
+ *  HELPER FUNCTIONS REQUIREMENT
+ *
+ *  The private methods provided in this class are helper functions.
+ *  You are expected to use them to organize your solution.
+ *
+ *  - Do NOT remove these functions.
+ *  - Do NOT change their names or parameters.
+ *  - Do NOT make them public.
+ *  - You may call these functions from other methods in this class.
+ *
+ *  These functions are intended to:
+ *  - break the problem into smaller pieces
+ *  - simplify your logic
+ *  - improve readability and debugging
+ *
+ *  Proper use of helper functions is part of code quality.
+ *************************************************************************/
+
+/*************************************************************************
+ *  METHOD USAGE REQUIREMENTS
+ *
+ *  You must use the helper functions as intended when implementing the
+ *  public methods.
+ *
+ *  REQUIRED RELATIONSHIPS:
+ *
+ *  - postFixInput()
+ *        MUST call:
+ *            postFix(input)
+ *
+ *  - evaluate()
+ *        MUST call:
+ *            postFix(input)
+ *            evaluatePostFix(postfixString)
+ *
+ *  HELPER FUNCTION ROLES:
+ *
+ *  - postFix(...)
+ *        Performs ALL infix to postfix conversion using myStack<char>.
+ *
+ *  - evaluatePostFix(...)
+ *        Performs ALL postfix evaluation using myStack<int>.
+ *
+ *  - isOperator(...)
+ *        Used to identify operators during parsing.
+ *
+ *  - getPrecedence(...)
+ *        Used when comparing operator precedence in postFix(...).
+ *
+ *  - applyOperator(...)
+ *        Used to compute results during postfix evaluation.
+ *
+ *  IMPORTANT CONSTRAINTS:
+ *
+ *  - Do NOT reimplement postfix logic inside evaluate().
+ *  - Do NOT evaluate infix expressions directly.
+ *  - Do NOT duplicate logic already handled by helper functions.
+ *
+ *  Proper use of helper functions and method structure is required.
+ *************************************************************************/
+
+// LAB 5 STUDENT TEMPLATE FILE
+//
+// IMPORTANT REQUIREMENTS:
+// - You MUST use myStack.hpp.
+// - Do NOT use the C++ standard library stack.
+// - Do NOT create a separate .cpp file for this class.
+// - Complete all myCalc method implementations in this header file.
+// - You may assume all input expressions are valid.
+// - All numbers are POSITIVE INTEGERS.
+// - Multi-digit integers are required.
+// - Decimal numbers are NOT required.
+// - Unary minus / negative numbers are NOT required.
+// - Parentheses must be supported.
+// - The expression will end with the = symbol.
+// - Supported operators: +, -, *, /
+// - Division uses integer division.
+//
+// POSTFIX FORMAT REQUIREMENT:
+// - Every operand and operator in the postfix string must be separated
+//   by one space.
+// - Do NOT include the final = symbol in the postfix string.
+//
+// Example:
+//   Infix:    (2+3)*5=
+//   Postfix:  2 3 + 5 *
+//   Value:    25
+//
+// STACK REQUIREMENTS:
+// - Use myStack<char> when converting infix to postfix.
+// - Use myStack<int> when evaluating postfix.
+//
+// COMMON MISTAKES TO AVOID:
+// - Do NOT treat each digit as a separate number.
+//   Example: 244 is one number, not 2, 4, and 4.
+// - Do NOT reverse operands for subtraction or division.
+//   If postfix is "10 3 -", compute 10 - 3, not 3 - 10.
+// - Do NOT forget to pop operators until '(' when handling ')'.
+// - Do NOT leave '(' or ')' in the postfix output.
+// - Do NOT include '=' in the postfix output.
+// - Do NOT use std::stack.
+
+class myCalc {
+private:
+  std::string input;
+
+  /******************************************************************
+   * isOperator
+   * PRE:
+   *    ch is a character from the input expression.
+   * POST:
+   *    Returns true if ch is one of +, -, *, or /.
+   *    Returns false otherwise.
+   ******************************************************************/
+  // Helper: checks if a character is an operator
+  bool isOperator(char ch) const;
+
+  /******************************************************************
+   * getPrecedence
+   * PRE:
+   *    theOperator is an arithmetic operator.
+   * POST:
+   *    Returns the precedence level of theOperator.
+   *    + and - have lower precedence.
+   *    * and / have higher precedence.
+   ******************************************************************/
+  // Helper: returns precedence of an operator
+  int getPrecedence(char theOperator) const;
+
+  /******************************************************************
+   * applyOperator
+   * PRE:
+   *    theOperator is one of +, -, *, or /.
+   *    left and right are integer operands.
+   * POST:
+   *    Returns the result of:
+   *       left theOperator right
+   *
+   *    Examples:
+   *       applyOperator('-', 10, 3) returns 7
+   *       applyOperator('/', 10, 3) returns 3 because integer
+   *       division is used.
+   ******************************************************************/
+  // Helper: applies an operator to two operands
+  int applyOperator(char theOperator, int left, int right) const;
+
+  /******************************************************************
+   * postFix
+   * PRE:
+   *    infixString is a valid infix expression containing positive
+   *    integers, operators, parentheses, and ending with =.
+   * POST:
+   *    Returns the postfix version of infixString.
+   *    Every token is separated by one space.
+   *
+   *    Example:
+   *       infixString: "(2+3)*5="
+   *       return:      "2 3 + 5 *"
+   ******************************************************************/
+  // Helper: converts infix to postfix
+  std::string postFix(const std::string &infixString) const;
+
+  /******************************************************************
+   * evaluatePostFix
+   * PRE:
+   *    postfixString is a valid postfix expression.
+   *    Every operand and operator is separated by whitespace.
+   * POST:
+   *    Returns the integer value of postfixString.
+   ******************************************************************/
+  // Helper: evaluates a postfix expression
+  int evaluatePostFix(const std::string &postfixString) const;
+
+public:
+  /******************************************************************
+   * Default constructor
+   * POST:
+   *    input is initialized to an empty string.
+   ******************************************************************/
+  myCalc();
+
+  /******************************************************************
+   * Assignment constructor
+   * PRE:
+   *    str is a valid infix expression.
+   * POST:
+   *    input is initialized to str.
+   ******************************************************************/
+  myCalc(const std::string &str);
+
+  /******************************************************************
+   * getInput
+   * POST:
+   *    Returns input without modifying the object.
+   ******************************************************************/
+  std::string getInput() const;
+
+  /******************************************************************
+   * resetInput
+   * PRE:
+   *    str is a valid infix expression.
+   * POST:
+   *    input is reset to str.
+   ******************************************************************/
+  void resetInput(const std::string &str);
+
+  /******************************************************************
+   * postFixInput
+   * PRE:
+   *    input is a valid infix expression.
+   * POST:
+   *    Returns the postfix version of input.
+   ******************************************************************/
+  std::string postFixInput() const;
+
+  /******************************************************************
+   * evaluate
+   * PRE:
+   *    input is a valid infix expression.
+   * POST:
+   *    Converts input to postfix notation and returns the integer
+   *    value of the expression.
+   ******************************************************************/
+  int evaluate() const;
+};
+
+// ================= STUDENT IMPLEMENTATIONS =================
+
+myCalc::myCalc() {
+  // TODO:
+  // Initialize input to an empty string.
+}
+
+myCalc::myCalc(const std::string &str) {
+  // TODO:
+  // Initialize input to str.
+}
+
+std::string myCalc::getInput() const {
+  // TODO:
+  // Return input.
+  return ""; // replace this line
+}
+
+void myCalc::resetInput(const std::string &str) {
+  // TODO:
+  // Reset input to str.
+}
+
+bool myCalc::isOperator(char ch) const {
+  // TODO:
+  // Return true if ch is +, -, *, or /.
+  return false; // replace this line
+}
+
+int myCalc::getPrecedence(char theOperator) const {
+  // TODO:
+  // Return 1 for + and -
+  // Return 2 for * and /
+  // Return 0 for any other character.
+  return 0; // replace this line
+}
+
+int myCalc::applyOperator(char theOperator, int left, int right) const {
+  // TODO:
+  // Apply theOperator to left and right.
+  //
+  // IMPORTANT:
+  // Subtraction must be left - right.
+  // Division must be left / right.
+  // Division uses integer division.
+  return 0; // replace this line
+}
+
+std::string myCalc::postFixInput() const {
+  // TODO:
+  // Return the postfix version of input by calling postFix(input).
+  return ""; // replace this line
+}
+
+int myCalc::evaluate() const {
+  // TODO:
+  // 1. Convert input to postfix by calling postFix(input).
+  // 2. Evaluate that postfix expression by calling evaluatePostFix(...).
+  // 3. Return the final integer value.
+  return 0; // replace this line
+}
+
+std::string myCalc::postFix(const std::string &infixString) const {
+  // TODO:
+  // Convert infixString to postfix notation.
+  //
+  // Suggested algorithm:
+  //
+  // 1. Create an empty postfix string.
+  // 2. Create myStack<char> for operators.
+  // 3. Walk through infixString one character at a time until '='.
+  //
+  // 4. If the current character is a digit:
+  //      - Collect the ENTIRE multi-digit number.
+  //      - Add the number to the postfix string.
+  //      - Add one space after the number.
+  //
+  // 5. If the current character is '(':
+  //      - Push it on the operator stack.
+  //
+  // 6. If the current character is ')':
+  //      - Pop operators from the stack and add them to postfix until
+  //        '(' is on top.
+  //      - Pop and discard the '('.
+  //
+  // 7. If the current character is an operator:
+  //      - While the stack is not empty,
+  //        the top is not '(',
+  //        and the top operator has greater or equal precedence,
+  //        pop the top operator and add it to postfix.
+  //      - Push the current operator.
+  //
+  // 8. When '=' is reached, pop all remaining operators and add them
+  //    to postfix.
+  //
+  // Reminder:
+  // Every token added to postfix must be followed by one space while
+  // building. It is acceptable if your final string has one trailing
+  // space, unless the test driver specifically requires no trailing
+  // space.
+  return ""; // replace this line
+}
+
+int myCalc::evaluatePostFix(const std::string &postfixString) const {
+  // TODO:
+  // Evaluate postfixString using myStack<int>.
+  //
+  // Because postfix tokens are separated by spaces, you may use
+  // std::istringstream to read one token at a time.
+  //
+  // Suggested algorithm:
+  //
+  // 1. Create myStack<int> for operands.
+  // 2. Read each token from postfixString.
+  // 3. If the token begins with a digit:
+  //      - Convert the token to an integer.
+  //      - Push it onto the operand stack.
+  // 4. If the token is an operator:
+  //      - right = top value; pop
+  //      - left = next top value; pop
+  //      - result = applyOperator(operator, left, right)
+  //      - push result
+  // 5. After all tokens are processed, the answer is the top of the
+  //    operand stack.
+  //
+  // Notes:
+  // - This lab assumes valid input, so you do not need to handle
+  //   malformed postfix expressions.
+  // - Remember that subtraction and division depend on operand order.
+  return 0; // replace this line
+}
+
+#endif /* MYCALC_H_ */
