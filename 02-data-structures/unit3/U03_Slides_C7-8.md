@@ -1578,9 +1578,10 @@ public:
 The tree class. `Search`, `InsertNode`/`InsertKey`, and `Remove` are all
 iterative. `Remove` handles the three classic cases (leaf, one child, two
 children); for the two-child case it copies the **successor** (leftmost node of
-the right subtree) rather than Dale's predecessor. A free function
-`BSTPrintInOrder` does a **recursive inorder traversal**, printing keys from
-smallest to largest.
+the right subtree) rather than Dale's predecessor. Four free functions perform
+**recursive traversals** — `BSTPrintInOrder` (ascending),
+`BSTPrintReverseInOrder` (descending), `BSTPrintPreOrder`, and
+`BSTPrintPostOrder` — printing each key with `std::cout`.
 
 ```cpp
 #ifndef BINARYSEARCHTREE_H
@@ -1773,18 +1774,98 @@ public:
    }
 };
 
-// Recursively prints the tree's keys in ascending (inorder) order:
-// left subtree, then the node, then the right subtree.
+// Inorder: left subtree, node, right subtree.
+// Visits keys in ascending order.
 void BSTPrintInOrder(BSTNode* node) {
-   if (node) {
-      BSTPrintInOrder(node->left);
-      std::cout << node->key << " ";
-      BSTPrintInOrder(node->right);
+   if (node == nullptr) {
+      return;
    }
+   BSTPrintInOrder(node->left);
+   std::cout << node->key << " ";
+   BSTPrintInOrder(node->right);
+}
+
+// Reverse inorder: right subtree, node, left subtree.
+// Visits keys in descending order.
+void BSTPrintReverseInOrder(BSTNode* node) {
+   if (node == nullptr) {
+      return;
+   }
+   BSTPrintReverseInOrder(node->right);
+   std::cout << node->key << " ";
+   BSTPrintReverseInOrder(node->left);
+}
+
+// Preorder: node, left subtree, right subtree.
+void BSTPrintPreOrder(BSTNode* node) {
+   if (node == nullptr) {
+      return;
+   }
+   std::cout << node->key << " ";
+   BSTPrintPreOrder(node->left);
+   BSTPrintPreOrder(node->right);
+}
+
+// Postorder: left subtree, right subtree, node.
+void BSTPrintPostOrder(BSTNode* node) {
+   if (node == nullptr) {
+      return;
+   }
+   BSTPrintPostOrder(node->left);
+   BSTPrintPostOrder(node->right);
+   std::cout << node->key << " ";
 }
 
 #endif
 ```
+
+#### Worked example: the four traversals
+
+Using the tree built by `main.cpp` (inserting `3, 10, 7, 2, 8, 4, 9, 5, 1, 6`
+in that order):
+
+```
+            [3]
+           /   \
+        [2]     [10]
+        /       /
+     [1]      [7]
+             /   \
+          [4]     [8]
+             \       \
+             [5]     [9]
+                \
+                [6]
+```
+
+Structure as parent → children:
+- `3` → left `2`, right `10`
+- `2` → left `1`
+- `10` → left `7`
+- `7` → left `4`, right `8`
+- `4` → right `5`
+- `5` → right `6`
+- `8` → right `9`
+
+Running each traversal on that tree gives:
+
+| Traversal | Order | Result |
+|---|---|---|
+| **Inorder** (`left, node, right`) | ascending | `1 2 3 4 5 6 7 8 9 10` |
+| **Reverse inorder** (`right, node, left`) | descending | `10 9 8 7 6 5 4 3 2 1` |
+| **Preorder** (`node, left, right`) | root first | `3 2 1 10 7 4 5 6 8 9` |
+| **Postorder** (`left, right, node`) | root last | `1 2 6 5 4 9 8 7 10 3` |
+
+**How to trace each by hand:**
+- **Inorder / reverse inorder:** read the keys sorted up or down — a valid BST
+  guarantees this.
+- **Preorder:** write a node, then recurse its whole left subtree, then its whole
+  right subtree. The root `3` comes **first**.
+- **Postorder:** fully finish both subtrees before writing the node. The root `3`
+  comes **last**, and each leaf (`1`, `6`, `9`) is emitted before its ancestors.
+
+> Quick check: preorder **starts** at the root, postorder **ends** at the root,
+> and inorder is always sorted.
 
 ### `BSTPrint.h`
 
