@@ -1581,12 +1581,14 @@ children); for the two-child case it copies the **successor** (leftmost node of
 the right subtree) rather than Dale's predecessor. Four free functions perform
 **recursive traversals** — `BSTPrintInOrder` (ascending),
 `BSTPrintReverseInOrder` (descending), `BSTPrintPreOrder`, and
-`BSTPrintPostOrder` — printing each key with `std::cout`.
+`BSTPrintPostOrder` — printing each key with `std::cout`, and `BSTGetHeight`
+recursively computes the tree's height (edges on the longest root-to-leaf path).
 
 ```cpp
 #ifndef BINARYSEARCHTREE_H
 #define BINARYSEARCHTREE_H
 
+#include <algorithm>
 #include <iostream>
 #include "BSTNode.h"
 
@@ -1814,6 +1816,17 @@ void BSTPrintPostOrder(BSTNode* node) {
    BSTPrintPostOrder(node->left);
    BSTPrintPostOrder(node->right);
    std::cout << node->key << " ";
+}
+
+// Height = number of edges on the longest path from node to a leaf.
+// An empty tree is -1, so a single leaf node has height 0.
+int BSTGetHeight(BSTNode* node) {
+   if (node == nullptr) {
+      return -1;
+   }
+   int leftHeight = BSTGetHeight(node->left);
+   int rightHeight = BSTGetHeight(node->right);
+   return 1 + std::max(leftHeight, rightHeight);
 }
 
 #endif
