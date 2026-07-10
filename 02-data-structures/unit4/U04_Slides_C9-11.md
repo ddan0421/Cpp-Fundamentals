@@ -561,6 +561,432 @@ This parallel walk of two ordered lists is called a **merge** and can implement 
 - Explicit must represent every base-type value (vector length = cardinality of the universal set) → best for **small** base types.
 - Implicit must **search** the list to check membership → best when the universal set is large but individual sets are small.
 
+#### Implicit representation using a BST
+
+A binary search tree is an efficient way to store the items of an implicit set: `O(log n)` search/insert/delete on average, and an in-order traversal visits the elements in sorted order (handy for `Print` and for merge-style binary operations). The example below is a full, self-contained `Set` of `int` backed by a BST.
+
+Key design points:
+
+- **`BSTNode`** stores `data` plus `parent`, `left`, and `right` pointers. The `parent` pointer makes iteration and removal simpler. `GetSuccessor` returns the in-order successor (leftmost node of the right subtree, or the first ancestor reached from the left).
+- **`BSTIterator`** wraps a node and walks the tree in-order via `GetSuccessor`, so a `Set` supports range-based `for` loops (`begin`/`end`).
+- **`Set`** owns the tree (deep-copying copy constructor + destructor to avoid leaks/double frees). `Add` rejects duplicates by calling `Contains` first, guaranteeing uniqueness.
+- The binary operations (`Union`, `Intersection`, `Difference`) and the higher-order `Filter` / `Map` are all implemented simply by iterating over the elements and building a new result `Set`.
+
+**`Set.h`**
+
+```cpp
+#ifndef SET_H
+#define SET_H
+
+#include <functional>
+#include <iterator>
+
+class BSTNode {
+public:
+   int data;
+   BSTNode* parent;
+   BSTNode* left;
+   BSTNode* right;
+
+   BSTNode(int data, BSTNode* parent, BSTNode* left = nullptr, BSTNode* right = nullptr) {
+      this->data = data;
+      this->parent = parent;
+      this->left = left;
+      this->right = right;
+   }
+
+   int Count() {
+      int leftCount = 0;
+      int rightCount = 0;
+      if (left) {
+         leftCount = left->Count();
+      }
+      if (right) {
+         rightCount = right->Count();
+      }
+      return 1 + leftCount + rightCount;
+   }
+
+   BSTNode* GetSuccessor() {
+      // Successor resides in right subtree, if present
+      if (right) {
+         BSTNode* successor = right;
+         while (successor->left != nullptr) {
+            successor = successor->left;
+         }
+         return successor;
+      }
+
+      // Otherwise the successor is up the tree
+      // Traverse up the tree until a parent is encountered from the left
+      BSTNode* node = this;
+      while (node->parent && node == node->parent->right) {
+         node = node->parent;
+      }
+      return node->parent;
+   }
+
+   void ReplaceChild(BSTNode* currentChild, BSTNode* newChild) {
+      if (currentChild == left) {
+         left = newChild;
+         if (left) {
+            left->parent = this;
+         }
+      }
+      else if (currentChild == right) {
+         right = newChild;
+         if (right) {
+            right->parent = this;
+         }
+      }
+   }
+};
+
+class BSTIterator {
+private:
+    BSTNode* currentNode;
+
+public:
+   BSTIterator(const BSTIterator& copyMe) {
+      currentNode = copyMe.currentNode;
+   }
+
+   BSTIterator(BSTNode* startNode) {
+      currentNode = startNode;
+   }
+
+   bool operator==(const BSTIterator& rhs) const {
+      return currentNode == rhs.currentNode;
+   }
+
+   bool operator!=(const BSTIterator& rhs) const {
+      return currentNode != rhs.currentNode;
+   }
+
+   // Dereference operator
+   int& operator*() const {
+      return currentNode->data;
+   }
+
+   // Pre-increment operator
+   BSTIterator& operator++() {
+      if (currentNode) {
+         currentNode = currentNode->GetSuccessor();
+      }
+      return *this;
+   }
+
+   // Post-increment operator
+   BSTIterator operator++(int) {
+      BSTIterator previous(*this);
+      if (currentNode) {
+         currentNode = currentNode->GetSuccessor();
+      }
+      return previous;
+   }
+};
+
+class Set {
+private:
+   BSTNode* root;
+
+   BSTNode* CopySubtree(BSTNode* subtreeRoot, BSTNode* parent = nullptr) {
+      BSTNode* newNode = nullptr;
+      if (subtreeRoot) {
+         newNode = new BSTNode(subtreeRoot->data, parent);
+         newNode->left = CopySubtree(subtreeRoot->left, newNode);
+         newNode->right = CopySubtree(subtreeRoot->right, newNode);
+      }
+      return newNode;
+   }
+
+   void DeleteTree(BSTNode* treeRoot) {
+      if (treeRoot) {
+         DeleteTree(treeRoot->left);
+         DeleteTree(treeRoot->right);
+         delete treeRoot;
+      }
+   }
+
+   BSTNode* NodeSearch(int element) const {
+      // Search the BST
+      BSTNode* node = root;
+      while (node) {
+         // Compare node's data against the search element
+         if (element == node->data) {
+            return node;
+         }
+         else if (element > node->data) {
+            node = node->right;
+         }
+         else {
+            node = node->left;
+         }
+      }
+      return node;
+   }
+
+   void RemoveNode(BSTNode* nodeToRemove) {
+      if (nodeToRemove == nullptr) {
+         return;
+      }
+
+      // Case 1: Internal node with 2 children
+      if (nodeToRemove->left && nodeToRemove->right) {
+         BSTNode* successor = nodeToRemove->GetSuccessor();
+
+         // Copy the data value from the successor
+         int dataCopy = successor->data;
+
+         // Remove successor
+         RemoveNode(successor);
+
+         // Replace nodeToRemove's data with successor data
+         nodeToRemove->data = dataCopy;
+      }
+
+      // Case 2: Root node (with 1 or 0 children)
+      else if (nodeToRemove == root) {
+         if (nodeToRemove->left) {
+            root = nodeToRemove->left;
+         }
+         else {
+            root = nodeToRemove->right;
+         }
+
+         if (root) {
+            root->parent = nullptr;
+         }
+
+         delete nodeToRemove;
+      }
+
+      // Case 3: Internal node with left child only
+      else if (nodeToRemove->left) {
+         nodeToRemove->parent->ReplaceChild(nodeToRemove, nodeToRemove->left);
+         delete nodeToRemove;
+      }
+
+      // Case 4: Internal node with right child only, or leaf node
+      else {
+         nodeToRemove->parent->ReplaceChild(nodeToRemove, nodeToRemove->right);
+         delete nodeToRemove;
+      }
+   }
+
+public:
+   Set() {
+      root = nullptr;
+   }
+
+   // Copy constructor
+   Set(const Set& copyMe) {
+      root = CopySubtree(copyMe.root);
+   }
+
+   virtual ~Set() {
+      DeleteTree(root);
+   }
+
+   bool Add(int newElement) {
+      if (Contains(newElement)) {
+         return false;
+      }
+
+      BSTNode* newNode = new BSTNode(newElement, nullptr);
+
+      // Special case for empty set
+      if (root == nullptr) {
+         root = newNode;
+         return true;
+      }
+
+      BSTNode* node = root;
+      while (node) {
+         if (newElement < node->data) {
+            // Go left
+            if (node->left) {
+               node = node->left;
+            }
+            else {
+               node->left = newNode;
+               newNode->parent = node;
+               node = nullptr;
+            }
+         }
+         else {
+            // Go right
+            if (node->right) {
+               node = node->right;
+            }
+            else {
+               node->right = newNode;
+               newNode->parent = node;
+               node = nullptr;
+            }
+         }
+      }
+      return true;
+   }
+
+   bool Contains(int element) const {
+      return NodeSearch(element) != nullptr;
+   }
+
+   Set Difference(const Set& otherSet) const {
+      Set result;
+      for (int element : *this) {
+         if (!otherSet.Contains(element)) {
+            result.Add(element);
+         }
+      }
+      return result;
+   }
+
+   Set Filter(std::function<bool(int)> predicate) const {
+      Set result;
+      for (int element : *this) {
+         if (predicate(element)) {
+            result.Add(element);
+         }
+      }
+      return result;
+   }
+
+   Set Intersection(const Set& otherSet) const {
+      Set result;
+      for (int element : *this) {
+         if (otherSet.Contains(element)) {
+            result.Add(element);
+         }
+      }
+      return result;
+   }
+
+   Set Map(std::function<int(int)> mapFunction) const {
+      Set result;
+      for (int element : *this) {
+         int newElement = mapFunction(element);
+         result.Add(newElement);
+      }
+      return result;
+   }
+
+   void Remove(int element) {
+      RemoveNode(NodeSearch(element));
+   }
+
+   int Size() const {
+      if (root) {
+         return root->Count();
+      }
+      return 0;
+   }
+
+   Set Union(const Set& otherSet) const {
+      Set result;
+      for (int element : *this) {
+         result.Add(element);
+      }
+      for (int element : otherSet) {
+         result.Add(element);
+      }
+      return result;
+   }
+
+   BSTIterator begin() const {
+      // Special case for empty set
+      if (root == nullptr) {
+         return BSTIterator(nullptr);
+      }
+
+      // Start the iterator at the minimum node
+      BSTNode* minNode = root;
+      while (minNode->left) {
+         minNode = minNode->left;
+      }
+      return BSTIterator(minNode);
+   }
+
+   BSTIterator end() const {
+      return BSTIterator(nullptr);
+   }
+};
+
+#endif
+```
+
+**`main.cpp`** — exercises the set operations, plus the higher-order `Filter` and `Map`:
+
+```cpp
+#include <iostream>
+#include <string>
+#include "Set.h"
+using namespace std;
+
+bool IsEven(int value) {
+   return value % 2 == 0;
+}
+
+bool IsOver50(int value) {
+   return value > 50;
+}
+
+int Times10(int value) {
+   return value * 10;
+}
+
+int Mod10(int value) {
+   return value % 10;
+}
+
+void ShowSet(const Set& set, const string& setName) {
+   cout << setName << ": ";
+   for (int element : set) {
+      cout << element << " ";
+   }
+   cout << endl;
+}
+
+int main() {
+   int setAElements[] = { 95, 64, 19, 67, -24, 90 };
+   int setBElements[] = { 67, 90, 67, 42, -84 };
+
+   Set setA;
+   Set setB;
+   for (int element : setAElements) {
+      setA.Add(element);
+   }
+   for (int element : setBElements) {
+      setB.Add(element);
+   }
+
+   // Show the 2 sets
+   ShowSet(setA, "Set A");
+   ShowSet(setB, "Set B");
+
+   // Perform union, intersection, and difference of 2 sets
+   ShowSet(setA.Union(setB), "A union B");
+   ShowSet(setA.Intersection(setB), "A intersect B");
+   ShowSet(setA.Difference(setB), "A \\ B");
+   ShowSet(setB.Difference(setA), "B \\ A");
+
+   // Perform various filter operations
+   ShowSet(setA.Filter(IsEven), "Set A filtered for evens");
+   ShowSet(setB.Filter(IsEven), "Set B filtered for evens");
+   ShowSet(setA.Filter(IsOver50), "Set A filtered for elements > 50");
+   ShowSet(setB.Filter(IsOver50), "Set B filtered for elements > 50");
+
+   // Perform various map operations
+   ShowSet(setA.Map(Times10), "Set A mapped * 10");
+   ShowSet(setB.Map(Times10), "Set B mapped * 10");
+   ShowSet(setA.Map(Mod10), "Set A mapped % 10");
+   ShowSet(setB.Map(Mod10), "Set B mapped % 10");
+}
+```
+
+Because the BST is walked in-order, every printed set comes out **sorted ascending**, and duplicates (like the repeated `67` added to Set B) are silently ignored — exactly the "unordered collection of distinct values" semantics of a set.
+
 ---
 
 ## 11.2 Maps
