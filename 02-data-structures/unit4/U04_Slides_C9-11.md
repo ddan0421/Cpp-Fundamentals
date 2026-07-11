@@ -987,6 +987,88 @@ int main() {
 
 Because the BST is walked in-order, every printed set comes out **sorted ascending**, and duplicates (like the repeated `67` added to Set B) are silently ignored — exactly the "unordered collection of distinct values" semantics of a set.
 
+### The C++ standard library set
+
+Rather than writing your own set, the standard library provides ready-made containers. **`std::unordered_set`** (from `<unordered_set>`) stores an unordered collection of distinct values backed by a hash table, giving **average O(1)** insertion, removal, and lookup. (A related container, `std::set`, keeps its elements sorted using a balanced BST with O(log n) operations.)
+
+The most commonly used member functions, illustrated starting with `exSet: { "Bread", "Jam", "Butter" }`:
+
+| Member function | Usage and description | Example |
+| --- | --- | --- |
+| `insert()` | `unorderedSetInstance.insert(item)` — Inserts a new item into the `unordered_set`. Has no effect if the item is already in the set. | `exSet.insert("Milk");`<br>`exSet.insert("Jam");`<br><br>`exSet: { "Bread", "Jam", "Butter", "Milk" }` |
+| `erase()` | `unorderedSetInstance.erase(item)` — Removes an item from the `unordered_set`. Returns 1 if the item was found and removed, 0 otherwise. | `exSet.erase("Jam");     // Returns 1`<br>`exSet.erase("Cookies"); // Returns 0`<br><br>`exSet: { "Bread", "Butter" }` |
+| `size()` | `unorderedSetInstance.size()` — Returns the `unordered_set`'s length. | `cout << exSet.size();`<br><br>Output: `3` |
+| `count()` | `unorderedSetInstance.count(item)` — Returns 1 if the `unordered_set` contains the item argument, 0 otherwise. | `cout << exSet.count("Cereal");`<br>`cout << endl;`<br>`cout << exSet.count("Bread");`<br><br>Output:<br>`0`<br>`1` |
+
+**`main.cpp`** — inserting items, checking membership with `count()`, and removing with `erase()`:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <unordered_set>
+#include <vector>
+using namespace std;
+
+template <typename T>
+void PrintSet(const unordered_set<T>& setToPrint, string separator = ", ",
+   string suffix = "");
+
+int main() {
+   // Declare items to insert
+   vector<string> itemsToInsert = {
+      "Bread", "Butter", "Jam", "Milk", "Cereal"
+   };
+   
+   // Create the unordered_set, insert items, then print
+   unordered_set<string> groceryItems;
+   for (const string& item : itemsToInsert) {
+      groceryItems.insert(item);
+      cout << "Inserted \"" << item << "\"" << endl;
+   }
+   PrintSet(groceryItems, ", ", "\n");
+   
+   // Declare an item to search for and remove if found
+   string itemName = "Butter";
+   
+   // Search for the item using count()
+   cout << "Set contains \"" << itemName << "\"? ";
+   if (1 == groceryItems.count(itemName)) {
+      cout << "Yes\nNow removing \"" << itemName << "\"" << endl;
+      groceryItems.erase(itemName);
+   }
+   else {
+      cout << "No" << endl;
+   }
+   
+   PrintSet(groceryItems, ", ", "\n");
+   
+   return 0;
+}
+
+template <typename T>
+void PrintSet(const unordered_set<T>& setToPrint, string separator,
+   string suffix) {
+   
+   bool printedFirst = false;
+   
+   cout << "Set with " << setToPrint.size() << " items: {";
+   for (const T& item : setToPrint) {
+      if (printedFirst) {
+         cout << separator << item;
+      }
+      else {
+         cout << item;
+         printedFirst = true;
+      }
+   }
+   
+   // Print the closing "}" and the suffix
+   cout << "}" << suffix;
+}
+```
+
+Because `unordered_set` is hash-based, iteration order is **unspecified** — the items may print in any order, and `insert()` silently ignores duplicates just like our custom `Set`.
+
 ---
 
 ## 11.2 Maps
