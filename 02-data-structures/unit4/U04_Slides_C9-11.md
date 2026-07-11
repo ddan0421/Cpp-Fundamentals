@@ -703,6 +703,97 @@ void HeapSort(ItemType values[], int numValues)
 - Total: **O(N log₂N)**.
 - The heap is only a **temporary internal structure** — it lives inside the array and is diminished element by element as the sorted portion grows. Using an *external* heap would have cost twice the memory.
 
+### zyBooks `Heapsort` — a self-contained demo
+
+The same two-phase algorithm (heapify, then repeatedly swap-and-reheap) as plain functions operating directly on a raw `int` array — no `HeapType` struct or templates. `MaxHeapPercolateDown` is the zyBooks name for `ReheapDown`, and it takes `heapSize` as a parameter so the "heap" can shrink while the sorted tail grows in the same array.
+
+**`HeapsortDemo.cpp`**
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void Heapsort(int* numbers, int numbersLength);
+void MaxHeapPercolateDown(int nodeIndex, int* heapArray, int heapSize);
+
+int main() {
+   int numbers[] = { 82, 36, 49, 82, 34, 75, 18, 9, 23 };
+   int numbersLength = sizeof(numbers) / sizeof(numbers[0]);
+   cout << "UNSORTED: [";
+   for (int i = 0; i < numbersLength - 1; i++) {
+      cout << numbers[i] << ", ";
+   }
+   cout << numbers[numbersLength - 1] << "]" << endl;
+
+   Heapsort(numbers, numbersLength);
+   cout << "SORTED:   [";
+   for (int i = 0; i < numbersLength - 1; i++) {
+      cout << numbers[i] << ", ";
+   }
+   cout << numbers[numbersLength - 1] << "]" << endl;
+
+   return 0;
+}
+
+// Sorts the array of numbers using the heapsort algorithm
+void Heapsort(int* numbers, int numbersLength) {
+   // Heapify numbers array
+   for (int i = numbersLength / 2 - 1; i >= 0; i--) {
+      MaxHeapPercolateDown(i, numbers, numbersLength);
+   }
+
+   for (int i = numbersLength - 1; i > 0; i--) {
+      // Swap numbers[0] and numbers[i]
+      int temp = numbers[0];
+      numbers[0] = numbers[i];
+      numbers[i] = temp;
+
+      MaxHeapPercolateDown(0, numbers, i);
+   }
+}
+
+// Performs a percolate-down operation in a max-heap
+void MaxHeapPercolateDown(int nodeIndex, int* heapArray, int heapSize) {
+   int childIndex = 2 * nodeIndex + 1;
+   int value = heapArray[nodeIndex];
+
+   while (childIndex < heapSize) {
+      // Find the max among the node and all the node's children
+      int maxValue = value;
+      int maxIndex = -1;
+      int i = 0;
+      while (i < 2 && i + childIndex < heapSize) {
+         if (heapArray[i + childIndex] > maxValue) {
+            maxValue = heapArray[i + childIndex];
+            maxIndex = i + childIndex;
+         }
+         i++;
+      }
+
+      if (maxValue == value) {
+         return;
+      }
+
+      // Swap heapArray[nodeIndex] and heapArray[maxIndex]
+      int temp = heapArray[nodeIndex];
+      heapArray[nodeIndex] = heapArray[maxIndex];
+      heapArray[maxIndex] = temp;
+
+      nodeIndex = maxIndex;
+      childIndex = 2 * nodeIndex + 1;
+   }
+}
+```
+
+Output:
+
+```
+UNSORTED: [82, 36, 49, 82, 34, 75, 18, 9, 23]
+SORTED:   [9, 18, 23, 34, 36, 49, 75, 82, 82]
+```
+
+Note how `MaxHeapPercolateDown(0, numbers, i)` passes the shrinking size `i` as `heapSize`: everything at index `i` and beyond is already sorted and off-limits to the heap.
+
 ---
 
 ---
