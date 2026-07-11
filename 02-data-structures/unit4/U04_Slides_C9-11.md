@@ -375,6 +375,26 @@ int main() {
 }
 ```
 
+### Parent and child indices
+
+The array *is* the tree — no pointers are stored. Instead, a node's relatives are computed directly from its index `i`:
+
+- **Left child:** `2i + 1`
+- **Right child:** `2i + 2`
+- **Parent:** `(i - 1) / 2` (integer division)
+
+| Node index | Parent index | Child indices |
+|---|---|---|
+| 0 | N/A | 1, 2 |
+| 1 | 0 | 3, 4 |
+| 2 | 0 | 5, 6 |
+| 3 | 1 | 7, 8 |
+| 4 | 1 | 9, 10 |
+| 5 | 2 | 11, 12 |
+| ... | ... | ... |
+
+This is exactly why the code writes `childIndex = 2 * nodeIndex + 1` in `PercolateDown` and `parentIndex = (nodeIndex - 1) / 2` in `PercolateUp`.
+
 ### Visualizing the tree operations
 
 Remember the array *is* the tree: index `i`'s children live at `2i+1` and `2i+2`, and its parent at `(i-1)/2`. Below, each insert/remove is shown as the underlying binary tree so you can see `PercolateUp`/`PercolateDown` moving a value along a single root-to-leaf path.
