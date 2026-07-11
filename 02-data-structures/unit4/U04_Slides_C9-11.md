@@ -181,6 +181,320 @@ void HeapType<ItemType>::ReheapUp(int root, int bottom)
 }
 ```
 
+### zyBooks `MaxHeap` — a self-contained implementation
+
+A complete, runnable max-heap that owns its own dynamically-resized array. It uses the zyBooks vocabulary — `PercolateUp`/`PercolateDown` instead of `ReheapUp`/`ReheapDown` — but the algorithms are identical. `Insert` appends to the end and percolates up; `Remove` returns the root, moves the last item into the root, and percolates down.
+
+**Key differences from `HeapType`:**
+
+- Self-managing: `Insert`/`Remove` grow the array and update `heapSize`, so the caller never tracks bounds.
+- `ResizeArray` doubles the backing array when full (amortized O(1) growth), so there is no fixed capacity.
+- `PercolateDown` scans the node's children with a small loop, so the same code generalizes to more than two children.
+
+**`MaxHeap.h`**
+
+```cpp
+#ifndef MAXHEAP_H
+#define MAXHEAP_H
+
+#include <iostream>
+#include <string>
+
+class MaxHeap {
+private:
+   int* heapArray;
+   int allocationSize;
+   int heapSize;
+
+   void PercolateDown(int nodeIndex) {
+      int childIndex = 2 * nodeIndex + 1;
+      int value = heapArray[nodeIndex];
+
+      while (childIndex < heapSize) {
+         // Find the max among the node and all the node's children
+         int maxValue = value;
+         int maxIndex = -1;
+         for (int i = 0; i < 2 && i + childIndex < heapSize; i++) {
+            if (heapArray[i + childIndex] > maxValue) {
+               maxValue = heapArray[i + childIndex];
+               maxIndex = i + childIndex;
+            }
+         }
+
+         // Check for a violation of the max-heap property
+         if (maxValue == value) {
+            return;
+         }
+         else {
+            // Swap heapArray[nodeIndex] and heapArray[maxIndex]
+            std::cout << "   PercolateDown() swap: " << heapArray[nodeIndex];
+            std::cout << " <-> " << heapArray[maxIndex] << std::endl;
+            int temp = heapArray[nodeIndex];
+            heapArray[nodeIndex] = heapArray[maxIndex];
+            heapArray[maxIndex] = temp;
+
+            // Continue loop from the max index node
+            nodeIndex = maxIndex;
+            childIndex = 2 * nodeIndex + 1;
+         }
+      }
+   }
+
+   void PercolateUp(int nodeIndex) {
+      while (nodeIndex > 0) {
+         // Compute the parent node's index
+         int parentIndex = (nodeIndex - 1) / 2;
+
+         // Check for a violation of the max-heap property
+         if (heapArray[nodeIndex] <= heapArray[parentIndex]) {
+            // No violation, so percolate up is done.
+            return;
+         }
+         else {
+            // Swap heapArray[nodeIndex] and heapArray[parentIndex]
+            std::cout << "   PercolateUp() swap: " << heapArray[parentIndex];
+            std::cout << " <-> " << heapArray[nodeIndex] << std::endl;
+            int temp = heapArray[nodeIndex];
+            heapArray[nodeIndex] = heapArray[parentIndex];
+            heapArray[parentIndex] = temp;
+
+            // Continue the loop from the parent node
+            nodeIndex = parentIndex;
+         }
+      }
+   }
+
+   void ResizeArray() {
+      int newAllocationSize = allocationSize * 2;
+      int* newArray = new int[newAllocationSize];
+      if (newArray) {
+         // Copy from existing array to new array
+         for (int i = 0; i < allocationSize; i++) {
+            newArray[i] = heapArray[i];
+         }
+
+         // Delete old array and set pointer to new
+         delete[] heapArray;
+         heapArray = newArray;
+
+         // Update allocation size
+         allocationSize = newAllocationSize;
+      }
+   }
+
+public:
+   MaxHeap() {
+      allocationSize = 1;
+      heapArray = new int[allocationSize];
+      heapSize = 0;
+   }
+
+   virtual ~MaxHeap() {
+      delete[] heapArray;
+   }
+
+   void Insert(int value) {
+      // Resize if needed
+      if (heapSize == allocationSize) {
+         ResizeArray();
+      }
+
+      // Add the new value to the end of the array
+      std::cout << "Insert(" << value << "):" << std::endl;
+      heapArray[heapSize] = value;
+      heapSize++;
+
+      // Percolate up from the last index to restore heap property
+      PercolateUp(heapSize - 1);
+   }
+
+   int Remove() {
+      // Save the max value from the root of the heap
+      std::cout << "Remove():" << std::endl;
+      int maxValue = heapArray[0];
+
+      // Move the last item in the array into index 0
+      int replaceValue = heapArray[heapSize - 1];
+      heapSize--;
+      if (heapSize > 0) {
+         heapArray[0] = replaceValue;
+
+         // Percolate down to restore max-heap property
+         PercolateDown(0);
+      }
+
+      // Return the max value
+      return maxValue;
+   }
+
+   std::string GetHeapArrayString() {
+      if (heapSize == 0) {
+         return std::string("[]");
+      }
+
+      std::string arrayString("[");
+      arrayString += std::to_string(heapArray[0]);
+      for (int i = 1; i < heapSize; i++) {
+         arrayString += ", ";
+         arrayString += std::to_string(heapArray[i]);
+      }
+      arrayString += "]";
+      return arrayString;
+   }
+
+   int GetHeapSize() {
+      return heapSize;
+   }
+};
+
+#endif
+```
+
+**`main.cpp`**
+
+```cpp
+#include <vector>
+#include "MaxHeap.h"
+using namespace std;
+
+int main() {
+   MaxHeap maxHeap;
+   vector<int> numbers = { 10, 2, 5, 18, 22 };
+
+   // Add all numbers to the heap
+   for (int number : numbers) {
+      maxHeap.Insert(number);
+      cout << "   --> array: " << maxHeap.GetHeapArrayString() << endl;
+   }
+
+   while (maxHeap.GetHeapSize() > 0) {
+      int removedValue = maxHeap.Remove();
+      cout << "   --> removed " << removedValue << ", array: ";
+      cout << maxHeap.GetHeapArrayString() << endl;
+   }
+}
+```
+
+### Visualizing the tree operations
+
+Remember the array *is* the tree: index `i`'s children live at `2i+1` and `2i+2`, and its parent at `(i-1)/2`. Below, each insert/remove is shown as the underlying binary tree so you can see `PercolateUp`/`PercolateDown` moving a value along a single root-to-leaf path.
+
+#### `Insert(18)` — percolate **up**
+
+Starting heap after inserting `10, 2, 5` → array `[10, 2, 5]`:
+
+```
+      10
+     /  \
+    2    5
+```
+
+Append `18` at the next free leaf (index 3, left child of `2`). Heap property is now violated (`18 > 2`):
+
+```
+        10
+       /  \
+     (2)   5          array: [10, 2, 5, 18]
+     /
+   [18]               [18] just inserted, (2) is its parent
+```
+
+`PercolateUp`: `18 > 2`, so swap with parent:
+
+```
+        10
+       /  \
+    [18]   5          swap: 2 <-> 18
+     /
+    2                 array: [10, 18, 5, 2]
+```
+
+Continue: `18 > 10`, swap with parent again. Now `18` is the root, so we stop:
+
+```
+      [18]
+      /  \
+    10    5           swap: 10 <-> 18
+    /
+   2                  array: [18, 10, 5, 2]
+```
+
+#### `Insert(22)` — percolate **up**
+
+Append `22` at the next free leaf (index 4, right child of `10`). Violation: `22 > 10`:
+
+```
+        18
+       /  \
+     (10)  5          array: [18, 10, 5, 2, 22]
+     /  \
+    2   [22]          [22] just inserted, (10) is its parent
+```
+
+`PercolateUp`: `22 > 10`, swap with parent:
+
+```
+        18
+       /  \
+    [22]   5          swap: 10 <-> 22
+     /  \
+    2    10           array: [18, 22, 5, 2, 10]
+```
+
+Continue: `22 > 18`, swap with parent. `22` is now the root, so we stop:
+
+```
+       [22]
+       /  \
+     18    5          swap: 18 <-> 22
+     /  \
+    2    10           array: [22, 18, 5, 2, 10]
+```
+
+#### `Remove()` — percolate **down** (removes 22)
+
+`Remove` always returns the root. Save `22`, then move the **last leaf** (`10`) into the root and shrink the heap:
+
+```
+       [10]
+       /  \
+     18    5          root replaced by last leaf; array: [10, 18, 5, 2]
+     /
+    2                 returned max = 22
+```
+
+`PercolateDown`: the larger child of `10` is `18` (`18 > 5`), and `18 > 10`, so swap down:
+
+```
+       [18]
+       /  \
+     10    5          swap: 10 <-> 18
+     /
+    2                 array: [18, 10, 5, 2]
+```
+
+Now `10`'s only child is `2`, and `10 > 2` — heap property holds, so we stop. Final: `[18, 10, 5, 2]`.
+
+#### `Remove()` — percolate **down** (removes 18)
+
+Save `18`, move the last leaf (`2`) into the root and shrink:
+
+```
+      [2]
+      /  \
+    10    5           root replaced by last leaf; array: [2, 10, 5]
+```
+
+`PercolateDown`: the larger child of `2` is `10` (`10 > 5`), and `10 > 2`, so swap down. `2` is now a leaf, so we stop:
+
+```
+      [10]
+      /  \
+     2    5           swap: 2 <-> 10; array: [10, 2, 5]
+```
+
+The remaining removes shrink the heap the same way: `Remove()` → `10` (heap `[5, 2]`), `Remove()` → `5` (heap `[2]`), `Remove()` → `2` (heap `[]`). Popping the root repeatedly yields the values in descending order — the core idea behind heap sort.
+
 ---
 
 ## Priority Queue Implemented with a Heap
