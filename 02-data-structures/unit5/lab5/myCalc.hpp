@@ -436,7 +436,23 @@ int myCalc::evaluatePostFix(const std::string &postfixString) const {
   // - This lab assumes valid input, so you do not need to handle
   //   malformed postfix expressions.
   // - Remember that subtraction and division depend on operand order.
-  return 0; // replace this line
+
+  myStack<int> operandsStack;
+  std::string token;
+  std::istringstream iss(postfixString);
+
+  while (iss >> token) {
+    if (std::isdigit(token[0])) {
+      operandsStack.push(std::stoi(token));
+    } else if (isOperator(token[0])) {
+      int right = operandsStack.getTop();
+      operandsStack.pop();
+      int left = operandsStack.getTop();
+      operandsStack.pop();
+      operandsStack.push(applyOperator(token[0], left, right));
+    }
+  }
+  return operandsStack.getTop();
 }
 
 #endif /* MYCALC_H_ */
