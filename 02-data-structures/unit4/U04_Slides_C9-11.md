@@ -639,6 +639,156 @@ The heap wins overall: it is always minimum height (so it never degenerates like
 
 ---
 
+## The C++ `priority_queue` class
+
+The C++ standard library provides `priority_queue` (in `<queue>`), which implements the priority queue ADT so you rarely need to write your own heap. It has a required template parameter for the item type — e.g. `priority_queue<int> examplePQ;` declares a queue of integers. By default the **largest** item has the highest priority (a max-heap).
+
+### Common `priority_queue` functions
+
+| Member function | Description | Example |
+|---|---|---|
+| `push()` | Enqueues an item into the priority queue. | `examplePQ.push(42);` |
+| `pop()` | Removes the highest-priority item. Returns nothing. | `examplePQ.pop();` |
+| `top()` | Returns (does not remove) the highest-priority item. | `cout << examplePQ.top();` |
+| `size()` | Returns the number of items in the queue. | `cout << examplePQ.size();` |
+
+Tracing on `examplePQ` initially holding `89, 51, 26` (front → end):
+
+```
+Start:            89   51   26
+push(42):         89   51   42   26     // inserted by priority, not at the end
+pop():            51   42   26          // removes 89 (highest priority)
+top():   -> 89                          // returns highest priority, no removal
+size():  -> 3
+```
+
+### Demo — basic usage
+
+```cpp
+#include <functional>
+#include <iostream>
+#include <queue>
+#include <vector>
+using namespace std;
+
+int main() {
+   // Declare items to insert
+   vector<int> itemsToInsert = {
+      54, 71, 22, 33, 18, 64, 91
+   };
+
+   // Create the priority_queue
+   priority_queue<int> integerPQ;
+
+   // Insert items
+   for (int item : itemsToInsert) {
+      integerPQ.push(item);
+      cout << "Enqueued " << item << endl;
+   }
+
+   // Print the size
+   cout << "integerPQ's size = " << integerPQ.size() << endl;
+
+   // Dequeue and print items until the queue is empty
+   while (integerPQ.size() > 0) {
+      int item = integerPQ.top();
+      integerPQ.pop();
+      cout << "Dequeued " << item << " from integerPQ" << endl;
+   }
+
+   return 0;
+}
+```
+
+Because the default is a max-heap, items come out in **descending** order regardless of insertion order:
+
+```
+integerPQ's size = 7
+Dequeued 91 ...
+Dequeued 71 ...
+Dequeued 64 ...
+Dequeued 54 ...
+Dequeued 33 ...
+Dequeued 22 ...
+Dequeued 18 ...
+```
+
+### Changing the priority order (comparison functor)
+
+`priority_queue` has two optional template parameters:
+
+- **2nd — underlying storage:** defaults to `vector`.
+- **3rd — comparison type:** defaults to `std::less`. It must be a **function object** (an object whose `()` operator is defined). The `()` operator takes two arguments and returns a `bool` that determines priority order:
+  - Returning `true` when *first `<` second* gives higher priority to **larger** items (`std::less` → max-heap).
+  - Returning `true` when *first `>` second* gives higher priority to **smaller** items (`std::greater` → min-heap).
+
+> Note: to override the 3rd parameter you must also supply the 2nd, since template parameters are positional — hence `priority_queue<int, vector<int>, greater<int>>`.
+
+```cpp
+#include <functional>
+#include <iostream>
+#include <queue>
+#include <vector>
+using namespace std;
+
+int main() {
+   // Declare items to insert
+   vector<int> itemsToInsert = {
+      54, 71, 22, 33, 18, 64, 91
+   };
+
+   // Create three priority queues: one using the default comparison,
+   // another using std::less, and the last using std::greater
+   priority_queue<int> defaultPQ;
+   priority_queue<int, vector<int>, less<int>> lessPQ;
+   priority_queue<int, vector<int>, greater<int>> greaterPQ;
+
+   // Insert items into each priority queue
+   for (int item : itemsToInsert) {
+      defaultPQ.push(item);
+      lessPQ.push(item);
+      greaterPQ.push(item);
+      cout << "Enqueued " << item << " into each priority queue" << endl;
+   }
+
+   cout << "defaultPQ's size = " << defaultPQ.size() << endl;
+   cout << "lessPQ's size = " << lessPQ.size() << endl;
+   cout << "greaterPQ's size = " << greaterPQ.size() << endl;
+
+   // Dequeue and print items until each queue is empty
+   while (lessPQ.size() > 0) {
+      int dequeuedFromDefault = defaultPQ.top();
+      int dequeuedFromLess = lessPQ.top();
+      int dequeuedFromGreater = greaterPQ.top();
+      defaultPQ.pop();
+      lessPQ.pop();
+      greaterPQ.pop();
+      cout << "Dequeued " << dequeuedFromDefault << " from defaultPQ, ";
+      cout << dequeuedFromLess << " from lessPQ, and ";
+      cout << dequeuedFromGreater << " from greaterPQ" << endl;
+   }
+
+   return 0;
+}
+```
+
+`defaultPQ` and `lessPQ` both use `std::less`, so they dequeue **largest-first**; `greaterPQ` uses `std::greater`, so it dequeues **smallest-first**:
+
+```
+defaultPQ's size = 7
+lessPQ's size = 7
+greaterPQ's size = 7
+Dequeued 91 from defaultPQ, 91 from lessPQ, and 18 from greaterPQ
+Dequeued 71 from defaultPQ, 71 from lessPQ, and 22 from greaterPQ
+Dequeued 64 from defaultPQ, 64 from lessPQ, and 33 from greaterPQ
+Dequeued 54 from defaultPQ, 54 from lessPQ, and 54 from greaterPQ
+Dequeued 33 from defaultPQ, 33 from lessPQ, and 64 from greaterPQ
+Dequeued 22 from defaultPQ, 22 from lessPQ, and 71 from greaterPQ
+Dequeued 18 from defaultPQ, 18 from lessPQ, and 91 from greaterPQ
+```
+
+---
+
 ## 9.4 Heap Sort
 
 A selection sort repeatedly finds the maximum value and swaps it into place; the cost is the **O(N) search** for the next maximum each pass. A heap removes that cost: the maximum is *always* at the root, and reheaping is only **O(log N)**.
