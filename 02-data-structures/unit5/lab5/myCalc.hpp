@@ -262,64 +262,58 @@ public:
 
 // ================= STUDENT IMPLEMENTATIONS =================
 
-myCalc::myCalc() {
-  // TODO:
-  // Initialize input to an empty string.
-}
+myCalc::myCalc() { input = ""; }
 
-myCalc::myCalc(const std::string &str) {
-  // TODO:
-  // Initialize input to str.
-}
+myCalc::myCalc(const std::string &str) { input = str; }
 
-std::string myCalc::getInput() const {
-  // TODO:
-  // Return input.
-  return ""; // replace this line
-}
+std::string myCalc::getInput() const { return input; }
 
-void myCalc::resetInput(const std::string &str) {
-  // TODO:
-  // Reset input to str.
-}
+void myCalc::resetInput(const std::string &str) { input = str; }
 
 bool myCalc::isOperator(char ch) const {
-  // TODO:
-  // Return true if ch is +, -, *, or /.
-  return false; // replace this line
+  if (ch == '+' || ch == '-' || ch == '*' || ch == '/') {
+    return true;
+  }
+  return false;
 }
-
 int myCalc::getPrecedence(char theOperator) const {
   // TODO:
   // Return 1 for + and -
   // Return 2 for * and /
   // Return 0 for any other character.
-  return 0; // replace this line
+  if (theOperator == '+' || theOperator == '-') {
+    return 1;
+  } else if (theOperator == '*' || theOperator == '/') {
+    return 2;
+  } else {
+    return 0;
+  }
 }
 
 int myCalc::applyOperator(char theOperator, int left, int right) const {
-  // TODO:
-  // Apply theOperator to left and right.
-  //
-  // IMPORTANT:
-  // Subtraction must be left - right.
-  // Division must be left / right.
-  // Division uses integer division.
-  return 0; // replace this line
+  if (theOperator == '-') {
+    return (left - right);
+  } else if (theOperator == '+') {
+    return (left + right);
+  } else if (theOperator == '*') {
+    return (left * right);
+  } else {
+    return (left / right);
+  }
 }
 
 std::string myCalc::postFixInput() const {
   // TODO:
   // Return the postfix version of input by calling postFix(input).
-  return ""; // replace this line
+  return postFix(input);
 }
-
 int myCalc::evaluate() const {
   // TODO:
   // 1. Convert input to postfix by calling postFix(input).
   // 2. Evaluate that postfix expression by calling evaluatePostFix(...).
   // 3. Return the final integer value.
-  return 0; // replace this line
+  std::string postFixString = postFixInput();
+  return evaluatePostFix(postFixString);
 }
 
 std::string myCalc::postFix(const std::string &infixString) const {
@@ -360,7 +354,60 @@ std::string myCalc::postFix(const std::string &infixString) const {
   // building. It is acceptable if your final string has one trailing
   // space, unless the test driver specifically requires no trailing
   // space.
-  return ""; // replace this line
+  myStack<char> operatorsStack;
+  std::string result = "";
+
+  int indx = 0;
+
+  while (indx < infixString.size()) {
+    if (isOperator(infixString[indx])) {
+      while (!operatorsStack.isEmptyStack() && operatorsStack.getTop() != '(' &&
+             getPrecedence(operatorsStack.getTop()) >=
+                 getPrecedence(infixString[indx])) {
+        result += operatorsStack.getTop();
+        result += " ";
+        operatorsStack.pop();
+      }
+      operatorsStack.push(infixString[indx]);
+      indx++;
+    }
+
+    else if (infixString[indx] == ')') {
+      while (operatorsStack.getTop() != '(') {
+        result += operatorsStack.getTop();
+        result += " ";
+        operatorsStack.pop();
+      }
+      operatorsStack.pop();
+      indx++;
+    }
+
+    else if (infixString[indx] == '=') {
+      while (!operatorsStack.isEmptyStack()) {
+        result += operatorsStack.getTop();
+        result += " ";
+        operatorsStack.pop();
+      }
+      indx++;
+    }
+
+    else {
+      if (infixString[indx] == '(') {
+        operatorsStack.push('(');
+        indx++;
+      } else {
+        while (indx < infixString.size() && std::isdigit(infixString[indx])) {
+          result += infixString[indx];
+          indx++;
+        }
+        result += " ";
+      }
+    }
+  }
+  if (!result.empty() && result.back() == ' ') {
+    result.pop_back();
+  }
+  return result;
 }
 
 int myCalc::evaluatePostFix(const std::string &postfixString) const {
