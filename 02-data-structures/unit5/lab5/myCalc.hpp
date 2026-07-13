@@ -3,7 +3,6 @@
 
 #include "myStack.hpp"
 #include <cctype>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -277,10 +276,6 @@ bool myCalc::isOperator(char ch) const {
   return false;
 }
 int myCalc::getPrecedence(char theOperator) const {
-  // TODO:
-  // Return 1 for + and -
-  // Return 2 for * and /
-  // Return 0 for any other character.
   if (theOperator == '+' || theOperator == '-') {
     return 1;
   } else if (theOperator == '*' || theOperator == '/') {
@@ -302,62 +297,17 @@ int myCalc::applyOperator(char theOperator, int left, int right) const {
   }
 }
 
-std::string myCalc::postFixInput() const {
-  // TODO:
-  // Return the postfix version of input by calling postFix(input).
-  return postFix(input);
-}
+std::string myCalc::postFixInput() const { return postFix(input); }
 int myCalc::evaluate() const {
-  // TODO:
-  // 1. Convert input to postfix by calling postFix(input).
-  // 2. Evaluate that postfix expression by calling evaluatePostFix(...).
-  // 3. Return the final integer value.
   std::string postFixString = postFixInput();
   return evaluatePostFix(postFixString);
 }
 
 std::string myCalc::postFix(const std::string &infixString) const {
-  // TODO:
-  // Convert infixString to postfix notation.
-  //
-  // Suggested algorithm:
-  //
-  // 1. Create an empty postfix string.
-  // 2. Create myStack<char> for operators.
-  // 3. Walk through infixString one character at a time until '='.
-  //
-  // 4. If the current character is a digit:
-  //      - Collect the ENTIRE multi-digit number.
-  //      - Add the number to the postfix string.
-  //      - Add one space after the number.
-  //
-  // 5. If the current character is '(':
-  //      - Push it on the operator stack.
-  //
-  // 6. If the current character is ')':
-  //      - Pop operators from the stack and add them to postfix until
-  //        '(' is on top.
-  //      - Pop and discard the '('.
-  //
-  // 7. If the current character is an operator:
-  //      - While the stack is not empty,
-  //        the top is not '(',
-  //        and the top operator has greater or equal precedence,
-  //        pop the top operator and add it to postfix.
-  //      - Push the current operator.
-  //
-  // 8. When '=' is reached, pop all remaining operators and add them
-  //    to postfix.
-  //
-  // Reminder:
-  // Every token added to postfix must be followed by one space while
-  // building. It is acceptable if your final string has one trailing
-  // space, unless the test driver specifically requires no trailing
-  // space.
   myStack<char> operatorsStack;
   std::string result = "";
 
-  int indx = 0;
+  size_t indx = 0;
 
   while (indx < infixString.size()) {
     if (isOperator(infixString[indx])) {
@@ -411,32 +361,6 @@ std::string myCalc::postFix(const std::string &infixString) const {
 }
 
 int myCalc::evaluatePostFix(const std::string &postfixString) const {
-  // TODO:
-  // Evaluate postfixString using myStack<int>.
-  //
-  // Because postfix tokens are separated by spaces, you may use
-  // std::istringstream to read one token at a time.
-  //
-  // Suggested algorithm:
-  //
-  // 1. Create myStack<int> for operands.
-  // 2. Read each token from postfixString.
-  // 3. If the token begins with a digit:
-  //      - Convert the token to an integer.
-  //      - Push it onto the operand stack.
-  // 4. If the token is an operator:
-  //      - right = top value; pop
-  //      - left = next top value; pop
-  //      - result = applyOperator(operator, left, right)
-  //      - push result
-  // 5. After all tokens are processed, the answer is the top of the
-  //    operand stack.
-  //
-  // Notes:
-  // - This lab assumes valid input, so you do not need to handle
-  //   malformed postfix expressions.
-  // - Remember that subtraction and division depend on operand order.
-
   myStack<int> operandsStack;
   std::string token;
   std::istringstream iss(postfixString);
