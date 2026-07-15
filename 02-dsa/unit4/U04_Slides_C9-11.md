@@ -1838,6 +1838,339 @@ Allow multiple elements to share a hash location.
 
 ---
 
+### zyBooks `ChainingHashTable` — a self-contained implementation
+
+A complete, templated map backed by an array of linked-list chains. Each bucket (`table[i]`) is the head pointer of a chain of `ChainingHashTableItem` nodes; every key that hashes to index `i` is appended to that chain. The class implements the `MapADT` interface, so it exposes the standard `Insert`/`Remove`/`Contains`/`Get`/`GetLength`/`Print` operations plus a `PrintTable` that shows every bucket (including empty ones).
+
+**How the core operations work:**
+
+- **`Hash`** calls `std::hash<K>` and masks off the sign bit (`& 0x7fffffff`) to guarantee a non-negative `int`; the bucket index is then `Hash(key) % table.size()`.
+- **`Insert`** walks the target chain: if the key is already present it updates the value, otherwise it appends a new node to the end of the chain.
+- **`Remove`** relinks the chain around the found node (special-casing the head) and `delete`s it — the simple deletion chaining is known for.
+- **`Get`/`Contains`** scan only the one chain the key hashes to, giving ~O(1) average lookup.
+
+**`MapADT.h`** — the abstract interface the table implements:
+
+```cpp
+#ifndef MAPADT_H
+#define MAPADT_H
+
+#include <iostream>
+
+template <typename K, typename V>
+class MapADT {
+public:
+   virtual ~MapADT() {
+   }
+   
+   // Inserts the specified key/value pair. If the key already exists, the
+   // corresponding value is updated. If inserted or updated, true is returned.
+   // If not inserted, then false is returned.
+   virtual bool Insert(const K& key, const V& value) = 0;
+   
+   // Searches for the specified key. If found, the key/value pair is removed
+   // from the map and true is returned. If not found, false is returned.
+   virtual bool Remove(const K& key) = 0;
+   
+   // Returns true if the specific key exists in the map, false otherwise.
+   virtual bool Contains(const K& key) const = 0;
+   
+   // Searches for the item with the specified key. Returns a pointer to the
+   // item's value if found, nullptr if not found.
+   virtual V* Get(const K& key) const = 0;
+   
+   // Returns the number of items in the map.
+   virtual int GetLength() const = 0;
+   
+   // Prints all items in the map.
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& keyValueSeparator = ":",
+      const std::string& itemSeparator = ", ",
+      const std::string& prefix = "",
+      const std::string& suffix = "") const = 0;
+};
+
+#endif
+```
+
+**`ChainingHashTable.h`** — the array-of-chains implementation:
+
+```cpp
+#ifndef CHAININGHASHTABLE_H
+#define CHAININGHASHTABLE_H
+
+#include <iostream>
+#include <vector>
+#include "MapADT.h"
+
+// ChainingHashTableItem represents one item in the hash table.
+template <typename K, typename V>
+class ChainingHashTableItem {
+public:
+   K key;
+   V value;
+   ChainingHashTableItem<K,V>* next;
+
+   ChainingHashTableItem(const K& itemKey, const V& itemValue) :
+      key(itemKey), value(itemValue) {
+      next = nullptr;
+   }
+};
+
+template <typename K, typename V>
+class ChainingHashTable : public MapADT<K,V> {
+private:
+   std::vector<ChainingHashTableItem<K,V>*> table;
+
+   // Returns a non-negative hash code for the specified key.
+   int Hash(const K& key) const {
+      // The type must have a hash<K> class or struct defined in std namespace
+      std::hash<K> hashFunctionObject;
+      size_t keyHash = hashFunctionObject(key);
+      
+      // size_t is unsigned and likely more than 32 bits. Convert to int by 
+      // masking out the lowest 31 bits.
+      return (int)(keyHash & 0x7fffffff);
+   }
+
+public:
+   ChainingHashTable(int initialCapacity = 11) {
+      table.resize(initialCapacity, nullptr);
+   }
+   
+   virtual ~ChainingHashTable() {
+      // Delete each ChainingHashTableItem in the table
+      for (int i = 0; i < table.size(); i++) {
+         ChainingHashTableItem<K,V>* item = table[i];
+         while (item) {
+            ChainingHashTableItem<K,V>* itemToDelete = item;
+            item = item->next;
+            delete itemToDelete;
+         }
+      }
+   }
+   
+   // Returns true if the specific key exists in the table, false otherwise.
+   virtual bool Contains(const K& key) const override {
+      return Get(key) != nullptr;
+   }
+   
+   // Searches for the key, returning a pointer to the corresponding value if
+   // found, nullptr if not found.
+   virtual V* Get(const K& key) const override {
+      // Hash the key and compute the bucket index
+      int bucketIndex = this->Hash(key) % table.size();
+      
+      // Search the bucket's linked list for the key
+      ChainingHashTableItem<K,V>* item = table[bucketIndex];
+      while (item) {
+         if (key == item->key) {
+            return &item->value;
+         }
+         item = item->next;
+      }
+      
+      return nullptr; // key not found
+   }
+   
+   virtual int GetLength() const override {
+      int length = 0;
+      
+      // Loop through buckets
+      for (auto* bucket : table) {
+         ChainingHashTableItem<K,V>* item = bucket;
+         
+         // Loop through the bucket's linked list
+         while (item) {
+            // Increment the length
+            length++;
+            
+            // Advance to next item in the bucket's linked list
+            item = item->next;
+         }
+      }
+      
+      return length;
+   }
+   
+   // Inserts the specified key/value pair. If the key already exists, the 
+   // corresponding value is updated. If inserted or updated, true is returned. 
+   // If not inserted, then false is returned.
+   bool Insert(const K& key, const V& value) override {
+      // Hash the key to get the bucket index
+      int bucketIndex = this->Hash(key) % table.size();
+      
+      // Traverse the linked list, searching for the key. If the key exists in 
+      // an item, the value is replaced. Otherwise a new item is appended.
+      ChainingHashTableItem<K,V>* currentItem = table[bucketIndex];
+      ChainingHashTableItem<K,V>* previousItem = nullptr;
+      while (currentItem) {
+         if (key == currentItem->key) {
+            currentItem->value = value;
+            return true;
+         }
+         
+         previousItem = currentItem;
+         currentItem = currentItem->next;
+      }
+      
+      // Append to the linked list
+      if (table[bucketIndex] == nullptr) {
+         table[bucketIndex] = new ChainingHashTableItem(key, value);
+      }
+      else {
+         previousItem->next = new ChainingHashTableItem(key, value);
+      }
+      return true;
+   }
+   
+   // Searches for the specified key. If found, the key/value pair is removed 
+   // from the hash table and true is returned. If not found, false is returned.
+   bool Remove(const K& key) override {
+      // Hash the key and compute bucket index
+      int bucketIndex = this->Hash(key) % table.size();
+      
+      // Search the bucket's linked list for the key
+      ChainingHashTableItem<K,V>* currentItem = table[bucketIndex];
+      ChainingHashTableItem<K,V>* previousItem = nullptr;
+      while (currentItem) {
+         if (key == currentItem->key) {
+            if (previousItem == nullptr) {
+               // Remove linked list's first item
+               table[bucketIndex] = currentItem->next;
+            }
+            else {
+               previousItem->next = currentItem->next;
+            }
+            delete currentItem;
+            return true;
+         }
+         
+         previousItem = currentItem;
+         currentItem = currentItem->next;
+      }
+      
+      return false; // key not found
+   }
+   
+   // Prints all items in the table.
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& keyValueSeparator = ": ",
+      const std::string& itemSeparator = ", ",
+      const std::string& prefix = "",
+      const std::string& suffix = "") const override {
+      // Print the prefix first
+      printStream << prefix;
+      
+      // First item print will be a special case
+      bool printedFirstItem = false;
+      
+      // Loop through buckets
+      for (auto* bucket : table) {
+         ChainingHashTableItem<K,V>* item = bucket;
+         
+         // Loop through the bucket's linked list
+         while (item) {
+            if (printedFirstItem) {
+               // All items but first are preceded by the separator
+               printStream << itemSeparator;
+            }
+            else {
+               printedFirstItem = true;
+            }
+            
+            // Print the item's key and value with the separator between
+            printStream << item->key << keyValueSeparator << item->value;
+            
+            // Advance to next item in the bucket's linked list
+            item = item->next;
+         }
+      }
+      
+      // Print the suffix last
+      printStream << suffix;
+   }
+   
+   // Prints the hash table's data, including empty buckets.
+   void PrintTable(std::ostream& printStream) const {
+      for (int i = 0; i < table.size(); i++) {
+         printStream << i << ": ";
+         
+         if (table[i] == nullptr) {
+            printStream << "(empty)" << std::endl;
+         }
+         else {
+            ChainingHashTableItem<K,V>* item = table[i];
+            
+            // Print first item and move to next
+            printStream << item->key << ": " << item->value;
+            item = item->next;
+            
+            // Print remaining items, each preceded by "-->"
+            while (item) {
+               printStream << " --> " << item->key << ": " << item->value;
+               item = item->next;
+            }
+            printStream << std::endl;
+         }
+      }
+   }
+};
+
+#endif
+```
+
+**`main.cpp`** — inserts ten airport codes, prints every bucket, removes two keys, and reprints:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include "ChainingHashTable.h"
+using namespace std;
+
+int main() {
+   vector<string> keys = {
+      "LAX", "IAH", "IAD",
+      "ORD", "SFO", "DAL",
+      "NRT", "JFK", "YVR",
+      "LHR"
+   };
+   vector<string> values = {
+      "Los Angeles", "Houston", "Washington",
+      "Chicago", "San Francisco", "Dallas",
+      "Tokyo", "New York", "Vancouver",
+      "London"
+   };
+   
+   // Create a ChainingHashTable and add all items
+   ChainingHashTable<string,string> chaining;
+   for (int i = 0; i < (int) keys.size(); i++) {
+      chaining.Insert(keys[i], values[i]);
+   }
+   
+   // Print the table's buckets
+   cout << "Buckets:" << endl;
+   chaining.PrintTable(cout);
+
+   // Remove some items
+   cout << endl;
+   vector<string> keysToRemove = { "LAX", "ORD" };
+   for (const string& keyToRemove : keysToRemove) {
+      cout << "Removing \"" << keyToRemove << "\"" << endl;
+      chaining.Remove(keyToRemove);
+   }
+   
+   // Print again
+   cout << endl << "Buckets after removals:" << endl;
+   chaining.PrintTable(cout);
+      
+   return 0;
+}
+```
+
+---
+
 ### Choosing a good hash function
 
 - Make the table **larger** than the number of elements needed (space-vs-time tradeoff) to reduce collisions; best results when the table size is a **prime number**.
