@@ -1702,6 +1702,89 @@ Store(ItemType item)
 
 ---
 
+### The C++ `unordered_map` class
+
+The C++ standard library provides `unordered_map` (in `<unordered_map>`), which implements the map ADT with a **hash table** — so it's the built-in counterpart to the hand-written hash tables in the Hashing section below. It has template parameters for the key and value types:
+
+```cpp
+unordered_map<string, double> exMap;   // string keys, double values
+```
+
+**Common `unordered_map` functions.** Assume `exMap` starts as `{ "Toothpaste": 4.50, "Paper towels": 8.00 }`:
+
+| Member function | Usage / description | Example |
+|---|---|---|
+| `insert()` | Inserts a new item. The argument is a `pair`; `make_pair()` builds one. | `exMap.insert(make_pair("Milk", 5.25));` → adds `"Milk": 5.25` |
+| `erase()` | Removes an item. Takes an **iterator**, usually from `find()`. | `exMap.erase(exMap.find("Toothpaste"));` → removes `"Toothpaste"` |
+| `size()` | Returns the map's length. | `cout << exMap.size();` → `2` |
+| `count()` | Returns `1` if the key is present, `0` otherwise. | `exMap.count("Dental floss")` → `0`; `exMap.count("Toothpaste")` → `1` |
+| `operator[]` | Gets or sets the value for a key. | `exMap["Paper towels"]` reads `8`; `exMap["Paper towels"] = 7.00;` sets it |
+
+**Caution on `operator[]`.** Reading a key that doesn't exist with `[]` **inserts** it with a value-initialized value (e.g. `0.0` for `double`). Use `count()` (or `find()`) first when you only want to check for a key without creating it — which is exactly what the demo below does.
+
+**`main.cpp`** — inserts a few items, searches with `count()`, reads with `[]`, removes with `erase(find(...))`, then updates a value:
+
+```cpp
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+using namespace std;
+
+int main() {
+   // Create the unordered_map, add some items, and print the size
+   unordered_map<string, double> prices;
+   prices.insert(make_pair("Toothpaste", 4.50));
+   prices.insert(make_pair("Paper towels", 8.00));
+   prices.insert(make_pair("Hot sauce", 3.25));
+   cout << "Prices map has " << prices.size() << " items" << endl;
+   
+   // Declare an item to search for
+   string itemName = "Paper towels";
+   
+   // Search for the item using count()
+   cout << "Prices map contains \"" << itemName << "\"? ";
+   if (1 == prices.count(itemName)) {
+      cout << "Yes" << endl;
+      
+      // Get the item's price with the unordered_map's [] operator
+      double price = prices[itemName];
+      
+      // Print the price
+      cout << "Price of \"" << itemName << "\" is $";
+      cout << fixed << setprecision(2) << price << endl;
+   }
+   else {
+      cout << "No" << endl;
+   }
+   
+   // Remove "Paper towels"
+   cout << "Removing \"" << itemName << "\"" << endl;
+   prices.erase(prices.find(itemName));
+   
+   // Print new size and do a search for the removed item
+   cout << "Prices map has " << prices.size() << " items" << endl;
+   cout << "Prices map contains " << itemName << "? ";
+   cout << ((1 == prices.count(itemName)) ? "Yes" : "No") << endl;
+   
+   // Change item to "Toothpaste"
+   itemName = "Toothpaste";
+   
+   // Show the current price
+   cout << "Price of \"" << itemName << "\" (before update): $";
+   cout << prices[itemName] << endl;
+   
+   // Update the price and show again
+   prices[itemName] = 3.50;
+   cout << "Price of \"" << itemName << "\" (after update): $";
+   cout << prices[itemName] << endl;
+      
+   return 0;
+}
+```
+
+---
+
 ## 11.3 Hashing
 
 ### The goal: O(1) search
@@ -2453,6 +2536,307 @@ int main() {
    
    // Create a QuadraticProbingHashTable and add all items
    QuadraticProbingHashTable<string,string> table;
+   for (int i = 0; i < (int) keys.size(); i++) {
+      table.Insert(keys[i], values[i]);
+   }
+   
+   // Print the table's items
+   cout << "Items:" << endl;
+   table.Print(cout, ": ", "\n", "", "\n");
+   
+   // Print the table's buckets
+   cout << endl << "Buckets:" << endl;
+   table.PrintTable(cout);
+   
+   // Remove some items
+   cout << endl;
+   vector<string> keysToRemove = { "LAX", "ORD" };
+   for (const string& keyToRemove : keysToRemove) {
+      cout << "Removing \"" << keyToRemove << "\"" << endl;
+      table.Remove(keyToRemove);
+   }
+   
+   // Print again
+   cout << endl << "Buckets after removals:" << endl;
+   table.PrintTable(cout);
+      
+   return 0;
+}
+```
+
+---
+
+### zyBooks `DoubleHashingHashTable` — a self-contained implementation
+
+Another open-addressing map that shares the exact same skeleton as the linear- and quadratic-probing tables — same `MapADT` interface, same `OpenAddressingBucket` with its `EMPTY_SINCE_START` / `EMPTY_AFTER_REMOVAL` sentinels, same insert/search/remove structure. Once again only the **probe sequence** changes, and this time the step size is itself derived from the key with a **second hash function**.
+
+**The two hash functions.**
+
+- **`Hash`** is the usual primary hash: `std::hash<K>` masked with `& 0x7fffffff`.
+- **`Hash2`** is a *secondary* hash that produces the probe step:
+
+```cpp
+int Hash2(const K& key) const {
+   return 7 - Hash(key) % 7;
+}
+```
+
+The `7 - (… % 7)` form guarantees a result in `1..7` — crucially **never 0**, because a step of 0 would probe the same bucket forever. The `7` is a small prime constant; other prime constants can be swapped in.
+
+**The probe formula.** Every operation computes the index with:
+
+```cpp
+int bucketIndex = (hashCode + i * hashCode2) % table.size();
+```
+
+for `i = 0, 1, 2, …`. So the *starting* slot comes from `Hash`, and the *stride* between probes comes from `Hash2`. Because two keys that collide at the same starting slot almost always have **different** strides, double hashing avoids both the primary clustering of linear probing and the secondary clustering of quadratic probing — different colliding keys follow different probe paths rather than retracing the same sequence.
+
+**Coverage note.** As with the other open-addressing tables, reaching every bucket depends on the table size and the step values being compatible (ideally `table.size()` is prime and relatively prime to every possible stride). The default capacity is again `11`.
+
+**Shared headers.** `MapADT.h` and `OpenAddressingBucket.h` are the same files listed in the Linear Probing section above and are not repeated here. Only the addition of `Hash2` and the probe-index expression differ.
+
+**`DoubleHashingHashTable.h`** — note the second hash function and the `hashCode + i * hashCode2` stride:
+
+```cpp
+#ifndef DOUBLEHASHINGHASHTABLE_H
+#define DOUBLEHASHINGHASHTABLE_H
+
+#include <iostream>
+#include <vector>
+#include "MapADT.h"
+#include "OpenAddressingBucket.h"
+
+template <typename K, typename V>
+class DoubleHashingHashTable : public MapADT<K,V> {
+protected:
+   std::vector<OpenAddressingBucket<K,V>*> table;
+
+   // Returns a non-negative hash code for the specified key
+   int Hash(const K& key) const {
+      // The type must have a hash<K> class or struct defined in std namespace
+      std::hash<K> hashFunctionObject;
+      size_t keyHash = hashFunctionObject(key);
+      
+      // size_t is unsigned and likely more than 32 bits. Convert to int by 
+      // masking out the lowest 31 bits.
+      return (int)(keyHash & 0x7fffffff);
+   }
+
+   // The secondary hash function. Many different functions can
+   // be used here. The function used here is a common one, with
+   // different (usually prime number) constants used where the 7 is.
+   int Hash2(const K& key) const {
+      return 7 - Hash(key) % 7;
+   }
+
+public:
+   DoubleHashingHashTable(int initialCapacity = 11) {
+      table.resize(initialCapacity, &OpenAddressingBucket<K,V>::EMPTY_SINCE_START);
+   }
+   
+   virtual ~DoubleHashingHashTable() {
+      // Free all non-empty buckets
+      for (int i = 0; i < table.size(); i++) {
+         if (!table[i]->IsEmpty()) {
+            // Deleting the bucket calls OpenAddressingBucket's destructor, 
+            // which deallocates the bucket's key and value.
+            delete table[i];
+         }
+      }
+   }
+   
+   // Returns true if the specific key exists in the table, false otherwise.
+   virtual bool Contains(const K& key) const override {
+      return Get(key) != nullptr;
+   }
+   
+   // Searches for the key, returning a pointer to the corresponding value if
+   // found, nullptr if not found.
+   virtual V* Get(const K& key) const override {
+
+      // Get the key's hash codes
+      int hashCode = Hash(key);
+      int hashCode2 = Hash2(key);
+
+      for (int i = 0; i < table.size(); i++) {
+         int bucketIndex = (hashCode + i * hashCode2) % table.size();
+         
+         // An empty-since-start bucket implies the key is not in the table
+         if (table[bucketIndex]->IsEmptySinceStart()) {
+            return nullptr;
+         }
+         
+         if (!table[bucketIndex]->IsEmptyAfterRemoval()) {
+            // Check if the non-empty bucket has the key
+            if (key == *table[bucketIndex]->key) {
+               return table[bucketIndex]->value;
+            }
+         }
+      }
+
+      return nullptr; // key not found
+   }
+   
+   // Returns the number of items in the hash table.
+   virtual int GetLength() const override {
+      int length = 0;
+      for (auto* bucket : table) {
+         // Increment the length only if the bucket is not empty
+         if (!bucket->IsEmpty()) {
+            length++;
+         }
+      }
+      return length;
+   }
+   
+   // Inserts the specified key/value pair. If the key already exists, the 
+   // corresponding value is updated. If inserted or updated, true is returned. 
+   // If not inserted, then false is returned.
+   bool Insert(const K& key, const V& value) override {
+
+      // Get the key's hash codes
+      int hashCode = Hash(key);
+      int hashCode2 = Hash2(key);
+
+      // First search for the key in the table. If found, update bucket's value.
+      for (int i = 0; i < table.size(); i++) {
+         int bucketIndex = (hashCode + i * hashCode2) % table.size();
+         
+         // An empty-since-start bucket implies the key is not in the table
+         if (table[bucketIndex]->IsEmptySinceStart()) {
+            break;
+         }
+         
+         if (!table[bucketIndex]->IsEmptyAfterRemoval()) {
+            // Check if the non-empty bucket has the key
+            if (key == *table[bucketIndex]->key) {
+               // Update the value
+               delete table[bucketIndex]->value;
+               table[bucketIndex]->value = new V(value);
+               return true;
+            }
+         }
+      }
+      
+      // The key is not in the table, so insert into first empty bucket
+      for (int i = 0; i < table.size(); i++) {
+         int bucketIndex = (hashCode + i * hashCode2) % table.size();
+         if (table[bucketIndex]->IsEmpty()) {
+            table[bucketIndex] = new OpenAddressingBucket(key, value);
+            return true;
+         }
+      }
+      
+      return false; // no empty bucket found
+   }
+   
+   // Searches for the specified key. If found, the key/value pair is removed 
+   // from the hash table and true is returned. If not found, false is returned.
+   bool Remove(const K& key) override {
+
+      // Get the key's hash codes
+      int hashCode = Hash(key);
+      int hashCode2 = Hash2(key);
+
+      for (int i = 0; i < table.size(); i++) {
+         int bucketIndex = (hashCode + i * hashCode2) % table.size();
+         
+         // An empty-since-start bucket implies the key is not in the table
+         if (table[bucketIndex]->IsEmptySinceStart()) {
+            return false;
+         }
+         
+         if (!table[bucketIndex]->IsEmptyAfterRemoval()) {
+            // Check if the non-empty bucket has the key
+            if (key == *table[bucketIndex]->key) {
+               // Remove by deleting and setting the bucket to empty-after-removal
+               delete table[bucketIndex];
+               table[bucketIndex] = &OpenAddressingBucket<K,V>::EMPTY_AFTER_REMOVAL;
+               return true;
+            }
+         }
+      }
+
+      return false; // key not found
+   }
+   
+   // Prints all items in the map.
+   virtual void Print(std::ostream& printStream = std::cout,
+      const std::string& keyValueSeparator = ":",
+      const std::string& itemSeparator = ", ",
+      const std::string& prefix = "",
+      const std::string& suffix = "") const override {
+      // Print the prefix first
+      printStream << prefix;
+      
+      // First item print will be a special case
+      bool printedFirstItem = false;
+      
+      // Loop through buckets
+      for (auto* bucket : table) {
+         // Print only if non-empty
+         if (!bucket->IsEmpty()) {
+            if (printedFirstItem) {
+               // All items but first are preceded by the separator
+               printStream << itemSeparator;
+            }
+            else {
+               printedFirstItem = true;
+            }
+            printStream << *(bucket->key) << keyValueSeparator;
+            printStream << *(bucket->value);
+         }
+      }
+      
+      // Print the suffix last
+      printStream << suffix;
+   }
+   
+   void PrintTable(std::ostream& printStream) const {
+      for (int i = 0; i < table.size(); i++) {
+         printStream << i << ": ";
+         if (table[i]->IsEmptySinceStart()) {
+            printStream << "EMPTY_SINCE_START" << std::endl;
+         }
+         else if (table[i]->IsEmptyAfterRemoval()) {
+            printStream << "EMPTY_AFTER_REMOVAL" << std::endl;
+         }
+         else {
+            printStream << *table[i]->key << ", ";
+            printStream << *table[i]->value << std::endl;
+         }
+      }
+   }
+};
+
+#endif
+```
+
+**`main.cpp`** — same driver as the other open-addressing demos, constructing a `DoubleHashingHashTable`:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include "DoubleHashingHashTable.h"
+using namespace std;
+
+int main() {
+   vector<string> keys = {
+      "LAX", "IAH", "IAD",
+      "ORD", "SFO", "DAL",
+      "NRT", "JFK", "YVR",
+      "LHR"
+   };
+   vector<string> values = {
+      "Los Angeles", "Houston", "Washington",
+      "Chicago", "San Francisco", "Dallas",
+      "Tokyo", "New York", "Vancouver",
+      "London"
+   };
+   
+   // Create a DoubleHashingHashTable and add all items
+   DoubleHashingHashTable<string,string> table;
    for (int i = 0; i < (int) keys.size(); i++) {
       table.Insert(keys[i], values[i]);
    }
