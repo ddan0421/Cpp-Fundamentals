@@ -133,6 +133,123 @@ void SelectionSort(ItemType values[], int numValues)
 
 Doubling the array size roughly quadruples the number of comparisons.
 
+### zyBooks variant — inline "find smallest, then swap"
+
+zyBooks presents the same algorithm with a slightly different structure: instead
+of a separate `MinIndex` helper, the search for the smallest remaining element is
+inlined into the sort as a nested loop that tracks `indexSmallest`. A single swap
+is then performed per outer pass. This makes the "one element placed per pass"
+property of selection sort very explicit.
+
+**The selection sort:**
+
+```cpp
+void SelectionSort(int* numbers, int numbersSize, SortTracker& tracker) {
+   for (int i = 0; i < numbersSize - 1; i++) {
+      // Find index of smallest remaining element
+      int indexSmallest = i;
+      for (int j = i + 1; j < numbersSize; j++) {
+         if (tracker.IsFirstLTSecond(numbers, j, indexSmallest)) {
+            indexSmallest = j;
+         }
+      }
+
+      // Swap numbers[i] and numbers[indexSmallest]
+      tracker.Swap(numbers, i, indexSmallest);
+   }
+}
+```
+
+- Outer loop index `i` marks the boundary of the sorted portion; on pass `i` the
+  correct value for position `i` is found and swapped in.
+- Inner loop scans `numbers[i+1..numbersSize-1]`, updating `indexSmallest`
+  whenever a smaller element is found.
+- Exactly **one swap per outer pass** → `N − 1` swaps total, regardless of the
+  input order. (Note: it swaps even when `i == indexSmallest`, i.e., a "no-op"
+  swap when the element is already in place.)
+
+**Instrumenting with `SortTracker`:**
+
+zyBooks wraps the comparison and swap operations in a `SortTracker` object so the
+demo can report exactly how much work each sort performs. The tracker counts
+comparisons and swaps and encapsulates the raw operations:
+
+```cpp
+class SortTracker {
+private:
+   int comparisonCount;
+   int swapCount;
+
+public:
+   SortTracker() {
+      comparisonCount = 0;
+      swapCount = 0;
+   }
+
+   int GetComparisonCount() const { return comparisonCount; }
+   int GetSwapCount() const { return swapCount; }
+
+   // Returns true if array[index1] < array[index2]. Increments comparison count.
+   bool IsFirstLTSecond(const int* array, int index1, int index2) {
+      comparisonCount++;
+      return array[index1] < array[index2];
+   }
+
+   // Returns true if array[index1] <= array[index2]. Increments comparison count.
+   bool IsFirstLTESecond(const int* array, int index1, int index2) {
+      comparisonCount++;
+      return array[index1] <= array[index2];
+   }
+
+   // Swaps array[index1] and array[index2]. Increments swap count.
+   void Swap(int* array, int index1, int index2) {
+      swapCount++;
+      int temp = array[index1];
+      array[index1] = array[index2];
+      array[index2] = temp;
+   }
+};
+```
+
+**Demo driver:**
+
+```cpp
+void SelectionSortDemo(int* numbersArray, int arrayLength) {
+   cout << "Before sorting:    " << ArrayToString(numbersArray, arrayLength);
+   cout << endl;
+
+   SortTracker tracker;
+   SelectionSort(numbersArray, arrayLength, tracker);
+
+   cout << "After sorting:     " << ArrayToString(numbersArray, arrayLength);
+   cout << endl;
+   cout << "Total comparisons: " << tracker.GetComparisonCount() << endl;
+   cout << "Total swaps:       " << tracker.GetSwapCount() << endl;
+}
+```
+
+**What the tracker reveals — order-independence of selection sort:**
+
+Running the demo on three 9-element arrays (unsorted, ascending, descending)
+shows the defining trait of selection sort: the amount of work is the **same
+regardless of the input's initial order**.
+
+- Comparisons are always `N(N−1)/2 = 9·8/2 = 36` — the nested loop always scans
+  every remaining element, so there is **no early exit and no best case**.
+- Swaps are always `N − 1 = 8`, one per outer pass (including no-op swaps when an
+  element is already in place).
+
+| Input array (N = 9) | Comparisons | Swaps |
+|---------------------|-------------|-------|
+| Unsorted            | 36          | 8     |
+| Sorted ascending    | 36          | 8     |
+| Sorted descending   | 36          | 8     |
+
+> This confirms the earlier analysis: selection sort is **O(N²) in every case**,
+> because the arrangement of the values does not affect the number of comparisons
+> performed. Contrast this with `ShortBubble`/`InsertionSort`, which reach O(N) on
+> already-sorted data.
+
 ---
 
 ## 3. Bubble Sort
