@@ -1722,6 +1722,74 @@ unordered_map<string, double> exMap;   // string keys, double values
 
 **Caution on `operator[]`.** Reading a key that doesn't exist with `[]` **inserts** it with a value-initialized value (e.g. `0.0` for `double`). Use `count()` (or `find()`) first when you only want to check for a key without creating it — which is exactly what the demo below does.
 
+**Iterating an `unordered_map`.** A map is a collection of **key/value pairs**. In a range-based `for` loop, each element is a `pair` where `.first` is the key and `.second` is the value. Iteration order is **undefined** (unlike a sorted `map`) — if you need keys in order, collect them into a `vector` and call `std::sort`.
+
+*Single map — collect all keys.* A gradebook stores assignment names as keys:
+
+```cpp
+unordered_map<string, unordered_map<int, double>> assignment;
+
+vector<string> names;
+for (const auto& pair : assignment) {
+   names.push_back(pair.first);   // key = assignment name
+   // pair.second is the inner map (student ID → score)
+}
+sort(names.begin(), names.end());
+```
+
+*Nested map — walk outer keys, then inner keys.* Student IDs live in the **inner** maps, so collecting all distinct IDs requires a **nested** loop. Use an `unordered_set` to deduplicate — the same student appears in many assignments:
+
+```cpp
+unordered_set<int> studentIDSet;
+for (const auto& pair : assignment) {              // each assignment
+   for (const auto& studentEntry : pair.second) {  // each student in that assignment
+      studentIDSet.insert(studentEntry.first);    // key = student ID
+      // studentEntry.second is the score (double)
+   }
+}
+```
+
+*Nested map — filter by a specific inner key.* To get all scores for one student, loop every assignment and check whether that student has an entry:
+
+```cpp
+unordered_map<string, double> result;
+for (const auto& pair : assignment) {
+   for (const auto& studentEntry : pair.second) {
+      if (studentEntry.first == studentID) {
+         result[pair.first] = studentEntry.second;  // assignment name → score
+      }
+   }
+}
+```
+
+The same lookup can be written without an inner loop by testing the inner map directly:
+
+```cpp
+for (const auto& pair : assignment) {
+   if (pair.second.count(studentID) == 1) {
+      result[pair.first] = pair.second.at(studentID);
+   }
+}
+```
+
+*Lookup vs. insert — `count()` vs. `operator[]`.*
+
+| Goal | Use |
+|---|---|
+| Read only if key exists (don't create entries) | `map.count(key) == 1`, then read with `map[key]` or `map.at(key)` |
+| Insert or update | `map[key] = value` — creates the entry if missing |
+
+`GetScore()` must return `NAN` when an entry is missing, so it checks with `count()` before reading. `SetScore()` always wants to create or overwrite, so a single `assignment[assignmentName][studentID] = score` is enough.
+
+*C++17 alternative — structured bindings.* Instead of `pair.first` / `pair.second`, you can write:
+
+```cpp
+for (const auto& [assignmentName, studentMap] : assignment) { ... }
+for (const auto& [studentID, score] : studentMap) { ... }
+```
+
+Same logic; `assignmentName` is just a shorter name for `pair.first`.
+
 **`main.cpp`** — inserts a few items, searches with `count()`, reads with `[]`, removes with `erase(find(...))`, then updates a value:
 
 ```cpp
