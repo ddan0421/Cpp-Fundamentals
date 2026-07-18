@@ -405,6 +405,81 @@ void InsertionSort(ItemType values[], int numValues)
 - Reading items from a file and inserting into a sorted list is a variation on
   insertion sort.
 
+### zyBooks variant — swap-based insertion
+
+zyBooks presents insertion sort as a swap-driven algorithm rather than the
+"shift-then-drop" version. The outer loop walks `i` from `1` to the end; the inner
+`while` loop walks `numbers[i]` **backward** through the sorted portion, swapping
+it with its left neighbor as long as it is smaller. This mirrors the textbook's
+`InsertItem` but expresses the descent as an inline loop with the same
+`SortTracker` instrumentation used for the selection-sort demo.
+
+**The insertion sort:**
+
+```cpp
+void InsertionSort(int* numbers, int numbersSize, SortTracker& tracker) {
+   for (int i = 1; i < numbersSize; i++) {
+      int j = i;
+      while (j > 0 && tracker.IsFirstLTSecond(numbers, j, j - 1)) {
+         // Swap numbers[j] and numbers[j - 1]
+         tracker.Swap(numbers, j, j - 1);
+
+         // Decrement j in preparation for next comparison
+         j--;
+      }
+   }
+}
+```
+
+- The `j > 0` guard is checked **before** the comparison, so reaching the front of
+  the array short-circuits and costs no extra comparison.
+- Each backward step performs exactly one comparison **and** one swap, so for this
+  variant the swap count equals the number of "out of order" comparisons.
+- Unlike selection sort, the work depends heavily on the input order: an element
+  already in place ends the inner loop after a single comparison.
+
+**Demo driver** (same `SortTracker` and `ArrayToString` helpers as the
+selection-sort demo):
+
+```cpp
+void InsertionSortDemo(int* numbersArray, int arrayLength) {
+   cout << "Before sorting:    " << ArrayToString(numbersArray, arrayLength);
+   cout << endl;
+
+   SortTracker tracker;
+   InsertionSort(numbersArray, arrayLength, tracker);
+
+   cout << "After sorting:     " << ArrayToString(numbersArray, arrayLength);
+   cout << endl;
+   cout << "Total comparisons: " << tracker.GetComparisonCount() << endl;
+   cout << "Total swaps:       " << tracker.GetSwapCount() << endl;
+}
+```
+
+**What the tracker reveals — order sensitivity of insertion sort:**
+
+Running the demo on the same three 9-element arrays makes the best/average/worst
+cases visible in the counts:
+
+| Input array (N = 9) | Comparisons | Swaps |
+|---------------------|-------------|-------|
+| Unsorted            | 28          | 22    |
+| Sorted ascending    | 8           | 0     |
+| Sorted descending   | 36          | 36    |
+
+- **Sorted ascending (best case):** only `N − 1 = 8` comparisons and **zero
+  swaps** — each element is already ≥ its predecessor, so every inner loop exits
+  after one comparison. This is the **O(N)** best case.
+- **Sorted descending (worst case):** every element must travel all the way to the
+  front, giving `1 + 2 + … + (N−1) = N(N−1)/2 = 36` comparisons and 36 swaps —
+  the **O(N²)** worst case.
+- **Unsorted (average case):** falls between the two extremes.
+
+> Compare this with the selection-sort demo, where all three inputs produced 36
+> comparisons and 8 swaps. Insertion sort does **less work on nearly-sorted data**,
+> which is exactly why it (and `ShortBubble`) beat selection sort when the input is
+> already close to order.
+
 > `SelectionSort`, `ShortBubble`, and `InsertionSort` are all O(N²) — too
 > time-consuming for large arrays. We need better methods when N is large.
 
