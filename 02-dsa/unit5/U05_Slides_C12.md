@@ -1315,6 +1315,148 @@ or 0–51 (case-sensitive).
   and a **linked list**, values can be moved by changing pointers, so no extra
   copy is needed — improving both time and space.
 
+### zyBooks variant — LSD radix sort with vectors and negative support
+
+zyBooks presents a self-contained radix sort for **plain `int`s** (no `SubKey`
+member and no `SortTracker`). It differs from the Dale version in several
+practical ways:
+
+1. **`vector` buckets instead of queues:** 10 `vector<int>` buckets grow
+   dynamically via `push_back`, and are emptied with `clear()` after each pass.
+2. **Dynamic pass count:** rather than a fixed `numPositions`, it scans the data
+   for the **maximum digit length** and runs exactly that many passes.
+3. **Least-significant-digit (LSD) first:** it processes the ones digit, then
+   tens, then hundreds — using `pow10` (`1, 10, 100, …`) and `(abs(num) / pow10) %
+   10` to extract each digit.
+4. **Negative-number handling:** it sorts on the **absolute value**, then splits
+   the result into negatives and non-negatives, writing the negatives back **in
+   reverse** followed by the non-negatives.
+
+**Digit-length helpers:**
+
+```cpp
+// Returns the length, in number of digits, of an integer value
+int RadixGetLength(int value) {
+   if (value == 0) {
+      return 1;
+   }
+   int digits = 0;
+   while (value != 0) {
+      digits++;
+      value /= 10;
+   }
+   return digits;
+}
+
+// Returns the maximum length, in number of digits, out of all array elements
+int RadixGetMaxLength(const int* numbers, int numbersSize) {
+   int maxDigits = 0;
+   for (int i = 0; i < numbersSize; i++) {
+      int digitCount = RadixGetLength(numbers[i]);
+      if (digitCount > maxDigits) {
+         maxDigits = digitCount;
+      }
+   }
+   return maxDigits;
+}
+```
+
+**The sort:**
+
+```cpp
+void RadixSort(int* numbers, int numbersSize) {
+   vector<vector<int>> buckets(10);
+   int copyBackIndex;
+
+   // Find the max length, in number of digits
+   int maxDigits = RadixGetMaxLength(numbers, numbersSize);
+
+   int pow10 = 1;
+   for (int digitIndex = 0; digitIndex < maxDigits; digitIndex++) {
+      // Put numbers into buckets by the current digit (of the absolute value)
+      for (int i = 0; i < numbersSize; i++) {
+         int num = numbers[i];
+         int bucketIndex = (abs(num) / pow10) % 10;
+         buckets[bucketIndex].push_back(num);
+      }
+
+      // Copy buckets back into numbers array (0..9 preserves order = stable)
+      copyBackIndex = 0;
+      for (int i = 0; i < 10; i++) {
+         vector<int>& bucket = buckets[i];
+         for (int j = 0; j < bucket.size(); j++) {
+            numbers[copyBackIndex] = bucket[j];
+            copyBackIndex++;
+         }
+         bucket.clear();
+      }
+      pow10 *= 10;
+   }
+
+   // Separate negatives from non-negatives (both still in abs-value order)
+   vector<int> negatives;
+   vector<int> nonNegatives;
+   for (int i = 0; i < numbersSize; i++) {
+      int num = numbers[i];
+      if (num < 0) {
+         negatives.push_back(num);
+      }
+      else {
+         nonNegatives.push_back(num);
+      }
+   }
+
+   // Negatives in reverse (largest magnitude first), then non-negatives
+   copyBackIndex = 0;
+   for (int i = negatives.size() - 1; i >= 0; i--) {
+      numbers[copyBackIndex] = negatives[i];
+      copyBackIndex++;
+   }
+   for (int i = 0; i < nonNegatives.size(); i++) {
+      numbers[copyBackIndex] = nonNegatives[i];
+      copyBackIndex++;
+   }
+}
+```
+
+**Why reversing the negatives works:**
+
+Because the digit passes sort by **magnitude** (absolute value), after the last
+pass the negatives are ordered smallest-magnitude → largest-magnitude (e.g.
+`-5, -9, -11, -99, -999`). Reversing them yields largest-magnitude first
+(`-999, -99, -11, -9, -5`), which is exactly **ascending order** for negative
+numbers. The non-negatives are already ascending, so concatenating gives a fully
+sorted array.
+
+**Demo output** (mixed positive/negative input):
+
+```
+Unsorted: [-9, 47, 81, 101, -5, 38, -99, 96, 51, -999, -11, 64]
+Sorted:   [-999, -99, -11, -9, -5, 38, 47, 51, 64, 81, 96, 101]
+```
+
+**Trace of the three digit passes** (bucketed by ones, then tens, then hundreds of
+the absolute value):
+
+```
+Start:      [-9, 47, 81, 101, -5, 38, -99, 96, 51, -999, -11, 64]
+After ones: [81, 101, 51, -11, 64, -5, 96, 47, 38, -9, -99, -999]
+After tens: [101, -5, -9, -11, 38, 47, 51, 64, 81, 96, -99, -999]
+After 100s: [-5, -9, -11, 38, 47, 51, 64, 81, 96, -99, 101, -999]
+Split/rev:  [-999, -99, -11, -9, -5, 38, 47, 51, 64, 81, 96, 101]
+```
+
+**Analyzing this variant:**
+
+- Still **O(N·P)** ≈ **O(N)** where `P` is the max number of digits — here
+  determined automatically by `RadixGetMaxLength`.
+- **Stable:** copying buckets back in index order `0..9` preserves the relative
+  order of equal digits, which is what makes LSD radix sort correct.
+- Uses **O(N)** extra space for the bucket vectors (plus the negative/non-negative
+  split vectors).
+- The negative-handling step is an O(N) post-process, so it does not change the
+  overall complexity.
+
 ---
 
 ## 13. Parallel Merge Sort
