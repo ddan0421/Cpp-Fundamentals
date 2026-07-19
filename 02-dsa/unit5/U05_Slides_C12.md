@@ -829,6 +829,116 @@ void Split(ItemType values[], int first, int last, int& splitPoint)
 - Additional memory: **O(log₂N)** on average (recursion stack), up to **O(N)** in
   the worst case.
 
+### zyBooks variant — middle pivot & two-index partition
+
+zyBooks presents quick sort with two notable differences from the Dale version
+above:
+
+1. **Pivot choice:** the **middle** element `numbers[low + (high − low)/2]` is used
+   as the pivot (not `values[first]`). This is exactly the fix recommended in the
+   analysis above, and it makes the algorithm behave well on already-sorted data.
+2. **Partition scheme:** instead of saving the pivot into a hole, two indices
+   (`lowIndex`, `highIndex`) move toward each other, swapping out-of-place pairs
+   until they cross. The function returns the last index of the **left** partition
+   (a Hoare-style partition), and the pivot value is *not* guaranteed to land at a
+   fixed split point.
+
+**The partition:**
+
+```cpp
+int Partition(int* numbers, int lowIndex, int highIndex, SortTracker& tracker) {
+   // Pick middle element as the pivot
+   int midpoint = lowIndex + (highIndex - lowIndex) / 2;
+   int pivot = numbers[midpoint];
+
+   bool done = false;
+   while (!done) {
+      // Increment lowIndex while numbers[lowIndex] < pivot
+      while (tracker.IsLT(numbers[lowIndex], pivot)) {
+         lowIndex++;
+      }
+
+      // Decrement highIndex while pivot < numbers[highIndex]
+      while (tracker.IsLT(pivot, numbers[highIndex])) {
+         highIndex--;
+      }
+
+      // If lowIndex and highIndex have met or crossed, partitioning is done
+      if (lowIndex >= highIndex) {
+         done = true;
+      }
+      else {
+         // Swap array elements at lowIndex and highIndex
+         tracker.Swap(numbers, lowIndex, highIndex);
+         lowIndex++;
+         highIndex--;
+      }
+   }
+
+   // highIndex is the last index in the left partition
+   return highIndex;
+}
+```
+
+**The recursive sort:**
+
+Note the base case is `highIndex <= lowIndex` (a segment of 0 or 1 element), and
+the two recursive calls use `lowEndIndex` and `lowEndIndex + 1` as the boundary —
+the pivot is **not** excluded from the recursion the way it is in Dale's
+`splitPoint ± 1` version.
+
+```cpp
+void Quicksort(int* numbers, int lowIndex, int highIndex, SortTracker& tracker) {
+   // Only sort if at least 2 elements exist
+   if (highIndex <= lowIndex) {
+      return;
+   }
+
+   // Partition the array
+   int lowEndIndex = Partition(numbers, lowIndex, highIndex, tracker);
+
+   // Recursively sort the left partition
+   Quicksort(numbers, lowIndex, lowEndIndex, tracker);
+
+   // Recursively sort the right partition
+   Quicksort(numbers, lowEndIndex + 1, highIndex, tracker);
+}
+```
+
+> This demo's `SortTracker` compares **values** via `IsLT(a, b)` (rather than the
+> index-based `IsFirstLTSecond` used by the selection/insertion demos) and, like
+> the shell-sort demo, provides a `PrintArray` helper.
+
+**Demo output — unsorted array `{33, 18, 78, 64, 45, 32, 70, 11, 27}`:**
+
+```
+Before sorting:    [33, 18, 78, 64, 45, 32, 70, 11, 27]
+After  sorting:    [11, 18, 27, 32, 33, 45, 64, 70, 78]
+Total comparisons: 39
+Total swaps:       6
+```
+
+**What the tracker reveals — the middle pivot fixes the sorted-data problem:**
+
+| Input array (N = 9) | Comparisons | Swaps |
+|---------------------|-------------|-------|
+| Unsorted            | 39          | 6     |
+| Sorted ascending    | 37          | 0     |
+| Sorted descending   | 37          | 4     |
+
+- **Sorted ascending / descending are the good case here, not the bad case.**
+  Because the middle element of a (reverse-)sorted range is the true median, every
+  partition splits evenly → balanced **O(N log₂N)** recursion. Contrast this with
+  Dale's first-element pivot, which degrades to O(N²) on sorted input.
+- Ascending needs **0 swaps** (already partitioned correctly at every level);
+  descending needs a few swaps to reverse pairs around each median.
+- The counts stay close across all three inputs — a hallmark of a well-chosen
+  pivot.
+
+**Analysis note:** worst case is still **O(N²)** (an adversarial input can force
+lopsided splits even with a middle pivot), but for typical and sorted data this
+variant performs at its **O(N log₂N)** best.
+
 ---
 
 ## 9. Heap Sort
