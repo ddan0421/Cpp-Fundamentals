@@ -13,15 +13,16 @@
 2. [Straight Selection Sort](#2-straight-selection-sort)
 3. [Bubble Sort](#3-bubble-sort)
 4. [Insertion Sort](#4-insertion-sort)
-5. [O(N log₂N) Sorts](#5-on-log₂n-sorts)
-6. [Merge Sort](#6-merge-sort)
-7. [Quick Sort](#7-quick-sort)
-8. [Heap Sort](#8-heap-sort)
-9. [Efficiency & Other Considerations](#9-efficiency--other-considerations)
-10. [Keys, Stability, Pointers, and Caching](#10-keys-stability-pointers-and-caching)
-11. [Radix Sort](#11-radix-sort)
-12. [Parallel Merge Sort](#12-parallel-merge-sort)
-13. [Summary Comparison Table](#13-summary-comparison-table)
+5. [Shell Sort](#5-shell-sort)
+6. [O(N log₂N) Sorts](#6-on-log₂n-sorts)
+7. [Merge Sort](#7-merge-sort)
+8. [Quick Sort](#8-quick-sort)
+9. [Heap Sort](#9-heap-sort)
+10. [Efficiency & Other Considerations](#10-efficiency--other-considerations)
+11. [Keys, Stability, Pointers, and Caching](#11-keys-stability-pointers-and-caching)
+12. [Radix Sort](#12-radix-sort)
+13. [Parallel Merge Sort](#13-parallel-merge-sort)
+14. [Summary Comparison Table](#14-summary-comparison-table)
 
 ---
 
@@ -485,7 +486,149 @@ cases visible in the counts:
 
 ---
 
-## 5. O(N log₂N) Sorts
+## 5. Shell Sort
+
+Shell sort (zyBooks) is a clever generalization of insertion sort. Plain
+insertion sort only ever swaps **adjacent** elements, so an item that is far from
+its final position must be moved one step at a time. Shell sort speeds this up by
+first sorting elements that are far apart (a large **gap**), then progressively
+shrinking the gap until a final pass with `gap = 1` — which is just an ordinary
+insertion sort, but now operating on data that is already **almost** sorted (its
+best case).
+
+**Key idea — interleaved (gapped) sublists:**
+
+For a given `gap`, the array is treated as several interleaved sublists, each
+containing every `gap`-th element. Each sublist is insertion-sorted independently.
+For example, with `gap = 4` on a 9-element array, the sublists start at indices
+`0, 1, 2, 3`, and the start-0 sublist is `{values[0], values[4], values[8]}`.
+
+### Insertion sort on one interleaved sublist
+
+This is insertion sort with the step size changed from `1` to `gap`. It also
+returns how many swaps it performed (via `SortTracker`) so the demo can report
+per-gap work.
+
+```cpp
+int InsertionSortInterleaved(int* numbers, int numbersSize, int startIndex,
+   int gap, SortTracker& tracker) {
+   int swapsBefore = tracker.GetSwapCount();
+
+   for (int i = startIndex + gap; i < numbersSize; i += gap) {
+      int j = i;
+      while (j - gap >= startIndex &&
+         tracker.IsFirstLTSecond(numbers, j, j - gap)) {
+         // Swap numbers[j] and numbers[j - gap]
+         tracker.Swap(numbers, j, j - gap);
+
+         // Decrease j in preparation for next comparison
+         j -= gap;
+      }
+   }
+
+   // Return the number of swaps that occurred during this function call
+   return tracker.GetSwapCount() - swapsBefore;
+}
+```
+
+### The Shell sort driver
+
+For each gap value, every interleaved sublist (`startIndex` from `0` to
+`gap − 1`) is sorted. After each gap pass, the demo prints the array and the
+number of swaps performed at that gap.
+
+```cpp
+int ShellSort(int* numbers, int numbersSize, int* gapValues, int gapValuesSize,
+   SortTracker& tracker) {
+   int totalSwaps = 0;
+   for (int g = 0; g < gapValuesSize; g++) {
+      int swapsForGap = 0;
+      for (int i = 0; i < gapValues[g]; i++) {
+         swapsForGap += InsertionSortInterleaved(numbers, numbersSize, i,
+            gapValues[g], tracker);
+      }
+      tracker.PrintArray(numbers, numbersSize, cout, ", ",
+         "                   [", "]");
+      cout << " (after " << swapsForGap;
+      cout << " swap" << (swapsForGap == 1 ? "" : "s") << " with gap=";
+      cout << gapValues[g] << ")" << endl;
+      totalSwaps += swapsForGap;
+   }
+   return totalSwaps;
+}
+```
+
+> This demo's `SortTracker` adds a `PrintArray` helper (not present in the earlier
+> selection/insertion demos) that prints the array with a caller-supplied
+> separator, prefix, and suffix — used both for the "Before/After" lines and the
+> per-gap trace lines.
+
+The demo drives the sort with the gap sequence `{4, 2, 1}`:
+
+```cpp
+void ShellSortDemo(int* numbersArray, int arrayLength) {
+   SortTracker tracker;
+   int gapValues[] = { 4, 2, 1 };
+   int gapValuesLength = sizeof(gapValues) / sizeof(gapValues[0]);
+
+   tracker.PrintArray(numbersArray, arrayLength, cout, ", ",
+      "Before sorting:    [", "]\n");
+
+   ShellSort(numbersArray, arrayLength, gapValues, gapValuesLength, tracker);
+
+   tracker.PrintArray(numbersArray, arrayLength, cout, ", ",
+      "After sorting:     [", "]\n");
+
+   cout << "Total comparisons: " << tracker.GetComparisonCount() << endl;
+   cout << "Total swaps:       " << tracker.GetSwapCount() << endl;
+}
+```
+
+**Trace — unsorted array `{33, 18, 78, 64, 45, 32, 70, 11, 27}`:**
+
+Watch how large-gap passes move elements a long way with only a few swaps, so the
+final `gap = 1` pass has very little left to do:
+
+```
+Before sorting:    [33, 18, 78, 64, 45, 32, 70, 11, 27]
+                   [27, 18, 70, 11, 33, 32, 78, 64, 45] (after 4 swaps with gap=4)
+                   [27, 11, 33, 18, 45, 32, 70, 64, 78] (after 4 swaps with gap=2)
+                   [11, 18, 27, 32, 33, 45, 64, 70, 78] (after 6 swaps with gap=1)
+After sorting:     [11, 18, 27, 32, 33, 45, 64, 70, 78]
+```
+
+**What the tracker reveals across the three demo arrays:**
+
+| Input array (N = 9) | Comparisons | Swaps |
+|---------------------|-------------|-------|
+| Unsorted            | 29          | 14    |
+| Sorted ascending    | 20          | 0     |
+| Sorted descending   | 22          | 8     |
+
+- **Sorted ascending:** 0 swaps — every gapped comparison is already in order —
+  though the gapped passes still make 20 comparisons verifying it.
+- **Sorted descending:** the large gaps efficiently shuttle the reversed elements
+  into place; here the array was already fully sorted after the `gap = 2` pass, so
+  the `gap = 1` pass did 0 swaps.
+- Compared with the plain insertion-sort demo (which needed 36 comparisons / 36
+  swaps on the descending array), Shell sort's gapped passes drastically cut the
+  swap count.
+
+**Analyzing Shell Sort:**
+
+- The gap sequence `{4, 2, 1}` used here is the simple "halving" sequence. The
+  final gap **must be 1** to guarantee a fully sorted result.
+- Performance depends heavily on the chosen gap sequence. The naive halving
+  sequence is roughly **O(N²)** in the worst case, but better sequences (e.g.,
+  Hibbard's, or Knuth's `3k + 1`) achieve about **O(N^1.5)** or better in practice.
+- Like insertion sort, it is **in place** (**O(1)** extra space) and adaptive —
+  nearly-sorted data needs little work.
+- Shell sort is generally **not stable**, because equal elements can be moved past
+  each other across different gapped sublists.
+
+---
+
+## 6. O(N log₂N) Sorts
 
 Sorting a whole array with the previous methods is O(N²). Note that N² is much
 larger than `(N/2)² + (N/2)²`. If we could cut the array into two pieces, sort
@@ -508,7 +651,7 @@ chapter adds **Merge Sort** and **Heap Sort**.
 
 ---
 
-## 6. Merge Sort
+## 7. Merge Sort
 
 **Algorithm:**
 
@@ -603,7 +746,7 @@ The initial call is `MergeSort(values, 0, numValues - 1, tempArray)`.
 
 ---
 
-## 7. Quick Sort
+## 8. Quick Sort
 
 Quick Sort (first seen in Chapter 7) is another recursive divide-and-conquer
 sort:
@@ -688,7 +831,7 @@ void Split(ItemType values[], int first, int last, int& splitPoint)
 
 ---
 
-## 8. Heap Sort
+## 9. Heap Sort
 
 Heap Sort (first seen in Chapter 9) turns the array into a **heap**, then
 repeatedly places the root (the largest value) at the last unsorted slot of the
@@ -763,7 +906,7 @@ void HeapSort(ItemType values[], int numValues)
 
 ---
 
-## 9. Efficiency & Other Considerations
+## 10. Efficiency & Other Considerations
 
 Efficiency is not the only thing to consider when choosing a sort. Big-O ignores
 constants and lower-order terms, and in some situations O(N²) may grow slower
@@ -802,7 +945,7 @@ than O(N log₂N).
 
 ---
 
-## 10. Keys, Stability, Pointers, and Caching
+## 11. Keys, Stability, Pointers, and Caching
 
 ### Keys and stability
 
@@ -873,7 +1016,7 @@ sorted on multiple keys via multiple auxiliary pointer arrays.
 
 ---
 
-## 11. Radix Sort
+## 12. Radix Sort
 
 Radix sort is **not** a comparison sort — it does not compare items against each
 other. Instead, it considers each position in the key and groups keys by their
@@ -961,7 +1104,7 @@ or 0–51 (case-sensitive).
 
 ---
 
-## 12. Parallel Merge Sort
+## 13. Parallel Merge Sort
 
 Sometimes O(N log₂N) just isn't fast enough. **Parallel processing** performs
 multiple operations simultaneously (unlike serial/sequential processing). Merge
@@ -1130,7 +1273,7 @@ implemented correctly.
 
 ---
 
-## 13. Summary Comparison Table
+## 14. Summary Comparison Table
 
 | Algorithm       | Best Case  | Average / Worst Case | Extra Space | Stable?           | Notes |
 |-----------------|------------|----------------------|-------------|-------------------|-------|
@@ -1138,6 +1281,7 @@ implemented correctly.
 | Bubble Sort     | O(N²)      | O(N²)                | O(1)        | Impl. dependent   | Many swaps; cache-friendly (adjacent) |
 | ShortBubble     | **O(N)**   | O(N²)                | O(1)        | Impl. dependent   | Stops early if already sorted |
 | Insertion Sort  | **O(N)**   | O(N²)                | O(1)        | Impl. dependent   | Good for nearly-sorted data |
+| Shell Sort      | O(N log₂N) | ~O(N^1.5) (gap-dependent) | O(1)   | **No (unstable)** | Gapped insertion sort; final gap must be 1 |
 | Merge Sort      | O(N log₂N) | O(N log₂N)           | **O(N)**    | Yes (as coded)    | Predictable; needs aux array |
 | Quick Sort      | O(N log₂N) | O(N log₂N) / **O(N²)** | O(log₂N)–O(N) | Impl. dependent | Fast in practice; bad on sorted data w/ first-element pivot |
 | Heap Sort       | O(N log₂N) | O(N log₂N)           | O(1)        | **No (unstable)** | In place; order-independent; high small-N overhead |
