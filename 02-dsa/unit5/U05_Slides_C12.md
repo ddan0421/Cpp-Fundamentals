@@ -22,7 +22,8 @@
 11. [Keys, Stability, Pointers, and Caching](#11-keys-stability-pointers-and-caching)
 12. [Radix Sort](#12-radix-sort)
 13. [Parallel Merge Sort](#13-parallel-merge-sort)
-14. [Summary Comparison Table](#14-summary-comparison-table)
+14. [Sorting in Practice: `std::sort`](#14-sorting-in-practice-stdsort)
+15. [Summary Comparison Table](#15-summary-comparison-table)
 
 ---
 
@@ -1628,7 +1629,252 @@ implemented correctly.
 
 ---
 
-## 14. Summary Comparison Table
+## 14. Sorting in Practice: `std::sort`
+
+In real code you rarely hand-write a sort. The C++ Standard Library provides
+`std::sort` in `<algorithm>`, a highly optimized, well-tested general-purpose
+sort. Most implementations use **introsort** — a hybrid that starts with quick
+sort, switches to **heap sort** if the recursion gets too deep (guaranteeing an
+**O(N log₂N)** worst case, unlike a naive quick sort), and finishes small
+subranges with **insertion sort**.
+
+**Basic usage** — pass a pair of iterators marking the range `[first, last)`:
+
+```cpp
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+vector<int> integers = { 3, 7, 2, 8, 12, 4, 9, 5 };
+sort(integers.begin(), integers.end());   // ascending, uses operator<
+```
+
+`std::sort` works on any type whose values support `operator<`, so built-in and
+standard types work with no extra effort:
+
+```
+Unsorted vector: [3, 7, 2, 8, 12, 4, 9, 5]
+Sorted vector:   [2, 3, 4, 5, 7, 8, 9, 12]
+
+Unsorted vector: [71.2, 63.4, 99.9, 33, 84.75]
+Sorted vector:   [33, 63.4, 71.2, 84.75, 99.9]
+
+Unsorted vector: [grape, banana, apple, strawberry, blueberry]
+Sorted vector:   [apple, banana, blueberry, grape, strawberry]
+```
+
+> `std::sort` requires **random-access iterators**, so it works on `vector`,
+> `array`, `deque`, and raw arrays — but **not** on `std::list` (which provides its
+> own `list::sort` member). It sorts **in place**.
+
+### Sorting a user-defined type
+
+A `vector` of a user-defined `struct`/`class` can be sorted with `std::sort`
+**provided the type overloads `operator<`**. The comparison you write in
+`operator<` determines the sort key. Here `InventoryItem` compares by `name`:
+
+```cpp
+class InventoryItem {
+public:
+   std::string name;
+   double price;
+   int numberInStock;
+
+   InventoryItem(const std::string& itemName, double itemPrice, int stock) {
+      name = itemName;
+      price = itemPrice;
+      numberInStock = stock;
+   }
+
+   // Defines the sort order: compare items by name
+   bool operator<(const InventoryItem& rhs) const {
+      return name < rhs.name;
+   }
+
+   std::string ToString() const {
+      std::ostringstream stream;
+      stream << std::fixed << std::setprecision(2);
+      stream << name << " - $" << price << " (" << numberInStock << " in stock)";
+      return stream.str();
+   }
+};
+```
+
+With `operator<` defined, sorting is identical to the built-in-type case:
+
+```cpp
+vector<InventoryItem> items;
+items.push_back(InventoryItem("Toothpaste", 5.00, 250));
+items.push_back(InventoryItem("Toothbrush", 7.00, 500));
+items.push_back(InventoryItem("Gum", 1.50, 100));
+items.push_back(InventoryItem("Mints", 2.50, 50));
+items.push_back(InventoryItem("Kettle chips", 3.00, 40));
+
+sort(items.begin(), items.end());   // sorts by name via operator<
+```
+
+Output (sorted alphabetically by `name`):
+
+```
+Vector sorted by item name:
+Gum - $1.50 (100 in stock)
+Kettle chips - $3.00 (40 in stock)
+Mints - $2.50 (50 in stock)
+Toothbrush - $7.00 (500 in stock)
+Toothpaste - $5.00 (250 in stock)
+```
+
+> **Flipping the comparison reverses the order.** `std::sort` always arranges
+> elements so that "less than" ones come first. Changing `<` to `>` in
+> `operator<` makes `std::sort` see names coming **later** in the alphabet as
+> *less than* names that come sooner — so the sort becomes **descending by name**:
+>
+> ```cpp
+> bool operator<(const InventoryItem& rhs) const {
+>    return name > rhs.name;   // later-in-alphabet counts as "less" → descending
+> }
+> ```
+>
+> ```
+> Vector sorted by item name:
+> Toothpaste - $5.00 (250 in stock)
+> Toothbrush - $7.00 (500 in stock)
+> Mints - $2.50 (50 in stock)
+> Kettle chips - $3.00 (40 in stock)
+> Gum - $1.50 (100 in stock)
+> ```
+
+### Sorting using a comparison function
+
+`std::sort` has an optional **third parameter**: a comparison function. It takes
+two parameters, each an array element, and returns `true` if the first element
+should be treated as **less than** the second, otherwise `false`.
+
+A comparison function lets you sort by **any** field, independent of the type's
+`operator<`. For example, `InventoryItem`'s `operator<` only compares by name, but
+comparison functions can sort by **price** or **number in stock** instead. And,
+just like flipping `<` to `>` in `operator<`, a comparison function can produce a
+**descending** sort by returning `true` when the first element is *greater than*
+the second.
+
+```cpp
+#include <algorithm>
+#include <vector>
+#include "InventoryItem.h"
+using namespace std;
+
+bool PriceAsc(const InventoryItem& a, const InventoryItem& b) {
+   return a.price < b.price;          // ascending by price
+}
+
+bool StockDesc(const InventoryItem& a, const InventoryItem& b) {
+   return a.numberInStock > b.numberInStock;   // descending by stock (note >)
+}
+```
+
+Pass the function name as the third argument (no parentheses):
+
+```cpp
+// Copy first so each sort starts from the same unsorted state
+vector<InventoryItem> items2(items1);
+
+sort(items1.begin(), items1.end(), PriceAsc);
+sort(items2.begin(), items2.end(), StockDesc);
+```
+
+Output:
+
+```
+Sorted ascending by price:
+Gum - $1.50 (100 in stock)
+Mints - $2.50 (50 in stock)
+Kettle chips - $3.00 (40 in stock)
+Toothpaste - $5.00 (250 in stock)
+Toothbrush - $7.00 (500 in stock)
+
+Sorted descending by number in stock:
+Toothbrush - $7.00 (500 in stock)
+Toothpaste - $5.00 (250 in stock)
+Gum - $1.50 (100 in stock)
+Mints - $2.50 (50 in stock)
+Kettle chips - $3.00 (40 in stock)
+```
+
+The comparator can also be written inline as a **lambda**, which is convenient for
+one-off orderings:
+
+```cpp
+sort(items.begin(), items.end(),
+     [](const InventoryItem& a, const InventoryItem& b) {
+        return a.price < b.price;
+     });
+```
+
+### Sorting plain (C-style) arrays
+
+`std::sort` isn't limited to containers with `.begin()`/`.end()` methods — it can
+sort raw arrays too. Use the free functions **`std::begin(arr)`** and
+**`std::end(arr)`** to produce the iterator range (pointers, in this case). This
+works because a fixed-size array knows its own length at compile time.
+
+```cpp
+#include <algorithm>
+
+int numbers[] = { 3, 7, 2, 8, 12, 4, 9, 5 };
+std::sort(std::begin(numbers), std::end(numbers));
+// numbers is now [2, 3, 4, 5, 7, 8, 9, 12]
+```
+
+An array of objects works the same way, with an optional comparison function.
+(Note: this version of `InventoryItem` defines a copy constructor but **no**
+`operator<`, so a comparison function is *required* to sort it.)
+
+```cpp
+bool CompareItemsByStock(const InventoryItem& a, const InventoryItem& b) {
+   return a.numberInStock < b.numberInStock;   // ascending by stock
+}
+
+InventoryItem items[] = {
+   InventoryItem("Toothpaste", 5.00, 250),
+   InventoryItem("Toothbrush", 7.00, 500),
+   InventoryItem("Gum", 1.50, 100),
+   InventoryItem("Mints", 2.50, 50),
+   InventoryItem("Kettle chips", 3.00, 40)
+};
+
+std::sort(std::begin(items), std::end(items), CompareItemsByStock);
+```
+
+Output:
+
+```
+Sorted integer array:   [2, 3, 4, 5, 7, 8, 9, 12]
+
+InventoryItem array sorted by number in stock:
+Kettle chips - $3.00 (40 in stock)
+Mints - $2.50 (50 in stock)
+Gum - $1.50 (100 in stock)
+Toothpaste - $5.00 (250 in stock)
+Toothbrush - $7.00 (500 in stock)
+```
+
+> `std::begin`/`std::end` only work on arrays whose size is known in the current
+> scope. A pointer to a heap array (`new int[n]`) carries no size, so you must use
+> `std::sort(ptr, ptr + n)` instead.
+
+**Notes and gotchas:**
+
+- The comparator must define a **strict weak ordering** (return `false` for equal
+  elements); using `<=`/`>=` is undefined behavior in `std::sort`.
+- `std::sort` is **not stable**. If you need equal elements to keep their original
+  relative order, use **`std::stable_sort`** (typically O(N log²N), or O(N log N)
+  with extra memory).
+- Prefer the library sort over a hand-rolled one: it is faster, correct, and
+  saves programmer time (see Section 10).
+
+---
+
+## 15. Summary Comparison Table
 
 | Algorithm       | Best Case  | Average / Worst Case | Extra Space | Stable?           | Notes |
 |-----------------|------------|----------------------|-------------|-------------------|-------|
@@ -1641,6 +1887,7 @@ implemented correctly.
 | Quick Sort      | O(N log₂N) | O(N log₂N) / **O(N²)** | O(log₂N)–O(N) | Impl. dependent | Fast in practice; bad on sorted data w/ first-element pivot |
 | Heap Sort       | O(N log₂N) | O(N log₂N)           | O(1)        | **No (unstable)** | In place; order-independent; high small-N overhead |
 | Radix Sort      | O(N·P)≈O(N)| O(N·P)≈O(N)          | O(N) queues | Yes               | Not comparison-based; needs `SubKey` |
+| `std::sort`     | O(N log₂N) | O(N log₂N)           | O(log₂N)    | **No** (use `stable_sort`) | Introsort (quick→heap→insertion); needs `operator<` or comparator |
 
 **Key takeaways:**
 
