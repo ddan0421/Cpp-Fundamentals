@@ -744,6 +744,109 @@ The initial call is `MergeSort(values, 0, numValues - 1, tempArray)`.
   → **O(N log₂N)** overall.
 - **Disadvantage:** requires **O(N) additional memory** for the auxiliary array.
 
+### zyBooks variant — locally allocated merge buffer
+
+zyBooks presents the same divide-and-conquer merge sort with a few
+implementation differences from the Dale version above:
+
+1. **Fewer parameters:** `Merge` takes only `leftFirst`, `leftLast`, and
+   `rightLast`. The right partition's start is derived as `rightFirst = leftLast +
+   1`, since the two halves are always adjacent.
+2. **Local temp buffer:** instead of reusing one shared `tempArray` passed down
+   the recursion, each `Merge` call **allocates its own** `mergedNumbers` buffer
+   with `new[]` and frees it with `delete[]`. This is simpler to read but does
+   more allocation work than the shared-buffer approach.
+3. **`<=` comparison:** the merge takes from the left partition when
+   `numbers[leftPos] <= numbers[rightPos]` (via `IsFirstLTESecond`). Taking equal
+   elements from the **left first** is what makes this merge sort **stable**.
+
+**The merge:**
+
+```cpp
+void Merge(int* numbers, int leftFirst, int leftLast, int rightLast,
+   SortTracker& tracker) {
+   int mergedSize = rightLast - leftFirst + 1;
+   int* mergedNumbers = new int[mergedSize];
+   int mergePos = 0;
+   int leftPos = leftFirst;
+   int rightPos = leftLast + 1;
+
+   // Add smallest element from left or right partition to merged numbers
+   while (leftPos <= leftLast && rightPos <= rightLast) {
+      if (tracker.IsFirstLTESecond(numbers, leftPos, rightPos)) {
+         mergedNumbers[mergePos] = numbers[leftPos];
+         leftPos++;
+      }
+      else {
+         mergedNumbers[mergePos] = numbers[rightPos];
+         rightPos++;
+      }
+      mergePos++;
+   }
+
+   // If left partition is not empty, add remaining elements
+   while (leftPos <= leftLast) {
+      mergedNumbers[mergePos] = numbers[leftPos];
+      leftPos++;
+      mergePos++;
+   }
+
+   // If right partition is not empty, add remaining elements
+   while (rightPos <= rightLast) {
+      mergedNumbers[mergePos] = numbers[rightPos];
+      rightPos++;
+      mergePos++;
+   }
+
+   // Copy merged numbers back to numbers
+   for (mergePos = 0; mergePos < mergedSize; mergePos++) {
+      numbers[leftFirst + mergePos] = mergedNumbers[mergePos];
+   }
+
+   delete[] mergedNumbers;
+}
+```
+
+**The recursive sort:**
+
+```cpp
+void MergeSort(int* numbers, int startIndex, int endIndex,
+   SortTracker& tracker) {
+   if (startIndex < endIndex) {
+      // Find the midpoint in the partition
+      int mid = (startIndex + endIndex) / 2;
+
+      // Recursively sort left and right partitions
+      MergeSort(numbers, startIndex, mid, tracker);
+      MergeSort(numbers, mid + 1, endIndex, tracker);
+
+      // Merge left and right partition in sorted order
+      Merge(numbers, startIndex, mid, endIndex, tracker);
+   }
+}
+```
+
+> The `MergeSortDemo` reports only `GetComparisonCount()` — there is no swap count,
+> because merge sort never swaps. It **copies** elements into the temp buffer and
+> back, so "data moves" (not swaps) are its characteristic operation.
+
+**What the tracker reveals — comparisons barely depend on input order:**
+
+| Input array (N = 9) | Comparisons |
+|---------------------|-------------|
+| Unsorted            | 20          |
+| Sorted ascending    | 16          |
+| Sorted descending   | 13          |
+
+- Merge sort always performs the same **O(N log₂N)** recursion structure
+  regardless of input; only the number of comparisons inside each merge varies
+  slightly (a merge stops comparing as soon as one partition empties).
+- **Sorted ascending** exhausts the left partition after all-true comparisons;
+  **sorted descending** exhausts the right partition even sooner — which is why
+  descending here needs the *fewest* comparisons.
+- Compare with selection sort's constant 36 comparisons: even in its worst input
+  here, merge sort (20) does far fewer, and the gap grows rapidly with N.
+
 ---
 
 ## 8. Quick Sort
