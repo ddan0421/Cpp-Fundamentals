@@ -474,10 +474,9 @@ public:
    *    This tree is a deep copy of otherTree.
    ******************************************************************/
   myExpressionTree(const myExpressionTree &otherTree) {
-    // TODO:
-    // Copy input and postFixInput.
-    // Deep copy otherTree.root using copyTree.
-    root = nullptr;
+    this->input = otherTree.input;
+    this->postFixInput = otherTree.postFixInput;
+    root = copyTree(otherTree.root);
   }
 
   /******************************************************************
@@ -488,9 +487,8 @@ public:
    *    All dynamically allocated nodes are deleted.
    ******************************************************************/
   ~myExpressionTree() {
-    // TODO:
-    // Call destroyTree(root).
-    // Set root to nullptr.
+    destroyTree(root);
+    root = nullptr;
   }
 
   /******************************************************************
@@ -502,12 +500,12 @@ public:
    *    Self-assignment is handled safely.
    ******************************************************************/
   myExpressionTree &operator=(const myExpressionTree &otherTree) {
-    // TODO:
-    // 1. Check for self-assignment.
-    // 2. Destroy the current tree.
-    // 3. Copy input and postFixInput.
-    // 4. Deep copy otherTree.root using copyTree.
-    // 5. Return *this.
+    if (this != &otherTree) {
+      destroyTree(this->root);
+      this->input = otherTree.input;
+      this->postFixInput = otherTree.postFixInput;
+      this->root = copyTree(otherTree.root);
+    }
     return *this;
   }
 
@@ -539,11 +537,10 @@ public:
    *    root is nullptr until build() is called.
    ******************************************************************/
   void resetInput(const std::string &infixExpression) {
-    // TODO:
-    // Destroy the current tree.
-    // Set root to nullptr.
-    // Store the new infix input.
-    // Convert it to postfix and store in postFixInput.
+    destroyTree(this->root);
+    this->root = nullptr;
+    this->input = infixExpression;
+    this->postFixInput = postFix(infixExpression);
   }
 
   /******************************************************************
@@ -586,9 +583,8 @@ public:
    *    Prints the inorder traversal of the tree.
    ******************************************************************/
   void printIn(std::ostream &out = std::cout) const {
-    // TODO:
-    // Create bool first = true.
-    // Call inorder(root, out, first).
+    bool first = true;
+    inorder(root, out, first);
   }
 
   /******************************************************************
@@ -599,9 +595,8 @@ public:
    *    Prints the preorder traversal of the tree.
    ******************************************************************/
   void printPre(std::ostream &out = std::cout) const {
-    // TODO:
-    // Create bool first = true.
-    // Call preorder(root, out, first).
+    bool first = true;
+    preorder(root, out, first);
   }
 
   /******************************************************************
@@ -612,9 +607,8 @@ public:
    *    Prints the postorder traversal of the tree.
    ******************************************************************/
   void printPost(std::ostream &out = std::cout) const {
-    // TODO:
-    // Create bool first = true.
-    // Call postorder(root, out, first).
+    bool first = true;
+    postorder(root, out, first);
   }
 
   /******************************************************************
@@ -670,9 +664,7 @@ public:
  **********************************************************************/
 inline std::ostream &operator<<(std::ostream &out,
                                 const myExpressionTree &tree) {
-  // TODO:
-  // Call tree.printIn(out).
-  // Return out.
+  tree.printIn(out);
   return out;
 }
 
