@@ -7,7 +7,6 @@
 #include <sstream>
 #include <stack>
 #include <string>
-#include <system_error>
 
 /*************************************************************************
  *  Name: Dan Dan        CSC 240
@@ -142,7 +141,6 @@ private:
    *    Returns false otherwise.
    ******************************************************************/
   bool isOperator(char ch) const {
-
     if (ch == '+' || ch == '-' || ch == '*' || ch == '/')
       return true;
     return false;
@@ -156,7 +154,6 @@ private:
    *    Returns true if token represents a positive integer.
    ******************************************************************/
   bool isNumberToken(const std::string &token) const {
-
     if (token.empty()) {
       return false;
     }
@@ -194,22 +191,6 @@ private:
    *    space and no trailing space. The = symbol is not included.
    ******************************************************************/
   std::string postFix(const std::string &infix) const {
-    // TODO:
-    // Convert infix to postfix using Lab 5-style logic.
-    //
-    // Requirements:
-    // - Handle multi-digit positive integers.
-    // - Handle +, -, *, and /.
-    // - Handle parentheses.
-    // - Stop processing when '=' is reached.
-    // - Do NOT include '=' in the postfix result.
-    // - Separate every operand and operator with exactly one space.
-    // - Do NOT leave an extra trailing space.
-    //
-    // HINT:
-    // You may build a vector/list/string carefully, or append tokens
-    // and then remove the final trailing space before returning.
-
     std::stack<char> operatorStack;
     std::string result = "";
     size_t indx = 0;
@@ -268,26 +249,22 @@ private:
    *    root points to a newly built expression tree.
    ******************************************************************/
   void buildTreeFromPostfix(const std::string &postfix) {
-    // TODO:
-    // Build the expression tree using a stack of ExpressionNode*.
-    //
-    // Required token-based algorithm:
-    // 1. Create stack<ExpressionNode*> nodes.
-    // 2. Use stringstream to read postfix one token at a time.
-    // 3. If token is a number:
-    //      - convert token to a number
-    //      - create an OperandNode
-    //      - push it on the stack
-    // 4. If token is an operator:
-    //      - pop the RIGHT subtree first
-    //      - pop the LEFT subtree second
-    //      - create an OperatorNode(token[0], left, right)
-    //      - push the new operator node on the stack
-    // 5. After all tokens are processed, the final stack top is root.
-    //
-    // IMPORTANT:
-    // Do not scan postfix character by character.
-    // Multi-digit operands must stay together as one token.
+    std::stack<ExpressionNode *> nodes;
+    std::istringstream iss(postfix);
+    std::string token;
+    while (iss >> token) {
+      if (std::isdigit(token[0])) {
+        nodes.push(new OperandNode(std::stod(token)));
+      } else if (isOperator(token[0])) {
+        ExpressionNode *right = nodes.top();
+        nodes.pop();
+        ExpressionNode *left = nodes.top();
+        nodes.pop();
+
+        nodes.push(new OperatorNode(token[0], left, right));
+      }
+    }
+    root = nodes.top();
   }
 
   /******************************************************************
@@ -298,15 +275,12 @@ private:
    *    All nodes in the subtree are deleted using post-order deletion.
    ******************************************************************/
   void destroyTree(ExpressionNode *node) {
-    // TODO:
-    // Recursive post-order deletion:
-    // - If node is nullptr, do nothing.
-    // - If node is an OperatorNode, recursively destroy left and right.
-    // - Delete node.
-    //
-    // HINT:
-    // dynamic_cast<OperatorNode*>(node) can tell you whether the
-    // node has children.
+    OperatorNode *OpterNode = dynamic_cast<OperatorNode *>(node);
+    if (node != nullptr && OpterNode != nullptr) {
+      destroyTree(OpterNode->getLeft());
+      destroyTree(OpterNode->getRight());
+    }
+    delete node;
   }
 
   /******************************************************************
@@ -317,10 +291,11 @@ private:
    *    Returns a deep copy of the subtree.
    ******************************************************************/
   ExpressionNode *copyTree(ExpressionNode *node) const {
-    // TODO:
-    // If node is nullptr, return nullptr.
-    // Otherwise, return node->clone().
-    return nullptr;
+    if (node == nullptr) {
+      return nullptr;
+    } else {
+      return node->clone();
+    }
   }
 
   /******************************************************************
@@ -331,10 +306,12 @@ private:
    *    Prints one token, inserting a leading space only if needed.
    ******************************************************************/
   void printToken(ExpressionNode *node, std::ostream &out, bool &first) const {
-    // TODO:
-    // If first is false, print one space before the token.
-    // Print the node.
-    // Set first to false.
+    if (first) {
+      node->print(out);
+    } else {
+      out << " ";
+    }
+    first = false;
   }
 
   /******************************************************************
@@ -347,10 +324,17 @@ private:
    *    Prints recursive inorder traversal with one space between tokens.
    ******************************************************************/
   void inorder(ExpressionNode *node, std::ostream &out, bool &first) const {
-    // TODO:
-    // Recursive pattern:
-    // left subtree -> node -> right subtree.
-    // Use printToken to avoid extra leading/trailing spaces.
+    if (node == nullptr) {
+      return;
+    }
+    OperatorNode *OpterNode = dynamic_cast<OperatorNode *>(node);
+    if (OpterNode != nullptr) {
+      inorder(OpterNode->getLeft(), out, first);
+    }
+    printToken(node, out, first);
+    if (OpterNode != nullptr) {
+      inorder(OpterNode->getRight(), out, first);
+    }
   }
 
   /******************************************************************
@@ -363,10 +347,17 @@ private:
    *    Prints recursive preorder traversal with one space between tokens.
    ******************************************************************/
   void preorder(ExpressionNode *node, std::ostream &out, bool &first) const {
-    // TODO:
-    // Recursive pattern:
-    // node -> left subtree -> right subtree.
-    // Use printToken to avoid extra leading/trailing spaces.
+    if (node == nullptr) {
+      return;
+    }
+    OperatorNode *OpterNode = dynamic_cast<OperatorNode *>(node);
+    printToken(node, out, first);
+    if (OpterNode != nullptr) {
+      preorder(OpterNode->getLeft(), out, first);
+    }
+    if (OpterNode != nullptr) {
+      preorder(OpterNode->getRight(), out, first);
+    }
   }
 
   /******************************************************************
@@ -379,10 +370,17 @@ private:
    *    Prints recursive postorder traversal with one space between tokens.
    ******************************************************************/
   void postorder(ExpressionNode *node, std::ostream &out, bool &first) const {
-    // TODO:
-    // Recursive pattern:
-    // left subtree -> right subtree -> node.
-    // Use printToken to avoid extra leading/trailing spaces.
+    if (node == nullptr) {
+      return;
+    }
+    OperatorNode *OpterNode = dynamic_cast<OperatorNode *>(node);
+    if (OpterNode != nullptr) {
+      postorder(OpterNode->getLeft(), out, first);
+    }
+    if (OpterNode != nullptr) {
+      postorder(OpterNode->getRight(), out, first);
+    }
+    printToken(node, out, first);
   }
 
   /******************************************************************
@@ -398,10 +396,17 @@ private:
    *    Single-node subtree levels = 1.
    ******************************************************************/
   int getLevels(ExpressionNode *node) const {
-    // TODO:
-    // Empty subtree has 0 levels.
-    // Otherwise return 1 + max(left levels, right levels).
-    return 0;
+    if (node == nullptr) {
+      return 0;
+    }
+    OperatorNode *OpterNode = dynamic_cast<OperatorNode *>(node);
+    if (OpterNode == nullptr) {
+      return 1;
+    } else {
+      int leftLevels = getLevels(OpterNode->getLeft());
+      int rightLevels = getLevels(OpterNode->getRight());
+      return 1 + std::max(leftLevels, rightLevels);
+    }
   }
 
   /******************************************************************
@@ -419,11 +424,17 @@ private:
    *    This helper is REQUIRED and must be recursive.
    ******************************************************************/
   int getHeight(ExpressionNode *node) const {
-    // TODO:
-    // Empty subtree has height -1.
-    // Single-node subtree has height 0.
-    // Otherwise return 1 + max(left height, right height).
-    return -1;
+    if (node == nullptr) {
+      return -1;
+    }
+    OperatorNode *OpterNode = dynamic_cast<OperatorNode *>(node);
+    if (OpterNode == nullptr) {
+      return 0;
+    } else {
+      int leftHeight = getHeight(OpterNode->getLeft());
+      int rightHeight = getHeight(OpterNode->getRight());
+      return 1 + std::max(leftHeight, rightHeight);
+    }
   }
 
 public:
@@ -507,10 +518,7 @@ public:
    * POST:
    *    Returns the original infix input string.
    ******************************************************************/
-  std::string getInput() const {
-    // TODO: Return input.
-    return "";
-  }
+  std::string getInput() const { return input; }
 
   /******************************************************************
    * getPostFixInput
@@ -519,10 +527,7 @@ public:
    * POST:
    *    Returns the internally stored postfix expression.
    ******************************************************************/
-  std::string getPostFixInput() const {
-    // TODO: Return postFixInput.
-    return "";
-  }
+  std::string getPostFixInput() const { return postFixInput; }
 
   /******************************************************************
    * resetInput
@@ -549,10 +554,12 @@ public:
    *    Current tree is destroyed and rebuilt from postFixInput.
    ******************************************************************/
   void build() {
-    // TODO:
-    // Destroy current tree if root is not nullptr.
-    // Set root to nullptr.
-    // Call buildTreeFromPostfix(postFixInput).
+    if (root != nullptr) {
+      destroyTree(root);
+    } else {
+      root = nullptr;
+    }
+    buildTreeFromPostfix(postFixInput);
   }
 
   /******************************************************************
@@ -564,10 +571,11 @@ public:
    *    Returns 0 if the tree has not been built.
    ******************************************************************/
   double evaluate() const {
-    // TODO:
-    // If root is nullptr, return 0.
-    // Otherwise, return root->getValue().
-    return 0;
+    if (root == nullptr) {
+      return 0;
+    } else {
+      return root->getValue();
+    }
   }
 
   /******************************************************************
@@ -621,10 +629,7 @@ public:
    *    Empty tree levels = 0.
    *    Single-node tree levels = 1.
    ******************************************************************/
-  int getLevels() const {
-    // TODO: Return getLevels(root).
-    return 0;
-  }
+  int getLevels() const { return getLevels(root); }
 
   /******************************************************************
    * getHeight
@@ -643,10 +648,7 @@ public:
    *    Height is measured in edges, not node layers.
    *    For any non-empty tree, height = levels - 1.
    ******************************************************************/
-  int getHeight() const {
-    // TODO: Return getHeight(root).
-    return -1;
-  }
+  int getHeight() const { return getHeight(root); }
 
   /******************************************************************
    * isEmpty
@@ -655,10 +657,7 @@ public:
    * POST:
    *    Returns true if root is nullptr.
    ******************************************************************/
-  bool isEmpty() const {
-    // TODO: Return whether root is nullptr.
-    return true;
-  }
+  bool isEmpty() const { return root == nullptr; }
 };
 
 /**********************************************************************
