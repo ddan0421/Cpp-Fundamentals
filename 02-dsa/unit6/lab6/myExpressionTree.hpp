@@ -2,6 +2,7 @@
 #define MYEXPRESSIONTREE_HPP
 
 #include "ExpressionNode.hpp"
+#include <algorithm>
 #include <cctype>
 #include <iostream>
 #include <sstream>
@@ -306,11 +307,10 @@ private:
    *    Prints one token, inserting a leading space only if needed.
    ******************************************************************/
   void printToken(ExpressionNode *node, std::ostream &out, bool &first) const {
-    if (first) {
-      node->print(out);
-    } else {
+    if (!first) {
       out << " ";
     }
+    node->print(out);
     first = false;
   }
 
