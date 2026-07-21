@@ -22,8 +22,9 @@
 11. [The Single-Source Shortest-Path Problem](#11-the-single-source-shortest-path-problem)
 12. [Implementation Level: Array-Based](#12-implementation-level-array-based)
 13. [Implementation Level: Linked (Adjacency Lists)](#13-implementation-level-linked-adjacency-lists)
-14. [Which Version to Use?](#14-which-version-to-use)
-15. [Summary](#15-summary)
+14. [zyBooks Implementation: Hash-Map Adjacency Lists](#14-zybooks-implementation-hash-map-adjacency-lists)
+15. [Which Version to Use?](#15-which-version-to-use)
+16. [Summary](#16-summary)
 
 ---
 
@@ -752,22 +753,344 @@ a node "index 2 (Chicago), 1000 miles."
 
 ---
 
-## 14. Which Version to Use?
+## 14. zyBooks Implementation: Hash-Map Adjacency Lists
 
-| Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) |
-|--------|--------------------------------|--------------------------|
-| Add / query an edge | **O(1)** — index directly into the matrix | Must **walk the list** for that vertex |
-| Space | **O(N²)** for the matrix (wasted if few edges; half redundant for undirected graphs) | **O(N)** for **sparse** graphs; up to **O(N²)** if there are many edges |
-| Simplicity | Simple and fast | More algorithmic complexity managing lists |
+zyBooks presents a modern, self-contained C++ graph implementation that is a
+practical variation of the **adjacency-list** idea from Section 13. Instead of an
+`NxN` matrix (Dale's array version) or a hand-built linked list per vertex, it uses
+the standard library: **`Vertex` and `Edge` are heap-allocated objects**, and the
+graph keeps two **hash maps** (`std::unordered_map`) from a vertex to a vector of
+its edges.
+
+Key differences from the Dale versions:
+
+1. **First-class `Vertex` and `Edge` objects** (each in its own header) rather than
+   raw indices/weights in a matrix. Edges store **pointers** to their endpoints, so
+   they can be traversed in either direction.
+2. **Two adjacency maps** — `fromEdges` (outgoing edges of each vertex) and
+   `toEdges` (incoming edges of each vertex). Maintaining both makes "flights from"
+   *and* "flights to" a location **O(1)** to look up. (Dale's single matrix only
+   directly answers "adjacent from.")
+3. **Directed edges are the primitive.** `AddUndirectedEdge` is just **two directed
+   edges** (A→B and B→A) with the same weight — matching the slides' note that an
+   undirected edge is a bidirectional connection.
+4. **Ownership / cleanup:** the destructor gathers the *distinct* vertices and edges
+   (each undirected edge is stored in multiple vectors) into `unordered_set`s before
+   deleting, so nothing is `delete`d twice.
+
+### `Vertex.h`
+
+A vertex is just a labeled node.
+
+```cpp
+#ifndef VERTEX_H
+#define VERTEX_H
+
+#include <string>
+
+class Vertex {
+public:
+   std::string label;
+
+   Vertex(const std::string& vertexLabel) {
+      label = vertexLabel;
+   }
+};
+
+#endif
+```
+
+### `Edge.h`
+
+An edge stores pointers to its two endpoints and a weight. Storing `fromVertex`
+*and* `toVertex` on the edge is what lets a single `Edge*` be found from either the
+`fromEdges` or the `toEdges` map and still report both endpoints.
+
+```cpp
+#ifndef EDGE_H
+#define EDGE_H
+
+#include "Vertex.h"
+
+class Edge {
+public:
+   Vertex* fromVertex;
+   Vertex* toVertex;
+   double weight;
+
+   Edge(Vertex* from, Vertex* to, double edgeWeight) {
+      fromVertex = from;
+      toVertex = to;
+      weight = edgeWeight;
+   }
+};
+
+#endif
+```
+
+### `Graph.h`
+
+The graph owns everything. Every vertex is a key in **both** maps (each mapped to a
+dynamically allocated `vector<Edge*>`), so a vertex with no edges still appears.
+
+```cpp
+#ifndef GRAPH_H
+#define GRAPH_H
+
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include "Vertex.h"
+#include "Edge.h"
+
+class Graph {
+private:
+   // Maps a vertex to a vector of all edges that start from that vertex
+   std::unordered_map<Vertex*, std::vector<Edge*>*> fromEdges;
+
+   // Maps a vertex to a vector of all edges that go to that vertex
+   std::unordered_map<Vertex*, std::vector<Edge*>*> toEdges;
+
+public:
+   virtual ~Graph() {
+      // Build sets of distinct vertices and edges
+      std::unordered_set<Vertex*> distinctVertices;
+      std::unordered_set<Edge*> distinctEdges;
+      for (auto& keyValue : fromEdges) {
+         distinctVertices.insert(keyValue.first);
+         for (Edge* edge : *keyValue.second) {
+            distinctEdges.insert(edge);
+         }
+
+         // Free dynamically allocated vector of edges
+         delete keyValue.second;
+      }
+      for (auto& keyValue : toEdges) {
+         distinctVertices.insert(keyValue.first);
+         for (Edge* edge : *keyValue.second) {
+            distinctEdges.insert(edge);
+         }
+
+         // Free dynamically allocated vector of edges
+         delete keyValue.second;
+      }
+
+      // Clear each map
+      fromEdges.clear();
+      toEdges.clear();
+
+      // Free each edge and each vertex
+      for (Edge* edge : distinctEdges) {
+         delete edge;
+      }
+      for (Vertex* vertex : distinctVertices) {
+         delete vertex;
+      }
+   }
+
+   Vertex* AddVertex(const std::string& newVertexLabel) {
+      // Create the new Vertex object
+      Vertex* newVertex = new Vertex(newVertexLabel);
+
+      // Every vertex must exist as a key in both maps
+      fromEdges[newVertex] = new std::vector<Edge*>();
+      toEdges[newVertex] = new std::vector<Edge*>();
+
+      return newVertex;
+   }
+
+   Edge* AddDirectedEdge(Vertex* fromVertex, Vertex* toVertex, double weight = 1.0) {
+      // Don't add the same edge twice
+      if (HasEdge(fromVertex, toVertex)) {
+         return nullptr;
+      }
+
+      // Create the Edge object
+      Edge* newEdge = new Edge(fromVertex, toVertex, weight);
+
+      // Add the edge to the appropriate vector in both maps
+      fromEdges[fromVertex]->push_back(newEdge);
+      toEdges[toVertex]->push_back(newEdge);
+
+      return newEdge;
+   }
+
+   std::pair<Edge*, Edge*> AddUndirectedEdge(Vertex* vertexA, Vertex* vertexB,
+      double weight = 1.0) {
+         return std::pair<Edge*, Edge*>(
+            AddDirectedEdge(vertexA, vertexB, weight),
+            AddDirectedEdge(vertexB, vertexA, weight));
+   }
+
+   // Returns an unordered_set of all of this graph's edges
+   std::unordered_set<Edge*> GetEdges() const {
+      std::unordered_set<Edge*> edgesSet;
+      for (auto& keyValue : fromEdges) {
+         std::vector<Edge*>* edges = keyValue.second;
+         for (Edge* edge : *edges) {
+            edgesSet.insert(edge);
+         }
+      }
+      return edgesSet;
+   }
+
+   // Returns a vector of edges with the specified fromVertex
+   const std::vector<Edge*>* GetEdgesFrom(Vertex* fromVertex) const {
+      return fromEdges.at(fromVertex);
+   }
+
+   // Returns a vector of edges with the specified toVertex
+   const std::vector<Edge*>* GetEdgesTo(Vertex* toVertex) const {
+      return toEdges.at(toVertex);
+   }
+
+   // Returns a vertex with a matching label, or nullptr if no such vertex exists
+   Vertex* GetVertex(const std::string& vertexLabel) {
+      for (auto& keyValue : fromEdges) {
+         Vertex* vertex = keyValue.first;
+         if (vertex->label == vertexLabel) {
+            return keyValue.first;
+         }
+      }
+      return nullptr;
+   }
+
+   // Returns a vector of all of this graph's vertices
+   std::vector<Vertex*> GetVertices() const {
+      std::vector<Vertex*> vertices;
+      for (auto& keyValue : fromEdges) {
+         vertices.push_back(keyValue.first);
+      }
+      return vertices;
+   }
+
+   // Returns true if this graph has an edge from fromVertex to toVertex
+   bool HasEdge(Vertex* fromVertex, Vertex* toVertex) const {
+      if (0 == fromEdges.count(fromVertex)) {
+         // fromVertex is not in this graph
+         return false;
+      }
+
+      // Search the vector of edges for an edge that goes to toVertex
+      std::vector<Edge*>& edges = *fromEdges.at(fromVertex);
+      for (Edge* edge : edges) {
+         if (edge->toVertex == toVertex) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+};
+
+#endif
+```
+
+**Operation cheat sheet:**
+
+| Method | What it does | Notes |
+|--------|--------------|-------|
+| `AddVertex(label)` | Creates a `Vertex`, adds it as a key in both maps | Returns the `Vertex*` (used later to add edges) |
+| `AddDirectedEdge(from, to, w)` | Adds one directed edge | Skips duplicates via `HasEdge`; returns `nullptr` if it already exists |
+| `AddUndirectedEdge(a, b, w)` | Adds edges a→b **and** b→a | Returns a `pair` of the two `Edge*` |
+| `GetEdgesFrom(v)` / `GetEdgesTo(v)` | Outgoing / incoming edges of `v` | **O(1)** map lookup (returns the stored vector) |
+| `GetEdges()` | Set of all distinct edges | Dedupes with an `unordered_set` |
+| `GetVertex(label)` | Finds a vertex by label | Linear scan of the keys |
+| `GetVertices()` | All vertices | Collected from the `fromEdges` keys |
+| `HasEdge(from, to)` | Whether a from→to edge exists | Scans that vertex's outgoing vector |
+
+### Driver — `FlightsGraphDemo.cpp`
+
+Builds the airline example as an **undirected, weighted** graph (flights that run
+both ways, weighted by miles), then prints every location's outgoing and incoming
+flights.
+
+```cpp
+#include <iostream>
+#include "Graph.h"
+using namespace std;
+
+int main() {
+   // Create a new Graph object
+   Graph graph1;
+
+   // Add vertices and edges representing plane flights
+   Vertex* vertexA = graph1.AddVertex("Tokyo");
+   Vertex* vertexB = graph1.AddVertex("New York");
+   Vertex* vertexC = graph1.AddVertex("London");
+   Vertex* vertexD = graph1.AddVertex("Sydney");
+   graph1.AddUndirectedEdge(vertexA, vertexB, 6743);
+   graph1.AddUndirectedEdge(vertexA, vertexC, 5941);
+   graph1.AddUndirectedEdge(vertexA, vertexD, 4863);
+   graph1.AddUndirectedEdge(vertexB, vertexC, 3425);
+   graph1.AddUndirectedEdge(vertexB, vertexD, 9868);
+   graph1.AddUndirectedEdge(vertexC, vertexD, 10562);
+
+   // Show the graph's vertices and edges
+   for (Vertex* vertex : graph1.GetVertices()) {
+      cout << "Location: " << vertex->label << endl;
+
+      // Show outgoing edges (flights from location)
+      cout << "  Flights from " << vertex->label << ":" << endl;
+      for (Edge* outgoingEdge : *graph1.GetEdgesFrom(vertex)) {
+         cout << "   - " << vertex->label << " to ";
+         cout << outgoingEdge->toVertex->label << ", ";
+         cout << (int)outgoingEdge->weight << " miles" << endl;
+      }
+
+      // Show incoming edges (flights to location)
+      cout << "  Flights to " << vertex->label << ":" << endl;
+      for (Edge* incomingEdge : *graph1.GetEdgesTo(vertex)) {
+         cout << "   - " << incomingEdge->fromVertex->label << " to ";
+         cout << vertex->label << ", ";
+         cout << (int)incomingEdge->weight << " miles" << endl;
+      }
+   }
+
+   return 0;
+}
+```
+
+> Because each `AddUndirectedEdge` inserts both directions, every location's
+> "flights from" and "flights to" lists mirror each other here. The exact print
+> order of vertices and of each edge list depends on `unordered_map`/`vector`
+> iteration order, not on insertion order — the maps are **unordered**.
+
+**How this maps back to the concepts:**
+
+- It is an **adjacency-list** representation (Section 13), realized with hash maps
+  and vectors instead of raw linked nodes — so it gets **O(1)** average edge
+  insertion and neighbor lookup while using **O(V + E)** space (good for sparse
+  graphs).
+- Keeping a separate `toEdges` map is the practical way to answer "who is adjacent
+  *to* this vertex?" quickly — something the single adjacency matrix / single
+  adjacency list does not give directly.
+- The `Vertex*`/`Edge*` object model generalizes the ADT: you could hang extra data
+  or behavior off `Vertex`/`Edge`, exactly the kind of generalization the chapter
+  summary mentions.
+
+---
+
+## 15. Which Version to Use?
+
+| Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
+|--------|--------------------------------|--------------------------|------------------------------------|
+| Add / query an edge | **O(1)** — index directly into the matrix | Must **walk the list** for that vertex | **O(1)** avg map lookup; `HasEdge` walks one vertex's vector |
+| Space | **O(N²)** for the matrix (wasted if few edges; half redundant for undirected graphs) | **O(N)** for **sparse** graphs; up to **O(N²)** if there are many edges | **O(V + E)** — good for sparse graphs |
+| Simplicity | Simple and fast | More algorithmic complexity managing lists | Simple to use via the STL; manual pointer ownership to manage |
 
 - **Adjacency matrix:** fast and simple, but wastes space when the graph is
   sparse.
 - **Adjacency lists:** space-efficient for sparse graphs (allocate memory only as
   needed), but edge lookups require walking the lists.
+- **Hash-map adjacency lists (zyBooks):** the practical modern take on adjacency
+  lists — average **O(1)** neighbor lookups and **O(V + E)** space, with a second
+  map for fast incoming-edge queries (Section 14).
 
 ---
 
-## 15. Summary
+## 16. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
@@ -782,7 +1105,9 @@ a node "index 2 (Chicago), 1000 miles."
   a tree of links reaching every vertex with minimal total cost.
 - Graphs are commonly represented by an **adjacency matrix** (fast, O(1) edge
   access, but O(N²) space — wasteful for sparse graphs) or by **adjacency lists**
-  (O(N) space for sparse graphs, but slower edge lookups).
+  (O(N) space for sparse graphs, but slower edge lookups). A modern, practical form
+  of adjacency lists uses **hash maps of `Vertex*` → `vector<Edge*>`** (Section 14)
+  for average O(1) neighbor lookups and O(V + E) space.
 - Graph algorithms make heavy use of the earlier ADTs: **stacks, queues, and
   priority queues**.
 
