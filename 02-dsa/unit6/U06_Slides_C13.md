@@ -24,8 +24,9 @@
 13. [Implementation Level: Linked (Adjacency Lists)](#13-implementation-level-linked-adjacency-lists)
 14. [zyBooks Implementation: Hash-Map Adjacency Lists](#14-zybooks-implementation-hash-map-adjacency-lists)
 15. [zyBooks BFS Example (Visitor Pattern)](#15-zybooks-bfs-example-visitor-pattern)
-16. [Which Version to Use?](#16-which-version-to-use)
-17. [Summary](#17-summary)
+16. [zyBooks DFS Example (Visitor Pattern)](#16-zybooks-dfs-example-visitor-pattern)
+17. [Which Version to Use?](#17-which-version-to-use)
+18. [Summary](#18-summary)
 
 ---
 
@@ -1311,7 +1312,249 @@ Ken: 3
 
 ---
 
-## 16. Which Version to Use?
+## 16. zyBooks DFS Example (Visitor Pattern)
+
+This example runs a **depth-first search** on the hash-map graph from Section 14,
+using the **same visitor pattern** as the BFS example (Section 15). It swaps the
+FIFO queue for a **stack**, so instead of fanning out in rings it plunges down one
+path as far as possible before backtracking (the strategy from Section 9). It also
+introduces a second concrete visitor — one that *prints* — and runs the traversal
+on **three different graphs** built from the same vertices, to show how the edge set
+(not the vertices) determines the traversal order.
+
+It reuses `Vertex.h`, `Edge.h`, `Graph.h` (extended with a `DepthFirstSearch`
+member — see below), and `VertexVisitor.h` from earlier sections, and adds one file.
+
+### `PrintVertexVisitor.h` — a print-as-you-go visitor
+
+Another concrete `VertexVisitor` (compare with `VectorVertexVisitor` in Section 15).
+Where that one *stored* each vertex, this one *prints* each vertex's label followed
+by a space, right as it is visited. Same traversal engine, different behavior —
+exactly the point of the visitor pattern.
+
+```cpp
+#ifndef PRINTVERTEXVISITOR_H
+#define PRINTVERTEXVISITOR_H
+
+#include <iostream>
+#include "VertexVisitor.h"
+
+// PrintVertexVisitor prints each visited vertex's label, followed by a space
+class PrintVertexVisitor : public VertexVisitor {
+public:
+   void Visit(Vertex* vertex) {
+      std::cout << vertex->label << " ";
+   }
+};
+
+#endif
+```
+
+### The `DepthFirstSearch` member on `Graph`
+
+The demo calls `graphs[i]->DepthFirstSearch(startVertex, visitor)`, so the Section 14
+`Graph` must be extended with this method. It is the Section 9 depth-first algorithm
+made iterative with an explicit **`std::stack`**, calling the **visitor** instead of
+`cout`. (Add `#include <stack>` to `Graph.h`.)
+
+```cpp
+// Add inside the Graph class (public section)
+void DepthFirstSearch(Vertex* startVertex, VertexVisitor& visitor) {
+   std::stack<Vertex*> vertexStack;
+   std::unordered_set<Vertex*> visited;
+
+   vertexStack.push(startVertex);
+   while (!vertexStack.empty()) {
+      // Pop the most recently added vertex (LIFO → go deep first)
+      Vertex* currentVertex = vertexStack.top();
+      vertexStack.pop();
+
+      // Mark/visit only the first time this vertex is popped
+      if (visited.count(currentVertex) == 0) {
+         visitor.Visit(currentVertex);
+         visited.insert(currentVertex);
+
+         // Push every neighbor; duplicates are filtered when popped
+         for (Edge* edge : *GetEdgesFrom(currentVertex)) {
+            vertexStack.push(edge->toVertex);
+         }
+      }
+   }
+}
+```
+
+> This mirrors DFS from Section 9: a **stack** (LIFO) is the auxiliary structure, so
+> the search dives down one branch before backtracking. Marking is checked/applied
+> **on pop** — a vertex may be pushed multiple times (once per edge into it), but the
+> `visited` set guarantees it is *visited* only the first time it comes off the
+> stack. If your zyBooks `Graph.h` provides its own `DepthFirstSearch`, use that —
+> this reconstruction is included so the notes stay self-contained.
+
+### Driver — `DFSDemo.cpp`
+
+Creates **three graphs** with the same vertices `A`–`F` but different edges, then
+runs DFS from `"A"` on each with the printing visitor.
+
+```cpp
+#include <iostream>
+#include "Graph.h"
+#include "VertexVisitor.h"
+#include "PrintVertexVisitor.h"
+using namespace std;
+
+int main() {
+   // Starting vertex label
+   string startVertexLabel = "A";
+
+   // Main program - Creates 3 different graphs, each with vertices A through
+   // F, but with different sets of edges. Traverses each with DFS.
+   string vertexNames[] = { "A", "B", "C", "D", "E", "F" };
+
+   // Add the same set of vertices to 3 different graphs
+   Graph graph1;
+   Graph graph2;
+   Graph graph3;
+   Graph* graphs[] = { &graph1, &graph2, &graph3 };
+   for (string& vertexName : vertexNames) {
+      for (Graph* graph : graphs) {
+         graph->AddVertex(vertexName);
+      }
+   }
+
+   // Add graph 1's edges
+   graph1.AddUndirectedEdge(graph1.GetVertex("A"), graph1.GetVertex("B"));
+   graph1.AddUndirectedEdge(graph1.GetVertex("A"), graph1.GetVertex("D"));
+   graph1.AddUndirectedEdge(graph1.GetVertex("B"), graph1.GetVertex("E"));
+   graph1.AddUndirectedEdge(graph1.GetVertex("B"), graph1.GetVertex("F"));
+   graph1.AddUndirectedEdge(graph1.GetVertex("C"), graph1.GetVertex("F"));
+   graph1.AddUndirectedEdge(graph1.GetVertex("E"), graph1.GetVertex("F"));
+
+   // Add graph 2's edges
+   graph2.AddUndirectedEdge(graph2.GetVertex("A"), graph2.GetVertex("B"));
+   graph2.AddUndirectedEdge(graph2.GetVertex("B"), graph2.GetVertex("C"));
+   graph2.AddUndirectedEdge(graph2.GetVertex("C"), graph2.GetVertex("F"));
+   graph2.AddUndirectedEdge(graph2.GetVertex("D"), graph2.GetVertex("E"));
+   graph2.AddUndirectedEdge(graph2.GetVertex("E"), graph2.GetVertex("F"));
+
+   // Add graph 3's edges
+   graph3.AddUndirectedEdge(graph3.GetVertex("A"), graph3.GetVertex("B"));
+   graph3.AddUndirectedEdge(graph3.GetVertex("A"), graph3.GetVertex("E"));
+   graph3.AddUndirectedEdge(graph3.GetVertex("B"), graph3.GetVertex("C"));
+   graph3.AddUndirectedEdge(graph3.GetVertex("B"), graph3.GetVertex("E"));
+   graph3.AddUndirectedEdge(graph3.GetVertex("C"), graph3.GetVertex("E"));
+   graph3.AddUndirectedEdge(graph3.GetVertex("D"), graph3.GetVertex("E"));
+   graph3.AddUndirectedEdge(graph3.GetVertex("E"), graph3.GetVertex("F"));
+
+   // Create the visitor that displays a vertex's label
+   PrintVertexVisitor visitor;
+
+   // Visit vertices in each graph with DFS
+   cout << "Depth-first search traversal" << endl;
+   for (int i = 0; i < sizeof(graphs) / sizeof(graphs[0]); i++) {
+      cout << "Graph " << (i + 1) << ": ";
+      Vertex* startVertex = graphs[i]->GetVertex(startVertexLabel);
+      if (startVertex) {
+         graphs[i]->DepthFirstSearch(startVertex, visitor);
+      }
+      else {
+         cout << "Starting vertex \"" << startVertexLabel << "\" not found";
+      }
+      cout << endl;
+   }
+
+   return 0;
+}
+```
+
+### The three graphs
+
+Adjacency lists below are in **insertion order** (the order each vertex's outgoing
+edges were added), which is what fixes the DFS order.
+
+**Graph 1** — edges A–B, A–D, B–E, B–F, C–F, E–F:
+
+| Vertex | Neighbors |
+|--------|-----------|
+| A | B, D |
+| B | A, E, F |
+| C | F |
+| D | A |
+| E | B, F |
+| F | B, C, E |
+
+**Graph 2** — edges A–B, B–C, C–F, D–E, E–F:
+
+| Vertex | Neighbors |
+|--------|-----------|
+| A | B |
+| B | A, C |
+| C | B, F |
+| D | E |
+| E | D, F |
+| F | C, E |
+
+**Graph 3** — edges A–B, A–E, B–C, B–E, C–E, D–E, E–F:
+
+| Vertex | Neighbors |
+|--------|-----------|
+| A | B, E |
+| B | A, C, E |
+| C | B, E |
+| D | E |
+| E | A, B, C, D, F |
+| F | E |
+
+### Expected output
+
+```
+Depth-first search traversal
+Graph 1: A D B F E C
+Graph 2: A B C F E D
+Graph 3: A E F D C B
+```
+
+### Trace — Graph 1
+
+Watch the stack (top on the right). A vertex is visited only the first time it is
+popped while unvisited; every neighbor is pushed, so already-visited ones reappear
+and are simply skipped.
+
+| Step | Pop | Visit? | Push neighbors | Stack after |
+|------|-----|--------|----------------|-------------|
+| init | — | — | push A | `[A]` |
+| 1 | A | **A** | B, D | `[B, D]` |
+| 2 | D | **D** | A | `[B, A]` |
+| 3 | A | skip (visited) | — | `[B]` |
+| 4 | B | **B** | A, E, F | `[A, E, F]` |
+| 5 | F | **F** | B, C, E | `[A, E, B, C, E]` |
+| 6 | E | **E** | B, F | `[A, E, B, C, B, F]` |
+| 7 | F | skip | — | `[A, E, B, C, B]` |
+| 8 | B | skip | — | `[A, E, B, C]` |
+| 9 | C | **C** | F | `[A, E, B, F]` |
+| 10+ | F,B,E,A | all skip | — | `[]` |
+
+Visit order → **A D B F E C**. Notice how DFS commits to A→D first (going deep),
+backtracks, then dives A→B→F→E before finally reaching C — very different from BFS,
+which would have taken A's neighbors (B, D) before going any deeper.
+
+### DFS vs. BFS at a glance
+
+- **Same vertices, different edges → different order.** All three graphs start at A
+  and contain A–F, yet each prints a distinct sequence, because DFS order is driven
+  entirely by *which edges exist* and *the order neighbors are stored*.
+- **DFS uses a stack** (go deep, backtrack least); **BFS uses a queue** (stay
+  shallow, explore level by level). That single data-structure swap is the whole
+  difference — compare this `DepthFirstSearch` with the `BreadthFirstSearch` in
+  Section 15.
+- **No distance map here.** DFS answers "**can I reach it / visit everything
+  reachable**," not "how far is it." For fewest-hops distance you'd use BFS
+  (Section 15); for weighted shortest path, the priority-queue method (Section 11).
+- All three graphs are **connected**, so DFS from A visits all six vertices; on a
+  disconnected graph it would only reach A's component.
+
+---
+
+## 17. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -1329,7 +1572,7 @@ Ken: 3
 
 ---
 
-## 17. Summary
+## 18. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
