@@ -23,8 +23,9 @@
 12. [Implementation Level: Array-Based](#12-implementation-level-array-based)
 13. [Implementation Level: Linked (Adjacency Lists)](#13-implementation-level-linked-adjacency-lists)
 14. [zyBooks Implementation: Hash-Map Adjacency Lists](#14-zybooks-implementation-hash-map-adjacency-lists)
-15. [Which Version to Use?](#15-which-version-to-use)
-16. [Summary](#16-summary)
+15. [zyBooks BFS Example (Visitor Pattern)](#15-zybooks-bfs-example-visitor-pattern)
+16. [Which Version to Use?](#16-which-version-to-use)
+17. [Summary](#17-summary)
 
 ---
 
@@ -1072,7 +1073,245 @@ int main() {
 
 ---
 
-## 15. Which Version to Use?
+## 15. zyBooks BFS Example (Visitor Pattern)
+
+This example runs a **breadth-first search** on the hash-map graph from Section 14,
+but decouples "what to *do* at each vertex" from "how to *traverse*" using the
+**visitor design pattern**. Instead of hard-coding a `cout` into the traversal (as
+the textbook's `BreadthFirstSearch` in Section 10 does), the graph calls a
+`Visit(...)` method on a **visitor object** for each vertex it reaches. Different
+visitors produce different behavior with the same traversal code.
+
+It reuses `Vertex.h`, `Edge.h`, and `Graph.h` from Section 14 (the `Graph` class is
+extended with a `BreadthFirstSearch` member — see below), and adds two small files:
+a visitor **interface** and one concrete visitor.
+
+### `VertexVisitor.h` — the abstract base class
+
+An abstract base class with a single **pure virtual** method (`= 0`). It defines the
+*contract*: "anything that wants to observe a traversal must provide a `Visit`."
+Because it has a pure virtual method, `VertexVisitor` cannot be instantiated
+directly — only subclasses can.
+
+```cpp
+#ifndef VERTEXVISITOR_H
+#define VERTEXVISITOR_H
+
+#include "Graph.h"
+
+class VertexVisitor {
+public:
+   virtual void Visit(Vertex* vertexToVisit) = 0;
+};
+
+#endif
+```
+
+### `VectorVertexVisitor.h` — a concrete visitor
+
+Inherits from `VertexVisitor` and implements `Visit` by **appending each visited
+vertex to a `vector`**. After the traversal, `visitedVertices` holds the vertices in
+the exact order BFS reached them — a convenient way to capture the traversal order
+without printing during the search.
+
+```cpp
+#ifndef VECTORVERTEXVISITOR_H
+#define VECTORVERTEXVISITOR_H
+
+#include <vector>
+#include "VertexVisitor.h"
+
+// VectorVertexVisitor adds each visited vertex to a vector
+class VectorVertexVisitor : public VertexVisitor {
+public:
+   std::vector<Vertex*> visitedVertices;
+
+   void Visit(Vertex* vertex) {
+      visitedVertices.push_back(vertex);
+   }
+};
+
+#endif
+```
+
+### The `BreadthFirstSearch` member on `Graph`
+
+The demo calls `peopleGraph.BreadthFirstSearch(startVertex, visitor,
+vertexDistances)`, so the Section 14 `Graph` class must be extended with this
+method. It is the standard BFS from Section 10 adapted to (a) call the **visitor**
+instead of `cout`, and (b) record each vertex's **distance in hops** from the start
+in an `unordered_map`. (Add `#include <queue>` to `Graph.h`.)
+
+```cpp
+// Add inside the Graph class (public section)
+void BreadthFirstSearch(Vertex* startVertex, VertexVisitor& visitor,
+   std::unordered_map<Vertex*, double>& vertexDistances) {
+   std::queue<Vertex*> vertexQueue;
+   std::unordered_set<Vertex*> discovered;
+
+   // The start vertex is distance 0 from itself
+   vertexQueue.push(startVertex);
+   discovered.insert(startVertex);
+   vertexDistances[startVertex] = 0;
+
+   while (!vertexQueue.empty()) {
+      Vertex* currentVertex = vertexQueue.front();
+      vertexQueue.pop();
+
+      // "Do the work" — delegated to the visitor
+      visitor.Visit(currentVertex);
+
+      // Enqueue each undiscovered neighbor, one hop farther out
+      for (Edge* edge : *GetEdgesFrom(currentVertex)) {
+         Vertex* adjacentVertex = edge->toVertex;
+         if (discovered.count(adjacentVertex) == 0) {
+            discovered.insert(adjacentVertex);
+            vertexDistances[adjacentVertex] =
+               vertexDistances[currentVertex] + 1;
+            vertexQueue.push(adjacentVertex);
+         }
+      }
+   }
+}
+```
+
+> This mirrors the Section 10 algorithm: a **FIFO queue** drives the search and a
+> "discovered" set does the **marking** (here vertices are marked when *enqueued*,
+> so no vertex is queued twice). The one addition is the `vertexDistances` map,
+> which records how many edges from the start each vertex is. If your zyBooks
+> `Graph.h` provides its own `BreadthFirstSearch`, use that one — this reconstruction
+> is included so the notes are self-contained and runnable.
+
+### Driver — `BFSDemo.cpp`
+
+Builds an **undirected, unweighted** "people" graph (edges use the default weight
+`1.0`), runs BFS from `"Eva"`, and prints each vertex with its hop-distance in the
+order it was visited.
+
+```cpp
+#include <iostream>
+#include "Graph.h"
+#include "VectorVertexVisitor.h"
+using namespace std;
+
+int main() {
+   // Starting vertex name
+   string startName = "Eva";
+
+   // Create the graph
+   Graph peopleGraph;
+   Vertex* vertexA = peopleGraph.AddVertex("Joe");
+   Vertex* vertexB = peopleGraph.AddVertex("Eva");
+   Vertex* vertexC = peopleGraph.AddVertex("Taj");
+   Vertex* vertexD = peopleGraph.AddVertex("Chen");
+   Vertex* vertexE = peopleGraph.AddVertex("Lily");
+   Vertex* vertexF = peopleGraph.AddVertex("Jun");
+   Vertex* vertexG = peopleGraph.AddVertex("Ken");
+
+   // Add graph edges
+   peopleGraph.AddUndirectedEdge(vertexA, vertexB);  // Edge from Joe to Eva
+   peopleGraph.AddUndirectedEdge(vertexA, vertexC);  // Edge from Joe to Taj
+   peopleGraph.AddUndirectedEdge(vertexB, vertexE);  // Edge from Eva to Lily
+   peopleGraph.AddUndirectedEdge(vertexC, vertexD);  // Edge from Taj to Chen
+   peopleGraph.AddUndirectedEdge(vertexC, vertexE);  // Edge from Taj to Lily
+   peopleGraph.AddUndirectedEdge(vertexD, vertexF);  // Edge from Chen to Jun
+   peopleGraph.AddUndirectedEdge(vertexE, vertexF);  // Edge from Lily to Jun
+   peopleGraph.AddUndirectedEdge(vertexF, vertexG);  // Edge from Jun to Ken
+
+   // Get the start vertex
+   Vertex* startVertex = peopleGraph.GetVertex(startName);
+
+   // Create a vertex visitor that adds visited vertices to a vector
+   VectorVertexVisitor visitor;
+
+   if (startVertex) {
+      unordered_map<Vertex*, double> vertexDistances;
+      peopleGraph.BreadthFirstSearch(startVertex, visitor, vertexDistances);
+
+      // Output the result
+      cout << "Breadth-first search traversal" << endl;
+      cout << "Start vertex: " << startVertex->label << endl;
+      for (Vertex* vertex : visitor.visitedVertices) {
+         cout << vertex->label << ": " << vertexDistances[vertex] << endl;
+      }
+   }
+   else {
+      cout << "Start vertex \"" << startName << "\" not found" << endl;
+   }
+
+   return 0;
+}
+```
+
+### The graph being searched
+
+`AddUndirectedEdge` adds edges in **both** directions, so the friendships are
+symmetric:
+
+```
+        Joe
+       /   \
+     Eva    Taj
+      |     / \
+     Lily--/   Chen
+      |  \      |
+      |   \     |
+      +--- Jun -+
+            |
+           Ken
+```
+
+- Joe — Eva, Taj
+- Eva — Joe, Lily
+- Taj — Joe, Chen, Lily
+- Chen — Taj, Jun
+- Lily — Eva, Taj, Jun
+- Jun — Chen, Lily, Ken
+- Ken — Jun
+
+### Expected output
+
+BFS from Eva discovers vertices level by level (by number of hops). Neighbors are
+visited in the order they sit in each vertex's outgoing-edge vector (insertion
+order):
+
+```
+Breadth-first search traversal
+Start vertex: Eva
+Eva: 0
+Joe: 1
+Lily: 1
+Taj: 2
+Jun: 2
+Chen: 3
+Ken: 3
+```
+
+- **Distance 0:** Eva (the start).
+- **Distance 1:** Joe and Lily (Eva's direct friends).
+- **Distance 2:** Taj (via Joe) and Jun (via Lily).
+- **Distance 3:** Chen (via Taj) and Ken (via Jun).
+
+> The distances here count **edges (hops)**, not summed weights — every edge used
+> the default weight `1.0`, and BFS assigns `parentDistance + 1`. This is BFS's
+> "fewest edges" notion of shortest path (Section 10), **not** the weighted
+> shortest path of Section 11. The exact ordering of equal-distance vertices
+> depends on neighbor (vector) order, so it is deterministic given this insertion
+> order.
+
+### Why the visitor pattern?
+
+- **Separation of concerns:** `BreadthFirstSearch` only knows *how to walk* the
+  graph; the visitor decides *what happens* at each vertex. Swap in a different
+  `VertexVisitor` subclass (e.g., one that prints, counts, or searches for a target)
+  and the traversal code stays unchanged.
+- **Reusability:** the same visitor could be handed to a depth-first traversal.
+- This is the object-oriented answer to the chapter's point that traversal is a
+  graph *application* kept separate from the graph's core operations (Section 8).
+
+---
+
+## 16. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -1090,7 +1329,7 @@ int main() {
 
 ---
 
-## 16. Summary
+## 17. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
