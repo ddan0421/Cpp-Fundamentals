@@ -25,8 +25,9 @@
 14. [zyBooks Implementation: Hash-Map Adjacency Lists](#14-zybooks-implementation-hash-map-adjacency-lists)
 15. [zyBooks BFS Example (Visitor Pattern)](#15-zybooks-bfs-example-visitor-pattern)
 16. [zyBooks DFS Example (Visitor Pattern)](#16-zybooks-dfs-example-visitor-pattern)
-17. [Which Version to Use?](#17-which-version-to-use)
-18. [Summary](#18-summary)
+17. [zyBooks Dijkstra's Shortest Path](#17-zybooks-dijkstras-shortest-path)
+18. [Which Version to Use?](#18-which-version-to-use)
+19. [Summary](#19-summary)
 
 ---
 
@@ -1554,7 +1555,302 @@ which would have taken A's neighbors (B, D) before going any deeper.
 
 ---
 
-## 17. Which Version to Use?
+## 17. zyBooks Dijkstra's Shortest Path
+
+This is the **weighted** shortest-path problem from Section 11, implemented on the
+hash-map graph from Section 14. Where BFS (Section 15) finds the path with the
+*fewest edges*, **Dijkstra's algorithm** finds the path with the *smallest total
+edge weight* — the true "cheapest route." It computes the shortest path from one
+start vertex to **every** other vertex (single-source), and records enough
+information to reconstruct each actual path, not just its cost.
+
+It reuses `Vertex.h`, `Edge.h`, and `Graph.h` (extended with `DijkstraShortestPath`
+and `GetShortestPath` members — see below), and adds one helper class.
+
+### `PathVertexInfo.h` — per-vertex bookkeeping
+
+Dijkstra tracks three things for each vertex, bundled into `PathVertexInfo`:
+
+- **`distance`** — best-known total weight from the start to this vertex (starts at
+  **infinity**, meaning "no path found yet").
+- **`predecessor`** — the vertex we arrived *from* on that best path (starts
+  `nullptr`). Following predecessors backward reconstructs the whole route.
+- **`vertex`** — a back-pointer to the vertex this info describes.
+
+It also provides `RemoveMin`, a static helper that scans a vector and removes/returns
+the info with the **smallest `distance`** — this is the "give me the closest
+unvisited vertex" step at the heart of Dijkstra (a simple linear-scan stand-in for a
+priority queue).
+
+```cpp
+#ifndef PATHVERTEXINFO_H
+#define PATHVERTEXINFO_H
+
+#include <limits>
+#include <vector>
+#include "Vertex.h"
+
+class PathVertexInfo {
+public:
+   Vertex* vertex;
+   double distance;
+   Vertex* predecessor;
+
+   PathVertexInfo(Vertex* vertex = nullptr) {
+      this->vertex = vertex;
+      distance = std::numeric_limits<double>::infinity();
+      predecessor = nullptr;
+   }
+
+   // Utility function to remove and return the PathVertexInfo from the vector
+   // that has the minimum distance
+   static PathVertexInfo* RemoveMin(std::vector<PathVertexInfo*>& items) {
+      if (0 == items.size()) {
+         return nullptr;
+      }
+
+      int minIndex = 0;
+      for (int i = 1; i < items.size(); i++) {
+         if (items[i]->distance < items[minIndex]->distance) {
+            minIndex = i;
+         }
+      }
+
+      // Get the info with the minimum distance
+      PathVertexInfo* infoWithMinDistance = items[minIndex];
+
+      // Remove the info with the minimum distance
+      items.erase(items.begin() + minIndex);
+
+      return infoWithMinDistance;
+   }
+};
+
+#endif
+```
+
+### The `DijkstraShortestPath` and `GetShortestPath` members on `Graph`
+
+For this lab, the Section 14 `Graph` class gains two members (and `Graph.h` adds
+`#include "PathVertexInfo.h"`). These are the **actual zyBooks implementations**:
+
+```cpp
+// Added to the Graph class (public section); Graph.h now #includes "PathVertexInfo.h"
+
+std::unordered_map<Vertex*, PathVertexInfo> DijkstraShortestPath(
+   Vertex* startVertex) {
+   using namespace std;
+
+   // Create the unordered_map for vertex information
+   unordered_map<Vertex*, PathVertexInfo> info;
+
+   // Populate info map with a (vertex, PathVertexInfo) pair for each vertex
+   for (Vertex* vertex : GetVertices()) {
+      info[vertex] = PathVertexInfo(vertex);
+   }
+
+   // Create the vector of PathVertexInfo pointers for unvisited vertices
+   vector<PathVertexInfo*> unvisited;
+   for (Vertex* vertex : GetVertices()) {
+      unvisited.push_back(&info[vertex]);
+   }
+
+   // startVertex has a distance of 0 from itself
+   info[startVertex].distance = 0.0;
+
+   // Iterate through all vertices in the priority queue
+   while (unvisited.size() > 0) {
+      // Remove info with minimum distance
+      PathVertexInfo* currentInfo = PathVertexInfo::RemoveMin(unvisited);
+
+      // Check potential path lengths from the current vertex to all neighbors
+      for (Edge* edge : *GetEdgesFrom(currentInfo->vertex)) {
+         Vertex* adjacentVertex = edge->toVertex;
+         double alternativePathDistance = currentInfo->distance + edge->weight;
+
+         // If a shorter path from startVertex to adjacentVertex is found,
+         // update adjacentVertex's distance and predecessor
+         PathVertexInfo& adjacentInfo = info[adjacentVertex];
+         if (alternativePathDistance < adjacentInfo.distance) {
+            adjacentInfo.distance = alternativePathDistance;
+            adjacentInfo.predecessor = currentInfo->vertex;
+         }
+      }
+   }
+
+   return info;
+}
+
+static std::string GetShortestPath(Vertex* startVertex, Vertex* endVertex,
+   const std::unordered_map<Vertex*, PathVertexInfo>& infoMap) {
+
+   // Start from endVertex and build the path in reverse
+   std::string path = "";
+   Vertex* currentVertex = endVertex;
+   while (currentVertex != startVertex) {
+      path = " -> " + currentVertex->label + path;
+      currentVertex = infoMap.find(currentVertex)->second.predecessor;
+   }
+   path = startVertex->label + path;
+   return path;
+}
+```
+
+A few details worth noting in the real code:
+
+- **`unvisited` holds pointers into `info`.** After filling `info` with one
+  `PathVertexInfo` per vertex, the loop pushes `&info[vertex]` — the *addresses* of
+  the map's values. `unordered_map` guarantees element addresses stay valid, so when
+  `RemoveMin` returns one and the relax step writes through `info[adjacentVertex]`,
+  everything refers to the same objects. That's why setting
+  `info[startVertex].distance = 0.0` *after* building `unvisited` still works.
+- **`GetShortestPath` is `static`** and takes the map by `const&`. It builds the
+  string by **prepending** `" -> " + label` while walking `predecessor` links, and
+  stops when it reaches `startVertex` (not `nullptr`) — so no separate reverse step
+  is needed. Because it dereferences `predecessor`, the caller must not call it for
+  an unreachable vertex (the demo's `if` guard handles that).
+
+> **How it relates to Section 11:** the textbook `ShortestPath` pushes *edges* onto
+> a minimum **priority queue** keyed by distance; this version keeps a
+> `PathVertexInfo` per *vertex* and pulls the minimum out of a plain vector via
+> `RemoveMin`. Same greedy idea — always finalize the closest unvisited vertex next
+> — but this one also stores a `predecessor` so it can rebuild the actual path, not
+> just print the distance.
+
+### Driver — `DijkstrasDemo.cpp`
+
+Builds an **undirected, weighted** graph, runs Dijkstra from `A`, then prints the
+shortest path and total weight to every vertex.
+
+```cpp
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+#include "Graph.h"
+using namespace std;
+
+int main() {
+   Graph graph;
+
+   Vertex* vertexA = graph.AddVertex("A");
+   Vertex* vertexB = graph.AddVertex("B");
+   Vertex* vertexC = graph.AddVertex("C");
+   Vertex* vertexD = graph.AddVertex("D");
+   Vertex* vertexE = graph.AddVertex("E");
+   Vertex* vertexF = graph.AddVertex("F");
+   Vertex* vertexG = graph.AddVertex("G");
+   vector<Vertex*> vertices = {
+      vertexA, vertexB, vertexC, vertexD, vertexE, vertexF, vertexG
+   };
+
+   graph.AddUndirectedEdge(vertexA, vertexB, 8);
+   graph.AddUndirectedEdge(vertexA, vertexD, 3);
+   graph.AddUndirectedEdge(vertexA, vertexC, 7);
+   graph.AddUndirectedEdge(vertexB, vertexE, 6);
+   graph.AddUndirectedEdge(vertexC, vertexD, 1);
+   graph.AddUndirectedEdge(vertexC, vertexE, 2);
+   graph.AddUndirectedEdge(vertexD, vertexF, 15);
+   graph.AddUndirectedEdge(vertexD, vertexG, 12);
+   graph.AddUndirectedEdge(vertexE, vertexF, 4);
+   graph.AddUndirectedEdge(vertexF, vertexG, 1);
+
+   // Run Dijkstra's algorithm first
+   unordered_map<Vertex*, PathVertexInfo> infoMap =
+      graph.DijkstraShortestPath(vertexA);
+
+   // Display shortest path for each vertex from vertexA.
+   for (Vertex* vertex : vertices) {
+      PathVertexInfo& info = infoMap[vertex];
+      if (info.predecessor == nullptr && vertex != vertexA) {
+         cout << "A to " << vertex->label << ": no path exists" << endl;
+      }
+      else {
+         cout << "A to " << vertex->label << ": ";
+         cout << graph.GetShortestPath(vertexA, vertex, infoMap);
+         cout << " (total weight: " << (int)info.distance << ")" << endl;
+      }
+   }
+
+   return 0;
+}
+```
+
+### The graph
+
+Undirected, weighted (each edge's weight is its cost):
+
+| Vertex | Edges (neighbor : weight) |
+|--------|---------------------------|
+| A | B:8, D:3, C:7 |
+| B | A:8, E:6 |
+| C | A:7, D:1, E:2 |
+| D | A:3, C:1, F:15, G:12 |
+| E | B:6, C:2, F:4 |
+| F | D:15, E:4, G:1 |
+| G | D:12, F:1 |
+
+### Trace — greedily finalizing the closest vertex
+
+Each row removes the minimum-distance unvisited vertex and **relaxes** its edges
+(updates a neighbor if a cheaper route through the current vertex is found).
+Tentative distances (with predecessor) shown after each step:
+
+| Finalize (dist) | B | C | D | E | F | G |
+|-----------------|---|---|---|---|---|---|
+| start | ∞ | ∞ | ∞ | ∞ | ∞ | ∞ |
+| **A** (0) | 8 (A) | 7 (A) | 3 (A) | ∞ | ∞ | ∞ |
+| **D** (3) | 8 (A) | **4 (D)** | — | ∞ | 18 (D) | 15 (D) |
+| **C** (4) | 8 (A) | — | — | **6 (C)** | 18 (D) | 15 (D) |
+| **E** (6) | 8 (A) | — | — | — | **10 (E)** | 15 (D) |
+| **B** (8) | — | — | — | — | 10 (E) | 15 (D) |
+| **F** (10) | — | — | — | — | — | **11 (F)** |
+| **G** (11) | — | — | — | — | — | — |
+
+Notice the payoff of using weights: the cheapest route to C is **A → D → C** (cost
+4), *not* the direct edge A–C (cost 7). Likewise G is reached cheapest via
+A→D→C→E→F→G (11), beating the direct A→D→G (15).
+
+### Expected output
+
+```
+A to A: A (total weight: 0)
+A to B: A -> B (total weight: 8)
+A to C: A -> D -> C (total weight: 4)
+A to D: A -> D (total weight: 3)
+A to E: A -> D -> C -> E (total weight: 6)
+A to F: A -> D -> C -> E -> F (total weight: 10)
+A to G: A -> D -> C -> E -> F -> G (total weight: 11)
+```
+
+### How the pieces fit
+
+- **`DijkstraShortestPath`** does the computation and returns the `infoMap`
+  (distance + predecessor for every vertex).
+- **`GetShortestPath`** does *reconstruction*: starting at the destination, it hops
+  backward through `predecessor` links, **prepending** each label (`" -> " + label`)
+  until it reaches the start, so the finished string reads `A -> … -> dest`. This is
+  exactly the "follow the last-vertex column backward" idea from the Section 11
+  output table, automated.
+- The **`no path exists`** branch in the driver handles a disconnected vertex: if a
+  vertex still has `distance == infinity` and `predecessor == nullptr` (and isn't the
+  start), Dijkstra never reached it. In this connected graph that never happens.
+
+### Analysis
+
+- **Greedy and correct for non-negative weights.** Once a vertex is removed by
+  `RemoveMin`, its distance is final. (Dijkstra assumes **no negative edge
+  weights** — negatives would break that guarantee.)
+- **Cost of this implementation:** `RemoveMin` is a linear scan (**O(V)**), called
+  once per vertex, and every edge is relaxed once — so overall **O(V² + E)**. A real
+  binary-heap/`priority_queue` would bring this to **O((V + E) log V)**; the linear
+  vector is used here for clarity, mirroring the Section 11 discussion of using a
+  priority queue for the "next shortest distance."
+- **BFS vs. Dijkstra:** on an *unweighted* graph (all weights equal), Dijkstra
+  reduces to BFS. The weights are what make it necessary here.
+
+---
+
+## 18. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -1572,7 +1868,7 @@ which would have taken A's neighbors (B, D) before going any deeper.
 
 ---
 
-## 18. Summary
+## 19. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
