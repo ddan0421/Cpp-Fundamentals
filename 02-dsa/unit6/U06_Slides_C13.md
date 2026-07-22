@@ -29,8 +29,9 @@
 18. [zyBooks Bellman-Ford Shortest Path](#18-zybooks-bellman-ford-shortest-path)
 19. [zyBooks Topological Sort](#19-zybooks-topological-sort)
 20. [zyBooks Minimum Spanning Tree (Kruskal's)](#20-zybooks-minimum-spanning-tree-kruskals)
-21. [Which Version to Use?](#21-which-version-to-use)
-22. [Summary](#22-summary)
+21. [zyBooks All-Pairs Shortest Path (Floyd-Warshall)](#21-zybooks-all-pairs-shortest-path-floyd-warshall)
+22. [Which Version to Use?](#22-which-version-to-use)
+23. [Summary](#23-summary)
 
 ---
 
@@ -2637,7 +2638,434 @@ B to P, weight = 100
 
 ---
 
-## 21. Which Version to Use?
+## 21. zyBooks All-Pairs Shortest Path (Floyd-Warshall)
+
+Where Dijkstra and Bellman-Ford (Sections 17–18) find shortest paths from **one**
+source, the **all-pairs** problem finds the shortest path between **every** pair of
+vertices at once. This example uses the **Floyd-Warshall algorithm**, a compact
+dynamic-programming solution that fills in an `N × N` distance matrix. Like
+Bellman-Ford, it handles **negative edge weights** (but not negative cycles).
+
+The core idea: for every possible **intermediate** vertex `k`, check whether going
+`from → k → to` is shorter than the best `from → to` found so far. After considering
+every vertex as a possible intermediate, the matrix holds all shortest distances.
+
+You provided the complete real `Graph.h` (with `AllPairsShortestPath`,
+`GetEdgesVector`, and `ReconstructPath`) plus `ShortestPathMatrix.h`, so everything
+below is the actual zyBooks code.
+
+### `ShortestPathMatrix.h` — the distance table
+
+A square matrix (nested `unordered_map`) storing one distance per `(from, to)` pair,
+initialized to **infinity**. It sorts vertices by label so `Print` is readable, and
+`Print` renders `inf` for unreachable pairs and fixed-width integers otherwise.
+
+```cpp
+#ifndef SHORTESTPATHMATRIX_H
+#define SHORTESTPATHMATRIX_H
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <limits>
+#include <string>
+#include <unordered_map>
+#include "Vertex.h"
+
+// Represents a square matrix that stores a shortest path length for every
+// possible (Vertex, Vertex) pair.
+class ShortestPathMatrix {
+private:
+   std::unordered_map<Vertex*,std::unordered_map<Vertex*,double>> matrix;
+   std::vector<Vertex*> vertices;
+
+public:
+   ShortestPathMatrix(const std::vector<Vertex*>& allVertices) {
+      // Copy the vector of vertices
+      vertices = allVertices;
+
+      // Sort vertices by label so that Print()'s output is easy to read
+      std::sort(vertices.begin(), vertices.end(),
+         [](Vertex* v1, Vertex* v2) {
+            return v1->label < v2->label;
+         }
+      );
+
+      // Initialize matrix entries
+      const double defaultEntry = std::numeric_limits<double>::infinity();
+      for (Vertex* fromVertex : allVertices) {
+         std::unordered_map<Vertex*,double> row;
+         for (Vertex* toVertex : allVertices) {
+            row[toVertex] = defaultEntry;
+         }
+         matrix[fromVertex] = row;
+      }
+   }
+
+   double Get(Vertex* fromVertex, Vertex* toVertex) const {
+      return matrix.at(fromVertex).at(toVertex);
+   }
+
+   void Print(std::ostream& output = std::cout) const {
+      // This function assumes a matrix where each entry is either an integer
+      // in the range [-99, 99], or infinity. Each label is also assumed to be
+      // a single character.
+
+      // First print column headers
+      output << "   ";
+      for (Vertex* vertex : vertices) {
+         output << "  " << vertex->label << " ";
+      }
+      output << std::endl;
+
+      for (Vertex* fromVertex : vertices) {
+         output << fromVertex->label << " [ ";
+         for (Vertex* toVertex : vertices) {
+            double entry = Get(fromVertex, toVertex);
+
+            // Special case if entry is infinity
+            if (std::isinf(entry)) {
+               output << "inf ";
+            }
+            else {
+               // Space before entry only if non-negative
+               if (entry >= 0) {
+                  output << " ";
+               }
+
+               // Print the entry itself, followed by a space
+               output << (int) entry << " ";
+
+               // One more space if the entry is a single digit
+               if (entry < 10 && entry > -10) {
+                  output << " ";
+               }
+            }
+         }
+         output << "]" << std::endl;
+      }
+   }
+
+   void Set(Vertex* fromVertex, Vertex* toVertex, double distance) {
+      matrix[fromVertex][toVertex] = distance;
+   }
+};
+
+#endif
+```
+
+### `AllPairsShortestPath` — Floyd-Warshall
+
+The actual method from your `Graph.h`. It initializes the matrix (0 on the diagonal,
+each edge weight, infinity elsewhere), then runs the classic **triple loop**: for
+each intermediate `kVertex`, relax every `(fromVertex, toVertex)` pair.
+
+```cpp
+// Builds a ShortestPathMatrix using the Floyd-Warshall algorithm
+ShortestPathMatrix AllPairsShortestPath() const {
+   // Get vectors of vertices and edges
+   std::vector<Vertex*> allVertices = GetVertices();
+   std::vector<Edge*> allEdges = GetEdgesVector();
+
+   // Initialize the matrix
+   ShortestPathMatrix distMatrix(allVertices);
+
+   // Set each distance for vertex to same vertex to 0
+   for (Vertex* vertex : allVertices) {
+      distMatrix.Set(vertex, vertex, 0.0);
+   }
+
+   // Finish matrix initialization
+   for (Edge* edge : allEdges) {
+      distMatrix.Set(edge->fromVertex, edge->toVertex, edge->weight);
+   }
+
+   // Loop through vertices
+   for (Vertex* kVertex : allVertices) { // main loop
+      for (Vertex* fromVertex : allVertices) {
+         for (Vertex* toVertex : allVertices) {
+            double currentLength = distMatrix.Get(fromVertex, toVertex);
+            double possibleLength = distMatrix.Get(fromVertex, kVertex) +
+               distMatrix.Get(kVertex, toVertex);
+            if (possibleLength < currentLength) {
+               distMatrix.Set(fromVertex, toVertex, possibleLength);
+            }
+         }
+      }
+   }
+
+   return distMatrix;
+}
+```
+
+`GetEdgesVector` is a small helper (also in your `Graph.h`) that returns the distinct
+edges as a `vector` rather than an `unordered_set`:
+
+```cpp
+// Returns a vector containing all of this graph's distinct edges
+std::vector<Edge*> GetEdgesVector() const {
+   std::unordered_set<Edge*> edgesSet = GetEdges();
+   return std::vector<Edge*>(edgesSet.begin(), edgesSet.end());
+}
+```
+
+> **Why the `k` loop must be outermost.** Floyd-Warshall's correctness relies on
+> considering intermediate vertices one at a time: after iteration `k`, every entry
+> holds the shortest path that uses only `{first k vertices}` as intermediates. The
+> final matrix is the same regardless of *which order* the vertices are used as `k`,
+> so the `unordered_map` iteration order doesn't change the result.
+
+### `ReconstructPath` — recovering the actual edges
+
+Floyd-Warshall stores only distances, not predecessors. This method rebuilds a path
+by **backtracking**: from the end vertex, it looks for an incoming edge `x → current`
+such that `dist[start][current] − weight(x→current) == dist[start][x]` — i.e., an
+edge that lies *on* a shortest path. It repeats until it reaches the start, then
+reverses the collected edges. If no such edge is ever found, there is no path.
+
+```cpp
+// Reconstructs the shortest path, as a vector of edges, using the matrix
+// built by the Floyd-Warshall algorithm
+std::vector<Edge*> ReconstructPath(Vertex* startVertex, Vertex* endVertex,
+   const ShortestPathMatrix& matrix) const {
+
+   std::vector<Edge*> path;
+
+   // Backtrack from the ending vertex
+   Vertex* currentVertex = endVertex;
+   while (currentVertex != startVertex) {
+      const std::vector<Edge*>* incomingEdges = GetEdgesTo(currentVertex);
+
+      bool foundNext = false;
+      for (Edge* currentEdge : *incomingEdges) {
+         double expected = matrix.Get(startVertex, currentVertex) - currentEdge->weight;
+         double actual = matrix.Get(startVertex, currentEdge->fromVertex);
+         if (expected == actual) {
+            // Update current vertex
+            currentVertex = currentEdge->fromVertex;
+
+            // Append currentEdge to path. The normal algorithm prepends, but
+            // appending also works, provided the path is reversed before returning.
+            path.push_back(currentEdge);
+
+            // The next vertex in the path was found
+            foundNext = true;
+
+            // The correct incoming edge was found, so break the inner loop
+            break;
+         }
+      }
+
+      if (!foundNext) {
+         // Return an empty vector
+         path.clear();
+         return path;
+      }
+   }
+
+   // Edges were appended in reverse, so reverse the path before returning
+   for (int i = 0; i < path.size() / 2; i++) {
+      Edge* temp = path[i];
+      path[i] = path[path.size() - i - 1];
+      path[path.size() - i - 1] = temp;
+   }
+
+   return path;
+}
+```
+
+### Driver — `AllPairsShortestPathDemo.cpp`
+
+Builds **four** directed, weighted graphs from compact string encodings, prints each
+one's full distance matrix, then reconstructs one specific path per graph.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include "Graph.h"
+using namespace std;
+
+int main() {
+   vector<vector<string>> graphVertices = {
+      { "A", "B", "C", "D" },
+      { "A", "B", "C", "D" },
+      { "A", "B", "C" },
+      { "A", "B", "C", "D", "E" }
+   };
+   vector<vector<string>> graphEdges = {
+      { "AB2", "BC-3", "BD7", "CA5", "DA-4" },
+      { "AB4", "BC3", "CD6", "DA-1", "DB7" },
+      { "AB1", "AC1", "BC-8" },
+      { "AB1", "AE8", "BC2", "CD3", "DA-5", "ED9" }
+   };
+   vector<string> graphPaths = {
+      "CD", // Show shortest path from C to D in graph 1
+      "DB", // Show shortest path from D to B in graph 2
+      "CA", // Show shortest path from C to A in graph 3
+      "AD"  // Show shortest path from A to D in graph 4
+   };
+
+   // Build each graph and the all pairs shortest path matrix for each
+   for (int graphNum = 1; graphNum <= graphVertices.size(); graphNum++) {
+      // Create a new graph
+      Graph graph;
+
+      // Create and add vertices to the graph and a vector
+      vector<Vertex*> vertices;
+      vector<string>& vertexLabels = graphVertices[graphNum - 1];
+      for (string vertexLabel : vertexLabels) {
+         vertices.push_back(graph.AddVertex(vertexLabel));
+      }
+
+      // Parse and add edges
+      const vector<string>& edgeStrings = graphEdges[graphNum - 1];
+      for (string edgeString : edgeStrings) {
+         Vertex* fromVertex = graph.GetVertex(edgeString.substr(0, 1));
+         Vertex* toVertex = graph.GetVertex(edgeString.substr(1, 1));
+         double weight = stod(edgeString.substr(2));
+         graph.AddDirectedEdge(fromVertex, toVertex, weight);
+      }
+
+      // Get the all pairs shortest path matrix
+      ShortestPathMatrix matrix = graph.AllPairsShortestPath();
+
+      // Display the matrix
+      cout << "All pairs shortest path matrix (graph " << graphNum << "):";
+      cout << endl;
+      matrix.Print();
+
+      // Show an actual path sequence
+      string startVertexLabel = graphPaths[graphNum - 1].substr(0, 1);
+      string endVertexLabel = graphPaths[graphNum - 1].substr(1, 1);
+      cout << "Shortest path from " << startVertexLabel << " to ",
+      cout << endVertexLabel << ":" << endl;
+      Vertex* startVertex = graph.GetVertex(startVertexLabel);
+      Vertex* endVertex = graph.GetVertex(endVertexLabel);
+      vector<Edge*> path = graph.ReconstructPath(startVertex, endVertex, matrix);
+      if (0 == path.size()) {
+         cout << "No path" << endl;
+      }
+      else {
+         cout << path[0]->fromVertex->label;
+         for (Edge* edge : path) {
+            cout << " to " << edge->toVertex->label;
+         }
+         cout << endl;
+      }
+      cout << endl;
+   }
+
+   return 0;
+}
+```
+
+**Edge-string encoding:** each string is `<from><to><weight>`. The first character is
+the source, the second the destination, and the rest (parsed with `stod`) is the
+weight — which may be **negative**. So `"BC-3"` is `B → C` with weight `−3`, and
+`"DA-4"` is `D → A` with weight `−4`.
+
+### Graph 1 — edges A→B(2), B→C(−3), B→D(7), C→A(5), D→A(−4)
+
+```
+     A   B   C   D
+A [  0   2  -1   9  ]
+B [  2   0  -3   7  ]
+C [  5   7   0   14 ]
+D [ -4  -2  -5   0  ]
+```
+
+Path C → D (`"CD"`): the shortest C→D distance is **14**, via `C → A → B → D`
+(5 + 2 + 7):
+
+```
+Shortest path from C to D:
+C to A to B to D
+```
+
+### Graph 2 — edges A→B(4), B→C(3), C→D(6), D→A(−1), D→B(7)
+
+```
+     A   B   C   D
+A [  0   4   7   13 ]
+B [  8   0   3   9  ]
+C [  5   9   0   6  ]
+D [ -1   3   6   0  ]
+```
+
+Path D → B (`"DB"`): distance **3**, via `D → A → B` (−1 + 4) — cheaper than the
+direct `D → B` edge (7):
+
+```
+Shortest path from D to B:
+D to A to B
+```
+
+### Graph 3 — edges A→B(1), A→C(1), B→C(−8)
+
+Nothing points into `A`, and `C` has no outgoing edges, so several pairs are
+unreachable (`inf`):
+
+```
+      A   B   C
+A [  0   1  -7  ]
+B [ inf  0  -8  ]
+C [ inf inf  0  ]
+```
+
+Path C → A (`"CA"`): `C` has no outgoing edges, so no path exists —
+`ReconstructPath` finds no incoming edge to extend and returns empty:
+
+```
+Shortest path from C to A:
+No path
+```
+
+### Graph 4 — edges A→B(1), A→E(8), B→C(2), C→D(3), D→A(−5), E→D(9)
+
+```
+      A   B   C   D   E
+A [  0   1   3   6   8  ]
+B [  0   0   2   5   8  ]
+C [ -2  -1   0   3   6  ]
+D [ -5  -4  -2   0   3  ]
+E [  4   5   7   9   0  ]
+```
+
+Path A → D (`"AD"`): distance **6**, via `A → B → C → D` (1 + 2 + 3) — cheaper than
+`A → E → D` (8 + 9 = 17):
+
+```
+Shortest path from A to D:
+A to B to C to D
+```
+
+> Note the negative weights: because the `A → B → C → D → A` cycle sums to a
+> *positive* value (1 + 2 + 3 − 5 = 1), there is no negative cycle, so Floyd-Warshall
+> produces valid finite distances (e.g., `D → A = −5`, `C → A = −2`).
+
+### Analysis
+
+- **Complexity: O(V³)** time (the triple loop) and **O(V²)** space (the matrix). This
+  is often *better* than running Dijkstra from every vertex on dense graphs, and it's
+  far simpler to code.
+- **Negative edges: allowed.** Like Bellman-Ford, Floyd-Warshall works with negative
+  weights. It does **not** work if a **negative cycle** exists (a diagonal entry would
+  go negative, signaling one).
+- **Dynamic programming:** each pass over `k` extends the set of allowed intermediate
+  vertices, building the answer incrementally — a textbook DP formulation.
+- **Reconstruction without predecessors:** because only distances are stored, the path
+  is recovered by testing which incoming edge satisfies
+  `dist[start][to] − w == dist[start][from]`. (For tie-weighted alternatives, the
+  first matching incoming edge from `GetEdgesTo` wins, so a different but equally short
+  path could be produced on another platform.)
+- **When to use:** you need *every* pairwise distance (e.g., a routing table, or
+  repeated path queries on a small/medium graph). For a single source, Dijkstra or
+  Bellman-Ford is cheaper.
+
+---
+
+## 22. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -2655,7 +3083,7 @@ B to P, weight = 100
 
 ---
 
-## 22. Summary
+## 23. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
