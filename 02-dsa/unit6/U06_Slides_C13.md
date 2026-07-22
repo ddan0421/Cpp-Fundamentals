@@ -26,8 +26,9 @@
 15. [zyBooks BFS Example (Visitor Pattern)](#15-zybooks-bfs-example-visitor-pattern)
 16. [zyBooks DFS Example (Visitor Pattern)](#16-zybooks-dfs-example-visitor-pattern)
 17. [zyBooks Dijkstra's Shortest Path](#17-zybooks-dijkstras-shortest-path)
-18. [Which Version to Use?](#18-which-version-to-use)
-19. [Summary](#19-summary)
+18. [zyBooks Bellman-Ford Shortest Path](#18-zybooks-bellman-ford-shortest-path)
+19. [Which Version to Use?](#19-which-version-to-use)
+20. [Summary](#20-summary)
 
 ---
 
@@ -1850,7 +1851,228 @@ A to G: A -> D -> C -> E -> F -> G (total weight: 11)
 
 ---
 
-## 18. Which Version to Use?
+## 18. zyBooks Bellman-Ford Shortest Path
+
+**Bellman-Ford** solves the same single-source shortest-path problem as Dijkstra
+(Section 17), but trades speed for generality: it works even when some edges have
+**negative weights**, and it can **detect a negative-weight cycle** (a loop whose
+total weight is negative, which would make "shortest path" meaningless because you
+could keep looping to lower the cost forever). Dijkstra's greedy "finalize the
+closest vertex" logic breaks with negative edges; Bellman-Ford avoids the issue by
+simply **relaxing every edge, repeatedly**.
+
+It reuses `Vertex.h`, `Edge.h`, and `Graph.h` — including the **`GetShortestPath`**
+member from Section 17 — plus a trimmed `PathVertexInfo`.
+
+### `PathVertexInfo.h` — trimmed for Bellman-Ford
+
+Same three fields as Section 17 (`vertex`, `distance` starting at infinity,
+`predecessor`), but **without** the `RemoveMin` helper — Bellman-Ford never needs
+to pull out the minimum-distance vertex, so the priority-queue helper is gone.
+
+```cpp
+#ifndef PATHVERTEXINFO_H
+#define PATHVERTEXINFO_H
+
+#include <limits>
+#include <vector>
+#include "Graph.h"
+
+
+class PathVertexInfo {
+public:
+   Vertex* vertex;
+   double distance;
+   Vertex* predecessor;
+
+   PathVertexInfo(Vertex* vertex = nullptr) {
+      this->vertex = vertex;
+      distance = std::numeric_limits<double>::infinity();
+      predecessor = nullptr;
+   }
+};
+
+#endif
+```
+
+### The `BellmanFord` member on `Graph`
+
+The demo calls `graph.BellmanFord(startVertex, result)`, which returns a **`bool`**:
+`true` if shortest paths were computed successfully, `false` if a negative-weight
+cycle was detected. The Section 14 `Graph` is extended with this method (and it
+reuses `Graph::GetShortestPath` from Section 17 for path reconstruction).
+
+```cpp
+// Added to the Graph class (public section)
+bool BellmanFord(Vertex* startVertex,
+   std::unordered_map<Vertex*, PathVertexInfo>& info) {
+   // One PathVertexInfo per vertex; start is distance 0, all others infinity
+   for (Vertex* vertex : GetVertices()) {
+      info[vertex] = PathVertexInfo(vertex);
+   }
+   info[startVertex].distance = 0.0;
+
+   std::vector<Vertex*> vertices = GetVertices();
+
+   // Relax all edges |V| - 1 times
+   for (unsigned int i = 0; i < vertices.size() - 1; i++) {
+      for (Edge* edge : GetEdges()) {
+         double alternativePathDistance =
+            info[edge->fromVertex].distance + edge->weight;
+
+         // A shorter path to edge->toVertex? Record distance and predecessor.
+         if (alternativePathDistance < info[edge->toVertex].distance) {
+            info[edge->toVertex].distance = alternativePathDistance;
+            info[edge->toVertex].predecessor = edge->fromVertex;
+         }
+      }
+   }
+
+   // One more pass: if any edge can still be relaxed, a negative cycle exists
+   for (Edge* edge : GetEdges()) {
+      double alternativePathDistance =
+         info[edge->fromVertex].distance + edge->weight;
+      if (alternativePathDistance < info[edge->toVertex].distance) {
+         return false;   // negative-weight cycle detected
+      }
+   }
+
+   return true;
+}
+```
+
+> This is the standard Bellman-Ford. If your zyBooks `Graph.h` provides its own
+> `BellmanFord`, use that — this reconstruction keeps the notes self-contained.
+> Note it iterates **`GetEdges()`** (the set of *directed* edges from Section 14);
+> each undirected edge added by the demo is already stored as two directed edges, so
+> both directions get relaxed.
+
+### Why "relax all edges |V| − 1 times"?
+
+A shortest path in a graph with `V` vertices visits at most `V − 1` edges (any more
+would repeat a vertex). Each full pass over all edges guarantees that paths one edge
+longer become correct. So after `V − 1` passes, every shortest path — no matter how
+many edges it uses — has been found. **Relaxing** an edge means: *if going to
+`toVertex` via `fromVertex` is cheaper than its current best, update its distance and
+predecessor.*
+
+The **extra pass** at the end is the negative-cycle check: if any edge can *still* be
+relaxed after `V − 1` passes, distances are still dropping, which is only possible if
+a negative-weight cycle exists → return `false`.
+
+### Driver — `BellmanFordDemo.cpp`
+
+Builds a **mixed directed/undirected, weighted** graph, runs Bellman-Ford from `A`,
+and either prints each shortest path or reports a negative cycle.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include "Graph.h"
+#include "PathVertexInfo.h"
+using namespace std;
+
+int main() {
+   Graph graph;
+   Vertex* vertexA = graph.AddVertex("A");
+   Vertex* vertexB = graph.AddVertex("B");
+   Vertex* vertexC = graph.AddVertex("C");
+   Vertex* vertexD = graph.AddVertex("D");
+   Vertex* vertexE = graph.AddVertex("E");
+   Vertex* vertexF = graph.AddVertex("F");
+   Vertex* vertices[] = { vertexA, vertexB, vertexC, vertexD, vertexE, vertexF };
+   graph.AddDirectedEdge(vertexA, vertexB, 1);
+   graph.AddDirectedEdge(vertexA, vertexC, 2);
+   graph.AddUndirectedEdge(vertexB, vertexC, 1);
+   graph.AddUndirectedEdge(vertexB, vertexD, 3);
+   graph.AddDirectedEdge(vertexB, vertexE, 2);
+   graph.AddUndirectedEdge(vertexC, vertexE, 2);
+   graph.AddDirectedEdge(vertexD, vertexC, 1);
+   graph.AddUndirectedEdge(vertexD, vertexE, 4);
+   graph.AddDirectedEdge(vertexD, vertexF, 3);
+   graph.AddDirectedEdge(vertexE, vertexF, 3);
+
+   // Set starting vertex for shortest paths
+   Vertex* startVertex = vertexA;
+
+   // Run Bellman-Ford's shortest path algorithm. Display results if
+   // successful, or error message if a negative edge weight cycle exists.
+   unordered_map<Vertex*, PathVertexInfo> result;
+   if (graph.BellmanFord(startVertex, result)) {
+      for (Vertex* vertex : vertices) {
+         string path = Graph::GetShortestPath(startVertex, vertex, result);
+         cout << startVertex->label << " -> " << vertex->label << ": ";
+         cout << path << " (" << (int)result[vertex].distance << ")" << endl;
+      }
+   }
+   else {
+      cout << "Bellman-Ford failed, negative edge weight cycle detected." << endl;
+   }
+
+   return 0;
+}
+```
+
+### The graph
+
+Some edges are **directed** (one-way), some **undirected** (stored as two directed
+edges). Outgoing adjacency (neighbor : weight):
+
+| Vertex | Outgoing edges | From |
+|--------|----------------|------|
+| A | B:1, C:2 | both directed |
+| B | C:1, D:3, E:2 | C/D undirected, E directed |
+| C | B:1, E:2 | B/E via undirected edges |
+| D | B:3, C:1, E:4, F:3 | B/E undirected, C/F directed |
+| E | C:2, D:4, F:3 | C/D undirected, F directed |
+| F | *(none)* | F only has incoming edges |
+
+All weights are **positive**, so there is no negative cycle → `BellmanFord` returns
+`true` and the success branch runs.
+
+### Expected output
+
+```
+A -> A: A (0)
+A -> B: A -> B (1)
+A -> C: A -> C (2)
+A -> D: A -> B -> D (4)
+A -> E: A -> B -> E (3)
+A -> F: A -> B -> E -> F (6)
+```
+
+- **A→B** (1): the direct edge.
+- **A→C** (2): the direct edge `A→C` costs 2, which ties with `A→B→C` (1 + 1). Both
+  total 2. *Which predecessor is recorded for a tie depends on the order edges come
+  out of `GetEdges()`* (an `unordered_set`), so the path could print as `A -> B -> C`
+  on some runs — the total weight is 2 either way.
+- **A→D** (4): `A→B→D` (1 + 3); cheaper than any route through C.
+- **A→E** (3): `A→B→E` (1 + 2); beats `A→C→E` (2 + 2 = 4).
+- **A→F** (6): `A→B→E→F` (3 + 3); beats `A→B→D→F` (4 + 3 = 7).
+
+Because every weight here is positive, Bellman-Ford produces the **same distances**
+Dijkstra would — this demo showcases the algorithm's mechanics and its success/`bool`
+return, not negative edges specifically.
+
+### Dijkstra vs. Bellman-Ford
+
+| | Dijkstra (Section 17) | Bellman-Ford (this section) |
+|---|---|---|
+| Strategy | Greedy — finalize the closest unvisited vertex | Brute force — relax **all** edges, `V − 1` times |
+| Negative edge weights | **Not allowed** (greedy choice breaks) | **Allowed** |
+| Detects negative cycles | No | **Yes** (the extra relaxation pass) |
+| Auxiliary structure | Min "priority queue" (`RemoveMin`) | None — just repeated edge scans |
+| Time complexity | ~O(V² + E) here (O((V+E) log V) with a heap) | **O(V · E)** |
+| When to use | Non-negative weights, want speed | Possible negative weights, or need cycle detection |
+
+Both stop at the same idea from Section 11 — build shortest paths from a single
+source and record a predecessor per vertex so the route can be reconstructed
+(here via the shared `Graph::GetShortestPath`).
+
+---
+
+## 19. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -1868,7 +2090,7 @@ A to G: A -> D -> C -> E -> F -> G (total weight: 11)
 
 ---
 
-## 19. Summary
+## 20. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
