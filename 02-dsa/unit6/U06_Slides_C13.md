@@ -28,8 +28,9 @@
 17. [zyBooks Dijkstra's Shortest Path](#17-zybooks-dijkstras-shortest-path)
 18. [zyBooks Bellman-Ford Shortest Path](#18-zybooks-bellman-ford-shortest-path)
 19. [zyBooks Topological Sort](#19-zybooks-topological-sort)
-20. [Which Version to Use?](#20-which-version-to-use)
-21. [Summary](#21-summary)
+20. [zyBooks Minimum Spanning Tree (Kruskal's)](#20-zybooks-minimum-spanning-tree-kruskals)
+21. [Which Version to Use?](#21-which-version-to-use)
+22. [Summary](#22-summary)
 
 ---
 
@@ -2292,7 +2293,351 @@ every edge pointing forward.
 
 ---
 
-## 20. Which Version to Use?
+## 20. zyBooks Minimum Spanning Tree (Kruskal's)
+
+A **minimum spanning tree (MST)** of a connected, undirected, weighted graph is a
+subset of edges that **connects every vertex** using the **smallest possible total
+weight**, with **no cycles**. It's a *tree*, so it has exactly `V − 1` edges. This is
+the goal the chapter summary describes: e.g., laying pipe from a water works to every
+house along existing roads at minimum total cost.
+
+This example uses **Kruskal's algorithm**: consider edges from **cheapest to most
+expensive**, and add each edge to the tree **unless it would form a cycle** (i.e.,
+unless its two endpoints are already connected).
+
+Unlike the earlier traversal labs, here you provided the **complete, real `Graph.h`**
+(with `MinimumSpanningTree` built in), plus two new helper files — so everything below
+is the actual zyBooks code, not a reconstruction. `Graph.h` now also
+`#include`s `VertexSetCollection.h` and `EdgeComparer.h`.
+
+### `EdgeComparer.h` — make the priority queue a min-heap
+
+`std::priority_queue` is a **max**-heap by default. Kruskal needs the **smallest**
+weight on top, so this comparator **reverses** the comparison (`>` instead of `<`):
+returning `lhs->weight > rhs->weight` tells the priority queue to treat the
+*lighter* edge as higher priority.
+
+```cpp
+#ifndef EDGECOMPARER_H
+#define EDGECOMPARER_H
+
+#include "Edge.h"
+
+class EdgeComparer {
+public:
+   bool operator()(Edge* lhs, Edge* rhs) {
+      return lhs->weight > rhs->weight;
+   }
+};
+
+#endif
+```
+
+### `VertexSetCollection.h` — a disjoint-set ("union-find") structure
+
+This is the piece that detects cycles. Each vertex starts in **its own set**. Two
+vertices are "already connected" (in the growing forest) exactly when they're in the
+**same set**. Adding an edge merges the two endpoints' sets.
+
+- **`GetSet(vertex)`** — returns the set a vertex currently belongs to.
+- **`Merge(set1, set2)`** — unions two sets into one and **remaps** every vertex from
+  both to the merged set.
+
+If an edge's two endpoints are already in the same set, adding it would create a
+cycle, so Kruskal skips it.
+
+```cpp
+#ifndef VERTEXSETCOLLECTION_H
+#define VERTEXSETCOLLECTION_H
+
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include "Vertex.h"
+
+// Stores a collection of vertex sets that collectively store all vertices in a
+// graph. Each vertex is in only one set.
+class VertexSetCollection {
+private:
+   std::unordered_map<Vertex*, std::unordered_set<Vertex*>*> vertexMap;
+
+public:
+   VertexSetCollection(const std::vector<Vertex*>& allVertices) {
+      for (Vertex* vertex : allVertices) {
+         std::unordered_set<Vertex*>* vertexSet =
+            new std::unordered_set<Vertex*>();
+
+         vertexSet->insert(vertex);
+         vertexMap[vertex] = vertexSet;
+      }
+   }
+
+   virtual ~VertexSetCollection() {
+      // Build a set of distinct vertex sets to delete
+      std::unordered_set<std::unordered_set<Vertex*>*> distinctSets;
+      for (auto keyValuePair : vertexMap) {
+         distinctSets.insert(keyValuePair.second);
+      }
+
+      // Delete each distinct vertex set
+      for (std::unordered_set<Vertex*>* set : distinctSets) {
+         delete set;
+      }
+   }
+
+   // Gets the set containing the specified vertex
+   std::unordered_set<Vertex*>* GetSet(Vertex* vertex) {
+      return vertexMap[vertex];
+   }
+
+   // Merges two distinct sets from the collection. Remaps each vertex from the
+   // two sets to the merged set.
+   void Merge(std::unordered_set<Vertex*>* vertexSet1, std::unordered_set<Vertex*>* vertexSet2) {
+      // First create the union
+      std::unordered_set<Vertex*>* mergedSet = new std::unordered_set<Vertex*>(*vertexSet1);
+      for (Vertex* vertex : *vertexSet2) {
+         mergedSet->insert(vertex);
+      }
+
+      // Delete the two sets
+      delete vertexSet1;
+      delete vertexSet2;
+
+      // Now remap all vertices in the merged set
+      for (Vertex* vertex : *mergedSet) {
+         vertexMap[vertex] = mergedSet;
+      }
+   }
+};
+
+#endif
+```
+
+### The `MinimumSpanningTree` member on `Graph`
+
+The actual method from your `Graph.h`. It pushes every edge onto the min-priority
+queue, then repeatedly pops the lightest edge and keeps it **only if** its endpoints
+are in different sets (adding it can't form a cycle); otherwise it's discarded.
+
+```cpp
+// Returns a vector of edges representing the graph's minimum spanning tree.
+// Uses Kruskal's minimum spanning tree algorithm.
+std::vector<Edge*> MinimumSpanningTree() const {
+
+   using namespace std;
+
+   // edgeQueue starts as a priority queue of all edges from this graph
+   priority_queue<Edge*, vector<Edge*>, EdgeComparer> edgeQueue;
+   for (Edge* edge : GetEdges()) {
+      edgeQueue.push(edge);
+   }
+
+   // Initialize the collection of vertex sets
+   VertexSetCollection vertexSets(GetVertices());
+
+   // Declare a new vector of edges for the result
+   vector<Edge*> result;
+
+   while (edgeQueue.size() > 0) {
+      // Remove edge with minimum weight from edgeQueue
+      Edge* nextEdge = edgeQueue.top();
+      edgeQueue.pop();
+
+      // set1 = set in vertexSets containing nextEdge's 'from' vertex
+      unordered_set<Vertex*>* set1 = vertexSets.GetSet(nextEdge->fromVertex);
+      // set2 = set in vertexSets containing nextEdge's 'to' vertex
+      unordered_set<Vertex*>* set2 = vertexSets.GetSet(nextEdge->toVertex);
+
+      // If the 2 sets are distinct, then merge
+      if (set1 != set2) {
+         // Add nextEdge to the result
+         result.push_back(nextEdge);
+         // Merge the 2 sets within the collection
+         vertexSets.Merge(set1, set2);
+      }
+   }
+
+   return result;
+}
+```
+
+> Because each **undirected** edge is stored as **two directed edges** (Section 14),
+> the priority queue contains both directions. Whichever direction pops first is
+> added; when the second (same weight, same two vertices) pops later, its endpoints
+> are already in one set, so `set1 == set2` and it's skipped. Net effect: each
+> undirected edge is considered once for the tree.
+
+### Driver — `MinimumSpanningTreeDemo.cpp`
+
+Builds two **undirected, weighted** graphs and prints the edges of each one's MST.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include "Graph.h"
+using namespace std;
+
+int main() {
+   // Add vertices A through H to graph1
+   Graph graph1;
+   string vertexNames[] = { "A", "B", "C", "D", "E", "F", "G", "H" };
+   for (string& vertexName : vertexNames) {
+      graph1.AddVertex(vertexName);
+   }
+
+   // Add graph1's edges
+   graph1.AddUndirectedEdge(graph1.GetVertex("A"), graph1.GetVertex("B"), 15);
+   graph1.AddUndirectedEdge(graph1.GetVertex("A"), graph1.GetVertex("D"), 6);
+   graph1.AddUndirectedEdge(graph1.GetVertex("B"), graph1.GetVertex("C"), 9);
+   graph1.AddUndirectedEdge(graph1.GetVertex("B"), graph1.GetVertex("D"), 12);
+   graph1.AddUndirectedEdge(graph1.GetVertex("B"), graph1.GetVertex("G"), 14);
+   graph1.AddUndirectedEdge(graph1.GetVertex("B"), graph1.GetVertex("H"), 10);
+   graph1.AddUndirectedEdge(graph1.GetVertex("C"), graph1.GetVertex("E"), 16);
+   graph1.AddUndirectedEdge(graph1.GetVertex("D"), graph1.GetVertex("E"), 8);
+   graph1.AddUndirectedEdge(graph1.GetVertex("E"), graph1.GetVertex("F"), 20);
+
+   // Add vertices A through G, and P, to graph2
+   Graph graph2;
+   string vertexNames2[] = { "A", "B", "C", "D", "E", "F", "G", "P" };
+   for (string& vertexName : vertexNames2) {
+      graph2.AddVertex(vertexName);
+   }
+
+   // Add graph2's edges
+   graph2.AddUndirectedEdge(graph2.GetVertex("A"), graph2.GetVertex("B"), 80);
+   graph2.AddUndirectedEdge(graph2.GetVertex("A"), graph2.GetVertex("C"), 105);
+   graph2.AddUndirectedEdge(graph2.GetVertex("A"), graph2.GetVertex("E"), 182);
+   graph2.AddUndirectedEdge(graph2.GetVertex("B"), graph2.GetVertex("C"), 90);
+   graph2.AddUndirectedEdge(graph2.GetVertex("B"), graph2.GetVertex("D"), 60);
+   graph2.AddUndirectedEdge(graph2.GetVertex("B"), graph2.GetVertex("P"), 100);
+   graph2.AddUndirectedEdge(graph2.GetVertex("C"), graph2.GetVertex("P"), 132);
+   graph2.AddUndirectedEdge(graph2.GetVertex("D"), graph2.GetVertex("E"), 80);
+   graph2.AddUndirectedEdge(graph2.GetVertex("E"), graph2.GetVertex("F"), 70);
+   graph2.AddUndirectedEdge(graph2.GetVertex("F"), graph2.GetVertex("G"), 72);
+   graph2.AddUndirectedEdge(graph2.GetVertex("F"), graph2.GetVertex("P"), 145);
+   graph2.AddUndirectedEdge(graph2.GetVertex("G"), graph2.GetVertex("P"), 180);
+
+   // Get the minimum spanning tree for both graphs
+   Graph* graphs[] = { &graph1, &graph2 };
+   int graphNum = 1;
+   for (Graph* graph : graphs) {
+      // Get the list of edges for the graph's minimum spanning tree
+      vector<Edge*> treeEdges = graph->MinimumSpanningTree();
+
+      // Display the list of edges
+      cout << "Edges in minimum spanning tree (graph " << graphNum << "):";
+      cout << endl;
+      for (Edge* edge : treeEdges) {
+         cout << edge->fromVertex->label << " to " + edge->toVertex->label;
+         cout << ", weight = " << (int)edge->weight << endl;
+      }
+
+      graphNum++;
+   }
+
+   return 0;
+}
+```
+
+### Graph 1 — edges by weight
+
+| Edge | Weight |  | Edge | Weight |
+|------|--------|--|------|--------|
+| A–D | 6 |  | B–D | 12 |
+| D–E | 8 |  | B–G | 14 |
+| B–C | 9 |  | A–B | 15 |
+| B–H | 10 |  | C–E | 16 |
+|  |  |  | E–F | 20 |
+
+**Kruskal's trace** (cheapest first; ✓ = added, ✗ = skipped as a cycle):
+
+| Edge (weight) | Endpoints' sets | Action |
+|---------------|-----------------|--------|
+| A–D (6) | {A}, {D} | ✓ merge → {A,D} |
+| D–E (8) | {A,D}, {E} | ✓ → {A,D,E} |
+| B–C (9) | {B}, {C} | ✓ → {B,C} |
+| B–H (10) | {B,C}, {H} | ✓ → {B,C,H} |
+| B–D (12) | {B,C,H}, {A,D,E} | ✓ → {A,B,C,D,E,H} |
+| B–G (14) | {A,B,C,D,E,H}, {G} | ✓ → {A,B,C,D,E,G,H} |
+| A–B (15) | same set | ✗ cycle |
+| C–E (16) | same set | ✗ cycle |
+| E–F (20) | {…}, {F} | ✓ → all 8 connected |
+
+7 edges, **total weight = 69**.
+
+### Graph 2 — edges by weight
+
+Sorted: B–D (60), E–F (70), F–G (72), **A–B (80)**, **D–E (80)**, B–C (90), B–P (100),
+A–C (105), C–P (132), F–P (145), G–P (180), A–E (182).
+
+**Kruskal's trace:**
+
+| Edge (weight) | Action |
+|---------------|--------|
+| B–D (60) | ✓ {B,D} |
+| E–F (70) | ✓ {E,F} |
+| F–G (72) | ✓ {E,F,G} |
+| A–B (80) | ✓ {A,B,D} |
+| D–E (80) | ✓ joins {A,B,D} + {E,F,G} → {A,B,D,E,F,G} |
+| B–C (90) | ✓ + {C} |
+| B–P (100) | ✓ + {P} → all 8 connected |
+| A–C, C–P, F–P, G–P, A–E | ✗ all cycles |
+
+7 edges, **total weight = 552**.
+
+### Expected output
+
+```
+Edges in minimum spanning tree (graph 1):
+A to D, weight = 6
+D to E, weight = 8
+B to C, weight = 9
+B to H, weight = 10
+B to D, weight = 12
+B to G, weight = 14
+E to F, weight = 20
+Edges in minimum spanning tree (graph 2):
+B to D, weight = 60
+E to F, weight = 70
+F to G, weight = 72
+A to B, weight = 80
+D to E, weight = 80
+B to C, weight = 90
+B to P, weight = 100
+```
+
+> **What's deterministic vs. not.** Edges are emitted in **increasing weight** order,
+> and the *set* of MST edges and the total weight (69 and 552) are fixed. Two things
+> can vary between runs/platforms: (1) each line's **direction** (`A to D` vs.
+> `D to A`), since the undirected edge is stored as two directed edges and either may
+> pop first; and (2) the relative order of **equal-weight** edges (Graph 2's two
+> weight-80 edges `A–B` and `D–E`), since the priority queue and `GetEdges()`
+> (`unordered_set`) don't define a tie order. Both graphs have connected MSTs, so all
+> 7 edges appear in each.
+
+### Analysis
+
+- **Correctness (greedy):** Kruskal always picks the globally cheapest edge that
+  doesn't create a cycle. This greedy choice provably yields a minimum-weight tree.
+- **The role of union-find:** `set1 != set2` is the cycle test — if both endpoints are
+  already in the same component, the edge would close a loop and is rejected. `Merge`
+  grows the component. (This implementation rebuilds a merged set and remaps each
+  vertex, which is simpler than, but slower than, a rank/path-compressed union-find.)
+- **Complexity:** dominated by sorting/heaping the edges → **O(E log E)**. Each
+  `GetSet` is O(1) average; the `Merge` here is O(set size), so overall it's a clear,
+  if not maximally optimized, Kruskal.
+- **Kruskal vs. Dijkstra:** both are greedy and both lean on a priority queue, but they
+  optimize different things. Dijkstra (Section 17) minimizes distance **from one
+  source** to each vertex; Kruskal minimizes the **total weight to connect all
+  vertices** and produces a tree, not shortest paths.
+- **MST vs. shortest-path tree:** an MST is generally **not** the same as the tree of
+  shortest paths from a source — minimizing total connection cost is a different goal
+  from minimizing each individual path.
+
+---
+
+## 21. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -2310,7 +2655,7 @@ every edge pointing forward.
 
 ---
 
-## 21. Summary
+## 22. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
@@ -2321,8 +2666,9 @@ every edge pointing forward.
   avoid revisiting nodes and cycling.
 - The **single-source shortest-path** traversal uses a **minimum priority queue**
   keyed on distance to find minimal-cost paths from a start vertex to all others.
-- A related classic goal (not implemented here) is the **minimum spanning tree** —
-  a tree of links reaching every vertex with minimal total cost.
+- A related classic goal is the **minimum spanning tree** — a tree of links reaching
+  every vertex with minimal total cost (implemented with Kruskal's algorithm in
+  Section 20).
 - Graphs are commonly represented by an **adjacency matrix** (fast, O(1) edge
   access, but O(N²) space — wasteful for sparse graphs) or by **adjacency lists**
   (O(N) space for sparse graphs, but slower edge lookups). A modern, practical form
