@@ -27,8 +27,9 @@
 16. [zyBooks DFS Example (Visitor Pattern)](#16-zybooks-dfs-example-visitor-pattern)
 17. [zyBooks Dijkstra's Shortest Path](#17-zybooks-dijkstras-shortest-path)
 18. [zyBooks Bellman-Ford Shortest Path](#18-zybooks-bellman-ford-shortest-path)
-19. [Which Version to Use?](#19-which-version-to-use)
-20. [Summary](#20-summary)
+19. [zyBooks Topological Sort](#19-zybooks-topological-sort)
+20. [Which Version to Use?](#20-which-version-to-use)
+21. [Summary](#21-summary)
 
 ---
 
@@ -2072,7 +2073,226 @@ source and record a predecessor per vertex so the route can be reconstructed
 
 ---
 
-## 19. Which Version to Use?
+## 19. zyBooks Topological Sort
+
+A **topological sort** orders the vertices of a **directed acyclic graph (DAG)** so
+that for every directed edge `X → Y`, `X` comes **before** `Y` in the ordering. It
+answers "in what order can I do these tasks so every prerequisite comes first?" —
+think course prerequisites, build/compilation dependencies, or job scheduling.
+
+Two important facts:
+
+- It only works on a **DAG**. If the graph has a **cycle**, no valid ordering exists
+  (the items in the cycle each depend on one another).
+- The ordering is **not unique** — a graph can have many valid topological orders.
+
+It reuses `Vertex.h`, `Edge.h`, and `Graph.h` (extended with a `TopologicalSort`
+member — see below) with no new helper files.
+
+### The `TopologicalSort` member on `Graph`
+
+The demo calls `graph->TopologicalSort()`, which returns a `vector<Vertex*>` in
+topological order. The standard approach (**Kahn's algorithm**) repeatedly removes a
+vertex that has **no remaining incoming edges**: such a vertex has no unmet
+prerequisites, so it can go next. "Removing" it decrements the incoming-edge count of
+each of its neighbors, which may expose new no-incoming vertices.
+
+```cpp
+// Added to the Graph class (public section)
+std::vector<Vertex*> TopologicalSort() {
+   std::vector<Vertex*> resultList;
+   std::unordered_map<Vertex*, int> remainingEdgeCount;
+
+   // Count how many incoming edges each vertex starts with (its in-degree)
+   for (Vertex* vertex : GetVertices()) {
+      remainingEdgeCount[vertex] = GetEdgesTo(vertex)->size();
+   }
+
+   // Vertices with no incoming edges have no unmet prerequisites
+   std::vector<Vertex*> noIncoming;
+   for (Vertex* vertex : GetVertices()) {
+      if (remainingEdgeCount[vertex] == 0) {
+         noIncoming.push_back(vertex);
+      }
+   }
+
+   while (!noIncoming.empty()) {
+      // Take any no-incoming vertex and append it to the result
+      Vertex* currentVertex = noIncoming.back();
+      noIncoming.pop_back();
+      resultList.push_back(currentVertex);
+
+      // "Remove" its outgoing edges: each neighbor loses one incoming edge
+      for (Edge* edge : *GetEdgesFrom(currentVertex)) {
+         Vertex* adjacentVertex = edge->toVertex;
+         remainingEdgeCount[adjacentVertex]--;
+         if (remainingEdgeCount[adjacentVertex] == 0) {
+            noIncoming.push_back(adjacentVertex);
+         }
+      }
+   }
+
+   return resultList;
+}
+```
+
+> This is the standard Kahn's-algorithm topological sort. If your zyBooks `Graph.h`
+> provides its own `TopologicalSort`, use that — this reconstruction keeps the notes
+> self-contained. Notice it leans on **`GetEdgesTo`** (the second map from Section 14)
+> to get each vertex's in-degree in O(1) — a concrete payoff of storing incoming
+> edges separately.
+>
+> **Cycle detection:** if the graph has a cycle, the vertices in it never reach a
+> count of 0, so `resultList` ends up **smaller than the number of vertices**. Both
+> graphs in this demo are DAGs, so every vertex is included.
+
+### Driver — `TopologicalSortDemo.cpp`
+
+Builds **two directed graphs** (both DAGs) with vertices `A`–`G` and different edge
+sets, then prints a topological ordering of each.
+
+```cpp
+#include <iostream>
+#include <vector>
+#include "Graph.h"
+using namespace std;
+
+int main() {
+   // Make two graphs
+   Graph graph1;
+   Vertex* vertexA = graph1.AddVertex("A");
+   Vertex* vertexB = graph1.AddVertex("B");
+   Vertex* vertexC = graph1.AddVertex("C");
+   Vertex* vertexD = graph1.AddVertex("D");
+   Vertex* vertexE = graph1.AddVertex("E");
+   Vertex* vertexF = graph1.AddVertex("F");
+   Vertex* vertexG = graph1.AddVertex("G");
+   graph1.AddDirectedEdge(vertexA, vertexB);
+   graph1.AddDirectedEdge(vertexA, vertexC);
+   graph1.AddDirectedEdge(vertexB, vertexF);
+   graph1.AddDirectedEdge(vertexC, vertexD);
+   graph1.AddDirectedEdge(vertexD, vertexF);
+   graph1.AddDirectedEdge(vertexE, vertexF);
+   graph1.AddDirectedEdge(vertexE, vertexG);
+   graph1.AddDirectedEdge(vertexF, vertexG);
+
+   Graph graph2;
+   vertexA = graph2.AddVertex("A");
+   vertexB = graph2.AddVertex("B");
+   vertexC = graph2.AddVertex("C");
+   vertexD = graph2.AddVertex("D");
+   vertexE = graph2.AddVertex("E");
+   vertexF = graph2.AddVertex("F");
+   vertexG = graph2.AddVertex("G");
+   graph2.AddDirectedEdge(vertexA, vertexE);
+   graph2.AddDirectedEdge(vertexB, vertexC);
+   graph2.AddDirectedEdge(vertexC, vertexF);
+   graph2.AddDirectedEdge(vertexC, vertexG);
+   graph2.AddDirectedEdge(vertexD, vertexA);
+   graph2.AddDirectedEdge(vertexD, vertexB);
+   graph2.AddDirectedEdge(vertexE, vertexG);
+   graph2.AddDirectedEdge(vertexF, vertexG);
+
+   // Perform a topological sort with each graph
+   vector<Graph*> graphs = { &graph1, &graph2 };
+   int graphNum = 1;
+   for (Graph* graph : graphs) {
+      vector<Vertex*> resultList = graph->TopologicalSort();
+
+      // Display the sorted results
+      cout << "Graph " << graphNum << ": ";
+      if (resultList.size() > 0) {
+         cout << resultList[0]->label;
+      }
+      for (int i = 1; i < resultList.size(); i++) {
+         cout << ", " << resultList[i]->label;
+      }
+      cout << endl;
+      graphNum++;
+   }
+
+   return 0;
+}
+```
+
+### The graphs (in-degrees)
+
+**Graph 1** — edges A→B, A→C, B→F, C→D, D→F, E→F, E→G, F→G:
+
+| Vertex | In-degree | Incoming from |
+|--------|-----------|---------------|
+| A | 0 | — |
+| B | 1 | A |
+| C | 1 | A |
+| D | 1 | C |
+| E | 0 | — |
+| F | 3 | B, D, E |
+| G | 2 | E, F |
+
+Sources (in-degree 0): **A, E**.
+
+**Graph 2** — edges A→E, B→C, C→F, C→G, D→A, D→B, E→G, F→G:
+
+| Vertex | In-degree | Incoming from |
+|--------|-----------|---------------|
+| A | 1 | D |
+| B | 1 | D |
+| C | 1 | B |
+| D | 0 | — |
+| E | 1 | A |
+| F | 1 | C |
+| G | 3 | C, E, F |
+
+Source (in-degree 0): **D** only — so every valid ordering must start with `D`.
+
+### Expected output (one valid ordering)
+
+```
+Graph 1: A, E, B, C, D, F, G
+Graph 2: D, A, B, E, C, F, G
+```
+
+> **Topological order is not unique, and this implementation's exact output is
+> order-dependent.** `GetVertices()` iterates an `unordered_map`, so which sources are
+> found first (and the order they enter `noIncoming`) depends on hash ordering, not
+> insertion order. `Graph 1: A, B, C, D, E, F, G` and `Graph 2: D, B, A, C, F, E, G`
+> are equally valid. What every valid ordering **must** satisfy is that each edge
+> points "forward": e.g., in Graph 1, `A` precedes `B`/`C`, `C` precedes `D`, and `F`
+> precedes `G`; in Graph 2, `D` comes first and `G` comes last.
+
+### How it works — trace of Graph 2
+
+Because Graph 2 has a single source, its structure is easy to follow (using
+back-of-list removal):
+
+| `noIncoming` (before) | Take | Append to result | Decrement neighbors → new sources |
+|-----------------------|------|------------------|-----------------------------------|
+| `[D]` | D | D | A→0, B→0 → add A, B |
+| `[A, B]` | B | D, B | C→0 → add C |
+| `[A, C]` | C | D, B, C | F→0, G→2 → add F |
+| `[A, F]` | F | D, B, C, F | G→1 |
+| `[A]` | A | D, B, C, F, A | E→0 → add E |
+| `[E]` | E | …, E | G→0 → add G |
+| `[G]` | G | …, G | — |
+
+That produces `D, B, C, F, A, E, G` — another perfectly valid ordering, illustrating
+how the removal order (back vs. front, hash order) changes the result while keeping
+every edge pointing forward.
+
+### Relation to the rest of the chapter
+
+- Topological sort is another **traversal-based application** (Section 8) built only
+  from the ADT operations — here `GetVertices`, `GetEdgesFrom`, and `GetEdgesTo`.
+- It is closely related to DFS (Section 16): a topological order can also be produced
+  by a depth-first traversal that appends each vertex *after* visiting all its
+  descendants, then reversing. Kahn's algorithm (used here) is the queue/count-based
+  alternative.
+- Unlike the shortest-path algorithms (Sections 17–18), it ignores edge **weights**
+  entirely — only edge **direction** matters.
+
+---
+
+## 20. Which Version to Use?
 
 | Aspect | Array-Based (adjacency matrix) | Linked (adjacency lists) | zyBooks (hash-map adjacency lists) |
 |--------|--------------------------------|--------------------------|------------------------------------|
@@ -2090,7 +2310,7 @@ source and record a predecessor per vertex so the route can be reconstructed
 
 ---
 
-## 20. Summary
+## 21. Summary
 
 - A **graph** relaxes the shape property of a linked structure to represent
   **arbitrary networks** of information. It is a set of **vertices** connected by
