@@ -69,7 +69,7 @@ Chapters 5–6. The stack and queue ADTs, plus advanced list techniques.
   frames, Tower of Hanoi, dynamic programming intro).
 
 **Key files:** `U02_Slides_C5-6.md`, `U02_Runestone_C5.md`,
-`Unit1_2_Summary.md`, `ch5_adt_stack_queue.pdf`, `ch6_lists_plus.pdf`
+`ch5_adt_stack_queue.pdf`, `ch6_lists_plus.pdf`
 · **Labs:** `lab2/`, `practice_lab/`
 
 ---
