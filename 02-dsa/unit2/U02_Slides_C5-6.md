@@ -1,4 +1,4 @@
-# CSC 240 — Unit Summary (Stacks, Queues, and Lists Plus)
+# Unit Summary (Stacks, Queues, and Lists Plus)
 
 **Chapters Covered:**
 - Chapter 5: ADTs Stack and Queue

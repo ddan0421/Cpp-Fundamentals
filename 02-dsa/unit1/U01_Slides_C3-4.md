@@ -1,4 +1,4 @@
-# CSC 240 — Unit Summary (Lists)
+# Unit Summary (Lists)
 
 **Chapters Covered:**
 - Chapter 3: ADT Unsorted List

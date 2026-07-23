@@ -1,4 +1,4 @@
-# CSC 240 — Unit Summary
+# Unit Summary
 
 **Chapters Covered:**
 - Chapter 1: Software Engineering Principles
